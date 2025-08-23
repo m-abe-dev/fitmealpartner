@@ -7,6 +7,8 @@ export interface ColorPalette {
     dark: string;
     50: string;
     100: string;
+    200: string;
+    300: string;
     500: string;
     600: string;
     700: string;
@@ -129,4 +131,5 @@ export interface Shadows {
   sm: ShadowStyle | undefined;
   md: ShadowStyle | undefined;
   lg: ShadowStyle | undefined;
+  xl: ShadowStyle | undefined;
 }

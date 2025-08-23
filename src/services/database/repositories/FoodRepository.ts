@@ -50,9 +50,7 @@ class FoodRepository {
   
   // 食品検索（名前での部分一致）
   async searchFoods(query: string, limit: number = 20): Promise<Food[]> {
-    const db = DatabaseService.getDatabase();
-    
-    const result = await db.getAllAsync(
+    const result = await DatabaseService.getAllAsync(
       `SELECT * FROM food_db 
        WHERE name_ja LIKE ? OR name_en LIKE ? 
        ORDER BY is_favorite DESC, name_ja ASC 
@@ -65,9 +63,7 @@ class FoodRepository {
 
   // バーコードで食品検索
   async getFoodByBarcode(barcode: string): Promise<Food | null> {
-    const db = DatabaseService.getDatabase();
-    
-    const result = await db.getFirstAsync(
+    const result = await DatabaseService.getFirstAsync(
       'SELECT * FROM food_db WHERE barcode = ?',
       [barcode]
     ) as Record<string, any> | null;
@@ -77,9 +73,7 @@ class FoodRepository {
 
   // 食品IDで取得
   async getFoodById(foodId: string): Promise<Food | null> {
-    const db = DatabaseService.getDatabase();
-    
-    const result = await db.getFirstAsync(
+    const result = await DatabaseService.getFirstAsync(
       'SELECT * FROM food_db WHERE food_id = ?',
       [foodId]
     ) as Record<string, any> | null;
@@ -89,9 +83,9 @@ class FoodRepository {
 
   // お気に入り食品の取得
   async getFavoriteFoods(limit: number = 50): Promise<Food[]> {
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.getAllAsync(
+    
+    const result = await DatabaseService.getAllAsync(
       'SELECT * FROM food_db WHERE is_favorite = 1 ORDER BY name_ja ASC LIMIT ?',
       [limit]
     ) as Record<string, any>[];
@@ -101,9 +95,9 @@ class FoodRepository {
 
   // 最近使用した食品の取得
   async getRecentFoods(userId: string, limit: number = 10): Promise<Food[]> {
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.getAllAsync(
+    
+    const result = await DatabaseService.getAllAsync(
       `SELECT DISTINCT f.* FROM food_db f
        INNER JOIN food_log fl ON f.food_id = fl.food_id
        WHERE fl.user_id = ?
@@ -117,9 +111,9 @@ class FoodRepository {
 
   // 食品をお気に入りに追加/削除
   async toggleFavorite(foodId: string): Promise<void> {
-    const db = DatabaseService.getDatabase();
     
-    await db.runAsync(
+    
+    await DatabaseService.runAsync(
       'UPDATE food_db SET is_favorite = NOT is_favorite WHERE food_id = ?',
       [foodId]
     );
@@ -127,9 +121,9 @@ class FoodRepository {
 
   // 新しい食品を追加
   async addFood(food: Omit<Food, 'created_at'>): Promise<void> {
-    const db = DatabaseService.getDatabase();
     
-    await db.runAsync(
+    
+    await DatabaseService.runAsync(
       `INSERT INTO food_db 
        (food_id, name_ja, name_en, barcode, brand, category, p100, f100, c100, kcal100, source, is_favorite) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -152,9 +146,9 @@ class FoodRepository {
 
   // 食事ログを追加
   async logFood(foodLog: Omit<FoodLog, 'id' | 'logged_at' | 'synced'>): Promise<number> {
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.runAsync(
+    
+    const result = await DatabaseService.runAsync(
       `INSERT INTO food_log 
        (user_id, date, meal_type, food_id, food_name, amount_g, protein_g, fat_g, carb_g, kcal) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -177,10 +171,10 @@ class FoodRepository {
 
   // 食事ログを更新
   async updateFoodLog(logId: number, amount_g: number): Promise<void> {
-    const db = DatabaseService.getDatabase();
+    
     
     // まず元の食品データを取得
-    const logData = await db.getFirstAsync(
+    const logData = await DatabaseService.getFirstAsync(
       'SELECT food_id FROM food_log WHERE id = ?',
       [logId]
     ) as { food_id: string } | null;
@@ -197,7 +191,7 @@ class FoodRepository {
     const carb_g = food.c100 * ratio;
     const kcal = food.kcal100 * ratio;
     
-    await db.runAsync(
+    await DatabaseService.runAsync(
       `UPDATE food_log 
        SET amount_g = ?, protein_g = ?, fat_g = ?, carb_g = ?, kcal = ?, synced = 0 
        WHERE id = ?`,
@@ -207,16 +201,16 @@ class FoodRepository {
 
   // 食事ログを削除
   async deleteFoodLog(logId: number): Promise<void> {
-    const db = DatabaseService.getDatabase();
     
-    await db.runAsync('DELETE FROM food_log WHERE id = ?', [logId]);
+    
+    await DatabaseService.runAsync('DELETE FROM food_log WHERE id = ?', [logId]);
   }
 
   // 特定日の食事ログを取得
   async getFoodLogsByDate(userId: string, date: string): Promise<FoodLog[]> {
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.getAllAsync(
+    
+    const result = await DatabaseService.getAllAsync(
       'SELECT * FROM food_log WHERE user_id = ? AND date = ? ORDER BY logged_at ASC',
       [userId, date]
     ) as Record<string, any>[];
@@ -226,9 +220,9 @@ class FoodRepository {
 
   // 食事タイプ別のログを取得
   async getFoodLogsByMeal(userId: string, date: string, mealType: string): Promise<FoodLog[]> {
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.getAllAsync(
+    
+    const result = await DatabaseService.getAllAsync(
       'SELECT * FROM food_log WHERE user_id = ? AND date = ? AND meal_type = ? ORDER BY logged_at ASC',
       [userId, date, mealType]
     ) as Record<string, any>[];
@@ -238,9 +232,9 @@ class FoodRepository {
 
   // 栄養サマリーを取得
   async getNutritionSummary(userId: string, date: string): Promise<NutritionSummary> {
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.getAllAsync(
+    
+    const result = await DatabaseService.getAllAsync(
       `SELECT 
          meal_type,
          SUM(kcal) as total_kcal,
@@ -286,9 +280,9 @@ class FoodRepository {
 
   // 指定期間の栄養データを取得（グラフ用）
   async getNutritionTrend(userId: string, startDate: string, endDate: string): Promise<NutritionSummary[]> {
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.getAllAsync(
+    
+    const result = await DatabaseService.getAllAsync(
       `SELECT 
          date,
          SUM(kcal) as total_kcal,
@@ -335,9 +329,9 @@ class FoodRepository {
 
   // 未同期の食事ログを取得（オフライン対応）
   async getUnsyncedFoodLogs(): Promise<FoodLog[]> {
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.getAllAsync(
+    
+    const result = await DatabaseService.getAllAsync(
       'SELECT * FROM food_log WHERE synced = 0 ORDER BY logged_at ASC'
     ) as Record<string, any>[];
     
@@ -346,9 +340,9 @@ class FoodRepository {
 
   // 食事ログの同期状態を更新
   async markFoodLogAsSynced(logId: number): Promise<void> {
-    const db = DatabaseService.getDatabase();
     
-    await db.runAsync(
+    
+    await DatabaseService.runAsync(
       'UPDATE food_log SET synced = 1 WHERE id = ?',
       [logId]
     );

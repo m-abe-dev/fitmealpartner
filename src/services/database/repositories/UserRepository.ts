@@ -36,9 +36,7 @@ class UserRepository {
 
   // ユーザー設定を取得
   async getUserSettings(userId: string): Promise<UserSettings | null> {
-    const db = DatabaseService.getDatabase();
-    
-    const result = await db.getFirstAsync(
+    const result = await DatabaseService.getFirstAsync(
       'SELECT * FROM user_settings WHERE user_id = ?',
       [userId]
     );
@@ -48,9 +46,7 @@ class UserRepository {
 
   // ユーザー設定を保存/更新
   async saveUserSettings(settings: UserSettings): Promise<void> {
-    const db = DatabaseService.getDatabase();
-    
-    await db.runAsync(
+    await DatabaseService.runAsync(
       `INSERT OR REPLACE INTO user_settings 
        (user_id, goal, target_kcal, target_protein_g, target_fat_g, target_carb_g, 
         weight_kg, height_cm, birth_year, gender, activity_level, preferred_unit, updated_at) 
@@ -117,7 +113,7 @@ class UserRepository {
     target_fat_g?: number;
     target_carb_g?: number;
   }): Promise<void> {
-    const db = DatabaseService.getDatabase();
+    
     
     const fields = [];
     const values = [];
@@ -143,7 +139,7 @@ class UserRepository {
       fields.push('updated_at = CURRENT_TIMESTAMP');
       values.push(userId);
       
-      await db.runAsync(
+      await DatabaseService.runAsync(
         `UPDATE user_settings SET ${fields.join(', ')} WHERE user_id = ?`,
         values
       );
@@ -152,9 +148,9 @@ class UserRepository {
 
   // 体重を更新
   async updateWeight(userId: string, weightKg: number): Promise<void> {
-    const db = DatabaseService.getDatabase();
     
-    await db.runAsync(
+    
+    await DatabaseService.runAsync(
       'UPDATE user_settings SET weight_kg = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
       [weightKg, userId]
     );
@@ -162,9 +158,9 @@ class UserRepository {
 
   // 目標を更新
   async updateGoal(userId: string, goal: 'cut' | 'bulk' | 'maintain'): Promise<void> {
-    const db = DatabaseService.getDatabase();
     
-    await db.runAsync(
+    
+    await DatabaseService.runAsync(
       'UPDATE user_settings SET goal = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
       [goal, userId]
     );
@@ -172,9 +168,9 @@ class UserRepository {
 
   // 単位設定を更新
   async updatePreferredUnit(userId: string, unit: 'metric' | 'imperial'): Promise<void> {
-    const db = DatabaseService.getDatabase();
     
-    await db.runAsync(
+    
+    await DatabaseService.runAsync(
       'UPDATE user_settings SET preferred_unit = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
       [unit, userId]
     );
@@ -182,9 +178,9 @@ class UserRepository {
 
   // 体重履歴テーブルの作成（初回のみ）
   async createWeightHistoryTable(): Promise<void> {
-    const db = DatabaseService.getDatabase();
     
-    await db.execAsync(`
+    
+    await DatabaseService.execAsync(`
       CREATE TABLE IF NOT EXISTS weight_history (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT NOT NULL,
@@ -203,9 +199,9 @@ class UserRepository {
     // テーブルが存在することを確認
     await this.createWeightHistoryTable();
     
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.runAsync(
+    
+    const result = await DatabaseService.runAsync(
       'INSERT INTO weight_history (user_id, weight_kg, date) VALUES (?, ?, ?)',
       [record.user_id, record.weight_kg, record.date]
     );
@@ -220,9 +216,9 @@ class UserRepository {
   async getWeightHistory(userId: string, startDate: string, endDate: string): Promise<WeightRecord[]> {
     await this.createWeightHistoryTable();
     
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.getAllAsync(
+    
+    const result = await DatabaseService.getAllAsync(
       'SELECT * FROM weight_history WHERE user_id = ? AND date BETWEEN ? AND ? ORDER BY date ASC',
       [userId, startDate, endDate]
     );
@@ -234,9 +230,9 @@ class UserRepository {
   async getLatestWeight(userId: string): Promise<WeightRecord | null> {
     await this.createWeightHistoryTable();
     
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.getFirstAsync(
+    
+    const result = await DatabaseService.getFirstAsync(
       'SELECT * FROM weight_history WHERE user_id = ? ORDER BY date DESC, logged_at DESC LIMIT 1',
       [userId]
     );
@@ -297,22 +293,22 @@ class UserRepository {
 
   // ユーザーデータの完全削除（退会時）
   async deleteAllUserData(userId: string): Promise<void> {
-    const db = DatabaseService.getDatabase();
+    
     
     await DatabaseService.runTransaction(async (db) => {
       // 各テーブルからユーザーデータを削除
-      await db.runAsync('DELETE FROM user_settings WHERE user_id = ?', [userId]);
-      await db.runAsync('DELETE FROM food_log WHERE user_id = ?', [userId]);
-      await db.runAsync('DELETE FROM workout_session WHERE user_id = ?', [userId]);
+      await DatabaseService.runAsync('DELETE FROM user_settings WHERE user_id = ?', [userId]);
+      await DatabaseService.runAsync('DELETE FROM food_log WHERE user_id = ?', [userId]);
+      await DatabaseService.runAsync('DELETE FROM workout_session WHERE user_id = ?', [userId]);
       
       // 体重履歴テーブルが存在すれば削除
       try {
-        await db.runAsync('DELETE FROM weight_history WHERE user_id = ?', [userId]);
+        await DatabaseService.runAsync('DELETE FROM weight_history WHERE user_id = ?', [userId]);
       } catch (error) {
         // テーブルが存在しない場合は無視
       }
       
-      await db.runAsync('DELETE FROM sync_queue WHERE data LIKE ?', [`%"user_id":"${userId}"%`]);
+      await DatabaseService.runAsync('DELETE FROM sync_queue WHERE data LIKE ?', [`%"user_id":"${userId}"%`]);
     });
   }
 

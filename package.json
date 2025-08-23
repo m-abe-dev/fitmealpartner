@@ -24,7 +24,7 @@
     "expo-camera": "~15.0.16",
     "expo-font": "~13.0.1",
     "expo-splash-screen": "~0.29.13",
-    "expo-sqlite": "~14.0.6",
+    "expo-sqlite": "^15.2.14",
     "expo-status-bar": "~2.2.3",
     "i18next": "^23.7.0",
     "lucide-react-native": "^0.460.0",
@@ -46,7 +46,7 @@
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "babel-plugin-module-resolver": "^5.0.2",
-    "eslint": "^8.0.0",
+    "eslint": "^9.0.0",
     "eslint-config-expo": "^7.0.0",
     "typescript": "~5.8.3"
   },

@@ -29,4 +29,13 @@ export const shadows: Shadows = {
     },
     android: { elevation: 8 },
   }),
+  xl: Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.25,
+      shadowRadius: 24,
+    },
+    android: { elevation: 16 },
+  }),
 };

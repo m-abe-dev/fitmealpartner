@@ -55,9 +55,9 @@ class WorkoutRepository {
 
   // 種目検索（名前での部分一致）
   async searchExercises(query: string, limit: number = 20): Promise<Exercise[]> {
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.getAllAsync(
+    
+    const result = await DatabaseService.getAllAsync(
       `SELECT * FROM exercise_master 
        WHERE name_ja LIKE ? OR name_en LIKE ? 
        ORDER BY is_compound DESC, name_ja ASC 
@@ -70,9 +70,9 @@ class WorkoutRepository {
 
   // 筋肉部位で種目検索
   async getExercisesByMuscleGroup(muscleGroup: string): Promise<Exercise[]> {
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.getAllAsync(
+    
+    const result = await DatabaseService.getAllAsync(
       'SELECT * FROM exercise_master WHERE muscle_group = ? ORDER BY is_compound DESC, name_ja ASC',
       [muscleGroup]
     ) as Record<string, any>[];
@@ -82,9 +82,9 @@ class WorkoutRepository {
 
   // 種目IDで取得
   async getExerciseById(exerciseId: number): Promise<Exercise | null> {
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.getFirstAsync(
+    
+    const result = await DatabaseService.getFirstAsync(
       'SELECT * FROM exercise_master WHERE exercise_id = ?',
       [exerciseId]
     ) as Record<string, any> | null;
@@ -94,9 +94,9 @@ class WorkoutRepository {
 
   // 最近使用した種目を取得
   async getRecentExercises(userId: string, limit: number = 10): Promise<Exercise[]> {
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.getAllAsync(
+    
+    const result = await DatabaseService.getAllAsync(
       `SELECT DISTINCT e.* FROM exercise_master e
        INNER JOIN workout_set ws ON e.exercise_id = ws.exercise_id
        INNER JOIN workout_session wss ON ws.session_id = wss.session_id
@@ -111,9 +111,9 @@ class WorkoutRepository {
 
   // 新しい種目を追加
   async addExercise(exercise: Omit<Exercise, 'exercise_id'>): Promise<number> {
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.runAsync(
+    
+    const result = await DatabaseService.runAsync(
       `INSERT INTO exercise_master (name_ja, name_en, muscle_group, equipment, is_compound) 
        VALUES (?, ?, ?, ?, ?)`,
       [
@@ -130,9 +130,9 @@ class WorkoutRepository {
 
   // ワークアウトセッションを開始
   async startWorkoutSession(session: Omit<WorkoutSession, 'session_id' | 'total_volume_kg' | 'synced'>): Promise<number> {
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.runAsync(
+    
+    const result = await DatabaseService.runAsync(
       `INSERT INTO workout_session (user_id, date, start_time, notes) 
        VALUES (?, ?, ?, ?)`,
       [
@@ -148,10 +148,10 @@ class WorkoutRepository {
 
   // ワークアウトセッションを終了
   async endWorkoutSession(sessionId: number, endTime?: string): Promise<void> {
-    const db = DatabaseService.getDatabase();
+    
     
     // トータルボリュームを計算
-    const volumeResult = await db.getFirstAsync(
+    const volumeResult = await DatabaseService.getFirstAsync(
       `SELECT SUM(weight_kg * reps) as total_volume 
        FROM workout_set 
        WHERE session_id = ? AND weight_kg IS NOT NULL AND reps IS NOT NULL`,
@@ -160,7 +160,7 @@ class WorkoutRepository {
     
     const totalVolume = volumeResult?.total_volume || 0;
     
-    await db.runAsync(
+    await DatabaseService.runAsync(
       `UPDATE workout_session 
        SET end_time = ?, total_volume_kg = ?, synced = 0 
        WHERE session_id = ?`,
@@ -170,7 +170,7 @@ class WorkoutRepository {
 
   // ワークアウトセッションを更新
   async updateWorkoutSession(sessionId: number, updates: Partial<WorkoutSession>): Promise<void> {
-    const db = DatabaseService.getDatabase();
+    
     
     const fields = [];
     const values = [];
@@ -188,7 +188,7 @@ class WorkoutRepository {
       fields.push('synced = 0');
       values.push(sessionId);
       
-      await db.runAsync(
+      await DatabaseService.runAsync(
         `UPDATE workout_session SET ${fields.join(', ')} WHERE session_id = ?`,
         values
       );
@@ -197,9 +197,9 @@ class WorkoutRepository {
 
   // セットを追加
   async addWorkoutSet(set: Omit<WorkoutSet, 'set_id'>): Promise<number> {
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.runAsync(
+    
+    const result = await DatabaseService.runAsync(
       `INSERT INTO workout_set (session_id, exercise_id, set_number, weight_kg, reps, rpe, rest_seconds) 
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -221,10 +221,10 @@ class WorkoutRepository {
 
   // セットを更新
   async updateWorkoutSet(setId: number, updates: Partial<WorkoutSet>): Promise<void> {
-    const db = DatabaseService.getDatabase();
+    
     
     // まずセッションIDを取得
-    const setData = await db.getFirstAsync(
+    const setData = await DatabaseService.getFirstAsync(
       'SELECT session_id FROM workout_set WHERE set_id = ?',
       [setId]
     ) as { session_id: number } | null;
@@ -254,7 +254,7 @@ class WorkoutRepository {
     if (fields.length > 0) {
       values.push(setId);
       
-      await db.runAsync(
+      await DatabaseService.runAsync(
         `UPDATE workout_set SET ${fields.join(', ')} WHERE set_id = ?`,
         values
       );
@@ -266,17 +266,17 @@ class WorkoutRepository {
 
   // セットを削除
   async deleteWorkoutSet(setId: number): Promise<void> {
-    const db = DatabaseService.getDatabase();
+    
     
     // まずセッションIDを取得
-    const setData = await db.getFirstAsync(
+    const setData = await DatabaseService.getFirstAsync(
       'SELECT session_id FROM workout_set WHERE set_id = ?',
       [setId]
     ) as { session_id: number } | null;
     
     if (!setData) throw new Error('Workout set not found');
     
-    await db.runAsync('DELETE FROM workout_set WHERE set_id = ?', [setId]);
+    await DatabaseService.runAsync('DELETE FROM workout_set WHERE set_id = ?', [setId]);
     
     // セッションのトータルボリュームを更新
     await this.updateSessionVolume(setData.session_id);
@@ -284,9 +284,9 @@ class WorkoutRepository {
 
   // 特定日のワークアウトセッションを取得
   async getWorkoutSessionsByDate(userId: string, date: string): Promise<WorkoutSession[]> {
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.getAllAsync(
+    
+    const result = await DatabaseService.getAllAsync(
       'SELECT * FROM workout_session WHERE user_id = ? AND date = ? ORDER BY start_time ASC',
       [userId, date]
     ) as Record<string, any>[];
@@ -296,16 +296,16 @@ class WorkoutRepository {
 
   // セッションの詳細（セット含む）を取得
   async getWorkoutSessionWithSets(sessionId: number): Promise<WorkoutSessionWithSets | null> {
-    const db = DatabaseService.getDatabase();
     
-    const sessionResult = await db.getFirstAsync(
+    
+    const sessionResult = await DatabaseService.getFirstAsync(
       'SELECT * FROM workout_session WHERE session_id = ?',
       [sessionId]
     ) as Record<string, any> | null;
     
     if (!sessionResult) return null;
     
-    const setsResult = await db.getAllAsync(
+    const setsResult = await DatabaseService.getAllAsync(
       `SELECT ws.*, e.* FROM workout_set ws
        INNER JOIN exercise_master e ON ws.exercise_id = e.exercise_id
        WHERE ws.session_id = ?
@@ -331,7 +331,7 @@ class WorkoutRepository {
 
   // 前回の同種目のセットを取得（前回コピー機能用）
   async getLastSetsForExercise(userId: string, exerciseId: number, excludeSessionId?: number): Promise<WorkoutSet[]> {
-    const db = DatabaseService.getDatabase();
+    
     
     let query = `
       SELECT ws.* FROM workout_set ws
@@ -347,16 +347,16 @@ class WorkoutRepository {
     
     query += ' ORDER BY wss.date DESC, wss.start_time DESC, ws.set_number ASC LIMIT 10';
     
-    const result = await db.getAllAsync(query, params) as Record<string, any>[];
+    const result = await DatabaseService.getAllAsync(query, params) as Record<string, any>[];
     
     return result.map(row => this.mapRowToWorkoutSet(row));
   }
 
   // 指定期間のワークアウトサマリーを取得
   async getWorkoutSummary(userId: string, startDate: string, endDate: string): Promise<WorkoutSummary[]> {
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.getAllAsync(
+    
+    const result = await DatabaseService.getAllAsync(
       `SELECT 
          ws.date,
          COUNT(DISTINCT wset.exercise_id) as total_exercises,
@@ -391,9 +391,9 @@ class WorkoutRepository {
 
   // 筋肉部位別のボリューム集計
   async getMuscleGroupVolume(userId: string, startDate: string, endDate: string): Promise<MuscleGroupVolume[]> {
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.getAllAsync(
+    
+    const result = await DatabaseService.getAllAsync(
       `SELECT 
          e.muscle_group,
          COUNT(wset.set_id) as total_sets,
@@ -419,9 +419,9 @@ class WorkoutRepository {
 
   // 未同期のワークアウトデータを取得（オフライン対応）
   async getUnsyncedWorkoutSessions(): Promise<WorkoutSession[]> {
-    const db = DatabaseService.getDatabase();
     
-    const result = await db.getAllAsync(
+    
+    const result = await DatabaseService.getAllAsync(
       'SELECT * FROM workout_session WHERE synced = 0 ORDER BY date ASC, start_time ASC'
     ) as Record<string, any>[];
     
@@ -430,9 +430,9 @@ class WorkoutRepository {
 
   // ワークアウトセッションの同期状態を更新
   async markWorkoutSessionAsSynced(sessionId: number): Promise<void> {
-    const db = DatabaseService.getDatabase();
     
-    await db.runAsync(
+    
+    await DatabaseService.runAsync(
       'UPDATE workout_session SET synced = 1 WHERE session_id = ?',
       [sessionId]
     );
@@ -440,9 +440,9 @@ class WorkoutRepository {
 
   // セッションのトータルボリュームを更新（内部使用）
   private async updateSessionVolume(sessionId: number): Promise<void> {
-    const db = DatabaseService.getDatabase();
     
-    const volumeResult = await db.getFirstAsync(
+    
+    const volumeResult = await DatabaseService.getFirstAsync(
       `SELECT SUM(weight_kg * reps) as total_volume 
        FROM workout_set 
        WHERE session_id = ? AND weight_kg IS NOT NULL AND reps IS NOT NULL`,
@@ -451,7 +451,7 @@ class WorkoutRepository {
     
     const totalVolume = volumeResult?.total_volume || 0;
     
-    await db.runAsync(
+    await DatabaseService.runAsync(
       'UPDATE workout_session SET total_volume_kg = ?, synced = 0 WHERE session_id = ?',
       [totalVolume, sessionId]
     );
