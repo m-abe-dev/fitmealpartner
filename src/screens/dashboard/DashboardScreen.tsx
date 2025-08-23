@@ -911,10 +911,6 @@ export const DashboardScreen: React.FC = () => {
             <Text style={styles.sectionTitle}>データ分析</Text>
 
             {/* 筋トレボリュームセクション */}
-            <View style={styles.analyticsSection}>
-              <View style={styles.analyticsSectionHeader}>
-                <Text style={styles.analyticsSectionTitle}>🏋️ 筋トレボリューム分析</Text>
-              </View>
 
               <Card style={styles.chartCard}>
                 <View style={styles.chartHeader2Row}>
@@ -1062,13 +1058,11 @@ export const DashboardScreen: React.FC = () => {
                 </Card>
               </View>
             </View>
-            </View>
+
+            {/* セクション区切り */}
+            <View style={styles.sectionSeparator} />
 
             {/* 摂取カロリーセクション */}
-            <View style={styles.analyticsSection}>
-              <View style={styles.analyticsSectionHeader}>
-                <Text style={styles.analyticsSectionTitle}>🍎 摂取カロリー分析</Text>
-              </View>
 
               <Card style={styles.chartCard}>
                 <View style={styles.chartHeader2Row}>
@@ -1220,7 +1214,6 @@ export const DashboardScreen: React.FC = () => {
             </View>
             </View>
 
-          </View>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -1303,27 +1296,6 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.lg,
     ...shadows.sm,
-  },
-  analyticsSection: {
-    marginBottom: spacing.xl,
-    backgroundColor: colors.background.primary,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    elevation: 2,
-    shadowColor: colors.shadow?.primary || '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  analyticsSectionHeader: {
-    marginBottom: spacing.md,
-    alignItems: 'center',
-  },
-  analyticsSectionTitle: {
-    fontSize: typography.fontSize.lg,
-    color: colors.text.primary,
-    fontFamily: typography.fontFamily.bold,
-    textAlign: 'center',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1836,5 +1808,11 @@ const styles = StyleSheet.create({
     color: colors.text.inverse,
     fontFamily: typography.fontFamily.bold,
     textAlign: 'center',
+  },
+  sectionSeparator: {
+    height: 1,
+    backgroundColor: colors.border.light,
+    marginVertical: spacing.lg,
+    marginHorizontal: spacing.md,
   },
 });
