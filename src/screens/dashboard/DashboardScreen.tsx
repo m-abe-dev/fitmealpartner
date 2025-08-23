@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { VictoryLine, VictoryChart, VictoryAxis, VictoryArea } from 'victory-native';
-import { Bell, Crown, TrendingUp, Calendar, Target, Activity } from 'lucide-react-native';
+import { Bell, Crown, TrendingUp, Calendar, Target, Activity, Share2 } from 'lucide-react-native';
 import { colors, typography, spacing, radius, shadows } from '../../design-system';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
@@ -159,7 +159,18 @@ export const DashboardScreen: React.FC = () => {
       >
         {/* スコアセクション */}
         <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>今日の実績</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>スコアサマリー</Text>
+            <TouchableOpacity
+              style={styles.shareButton}
+              onPress={() => {
+                // SNS シェア機能の実装
+                console.log('Share score to SNS');
+              }}
+            >
+              <Share2 size={20} color={colors.primary.main} />
+            </TouchableOpacity>
+          </View>
           <Card style={styles.scoreCard}>
             <View style={styles.scoreCardGradient}>
               <Text style={styles.scoreTitle}>今日のスコア</Text>
@@ -585,11 +596,22 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     ...shadows.sm,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
   sectionTitle: {
     fontSize: typography.fontSize.lg,
     fontFamily: typography.fontFamily.bold,
     color: colors.text.primary,
-    marginBottom: spacing.md,
+    fontWeight: 'bold',
+  },
+  shareButton: {
+    padding: spacing.xs,
+    borderRadius: radius.full,
+    backgroundColor: colors.primary[50],
   },
   scoreCard: {
     marginBottom: spacing.md,

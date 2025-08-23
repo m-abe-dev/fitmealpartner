@@ -22,9 +22,9 @@ export default function AppNavigator() {
           backgroundColor: colors.background.primary,
           borderTopWidth: 1,
           borderTopColor: colors.border.light,
-          paddingBottom: spacing.xs,
+          paddingBottom: spacing.xl,
           paddingTop: spacing.xs,
-          height: 60,
+          height: 80,
         },
         tabBarLabelStyle: {
           fontSize: typography.fontSize.xs,
@@ -56,9 +56,6 @@ export default function AppNavigator() {
               focused && styles.activeIconContainer
             ]}>
               <Icon size={24} color={color} />
-              {focused && (
-                <View style={styles.activeIndicator} />
-              )}
             </View>
           );
         },
@@ -95,14 +92,5 @@ const styles = StyleSheet.create({
   },
   activeIconContainer: {
     // アクティブ時の背景
-  },
-  activeIndicator: {
-    position: 'absolute',
-    bottom: -12,
-    width: 48,
-    height: 4,
-    backgroundColor: colors.primary.main,
-    borderTopLeftRadius: 2,
-    borderTopRightRadius: 2,
   },
 });
