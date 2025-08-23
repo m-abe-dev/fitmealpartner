@@ -133,8 +133,8 @@ export const DashboardScreen: React.FC = () => {
       {/* ヘッダー */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.greeting}>おはようございます</Text>
-          <Text style={styles.userName}>田中さん</Text>
+          <Activity size={24} color={colors.primary.main} />
+          <Text style={styles.headerTitle}>ダッシュボード</Text>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.iconButton}>
@@ -464,7 +464,6 @@ export const DashboardScreen: React.FC = () => {
               </View>
             </View>
           </Card>
-        )}
 
             {/* 栄養統計カード */}
             <View style={styles.statsGrid}>
@@ -522,18 +521,19 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
+    gap: spacing.sm,
   },
-  greeting: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.secondary,
-    fontFamily: typography.fontFamily.regular,
-  },
-  userName: {
+  headerTitle: {
     fontSize: typography.fontSize.xl,
     color: colors.text.primary,
     fontFamily: typography.fontFamily.bold,
-    marginTop: spacing.xxxs,
+    fontWeight: 'bold',
+  },
+  tabContainer: {
+    marginBottom: spacing.md,
   },
   headerRight: {
     flexDirection: 'row',

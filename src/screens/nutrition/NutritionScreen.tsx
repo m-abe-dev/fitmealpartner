@@ -10,7 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell, Crown, Plus, Share2, Search, Clock, Star, MoreVertical, Edit3, Trash2 } from 'lucide-react-native';
+import { Bell, Crown, Plus, Share2, Search, Clock, Star, Apple, Edit3, Trash2 } from 'lucide-react-native';
 import { colors, typography, spacing, radius, shadows } from '../../design-system';
 import { Card } from '../../components/common/Card';
 import { Progress, CircularProgress } from '../../components/common/Progress';
@@ -46,7 +46,6 @@ interface FoodLogItem {
 
 export const NutritionScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date());
   const [showAddFood, setShowAddFood] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMeal, setSelectedMeal] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('breakfast');
@@ -172,16 +171,10 @@ export const NutritionScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       {/* ヘッダー */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>栄養管理</Text>
-          <Text style={styles.headerDate}>
-            {selectedDate.toLocaleDateString('ja-JP', { 
-              month: 'long', 
-              day: 'numeric',
-              weekday: 'short'
-            })}
-          </Text>
-        </View>
+        <View style={styles.headerTitleContainer}>
+           <Apple size={24} color={colors.primary.main} />
+           <Text style={styles.headerTitle}>食事</Text>
+           </View>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.iconButton}>
             <Bell size={24} color={colors.text.primary} />
@@ -283,7 +276,7 @@ export const NutritionScreen: React.FC = () => {
           {mealTabs.map((meal) => {
             const mealTotals = getMealTotals(meal.id);
             const mealFoods = getMealFoods(meal.id);
-            
+
             return (
               <View key={meal.id} style={styles.mealSection}>
                 <TouchableOpacity style={styles.mealHeader}>
@@ -321,7 +314,7 @@ export const NutritionScreen: React.FC = () => {
                       </View>
                       <Text style={styles.foodTime}>{food.time}</Text>
                     </View>
-                    
+
                     <View style={styles.foodActions}>
                       <TouchableOpacity style={styles.foodActionButton}>
                         <Edit3 size={16} color={colors.text.secondary} />
@@ -465,7 +458,13 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.xl,
     color: colors.text.primary,
     fontFamily: typography.fontFamily.bold,
+    fontWeight: 'bold',
   },
+  headerTitleContainer: {
+     flexDirection: 'row',
+     alignItems: 'center',
+    gap: spacing.sm,
+   },
   headerDate: {
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,

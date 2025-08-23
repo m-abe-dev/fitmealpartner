@@ -9,12 +9,12 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { 
-  Bell, 
-  Crown, 
-  Plus, 
-  Calendar, 
-  ChevronLeft, 
+import {
+  Bell,
+  Crown,
+  Plus,
+  Calendar,
+  ChevronLeft,
   ChevronRight,
   Dumbbell,
   Clock,
@@ -128,7 +128,7 @@ export const WorkoutScreen: React.FC = () => {
         } : undefined
       });
     }
-    
+
     return days;
   };
 
@@ -140,19 +140,19 @@ export const WorkoutScreen: React.FC = () => {
   };
 
   const toggleExerciseExpansion = (exerciseId: string) => {
-    setExercises(prev => prev.map(exercise => 
-      exercise.id === exerciseId 
+    setExercises(prev => prev.map(exercise =>
+      exercise.id === exerciseId
         ? { ...exercise, isExpanded: !exercise.isExpanded }
         : exercise
     ));
   };
 
   const updateSet = (exerciseId: string) => (setId: string, updates: Partial<WorkoutSet>) => {
-    setExercises(prev => prev.map(exercise => 
+    setExercises(prev => prev.map(exercise =>
       exercise.id === exerciseId
         ? {
             ...exercise,
-            sets: exercise.sets.map(set => 
+            sets: exercise.sets.map(set =>
               set.id === setId ? { ...set, ...updates } : set
             )
           }
@@ -161,7 +161,7 @@ export const WorkoutScreen: React.FC = () => {
   };
 
   const deleteSet = (exerciseId: string) => (setId: string) => {
-    setExercises(prev => prev.map(exercise => 
+    setExercises(prev => prev.map(exercise =>
       exercise.id === exerciseId
         ? {
             ...exercise,
@@ -172,11 +172,11 @@ export const WorkoutScreen: React.FC = () => {
   };
 
   const completeSet = (exerciseId: string) => (setId: string) => {
-    setExercises(prev => prev.map(exercise => 
+    setExercises(prev => prev.map(exercise =>
       exercise.id === exerciseId
         ? {
             ...exercise,
-            sets: exercise.sets.map(set => 
+            sets: exercise.sets.map(set =>
               set.id === setId ? { ...set, completed: true } : set
             )
           }
@@ -197,7 +197,7 @@ export const WorkoutScreen: React.FC = () => {
       completed: false
     };
 
-    setExercises(prev => prev.map(ex => 
+    setExercises(prev => prev.map(ex =>
       ex.id === exerciseId
         ? { ...ex, sets: [...ex.sets, newSet] }
         : ex
@@ -222,10 +222,8 @@ export const WorkoutScreen: React.FC = () => {
       {/* ヘッダー */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>ワークアウト</Text>
-          <Text style={styles.headerSubtitle}>
-            {workoutInProgress ? '進行中' : 'トレーニング記録'}
-          </Text>
+          <Dumbbell size={24} color={colors.primary.main} />
+          <Text style={styles.headerTitle}>筋トレ</Text>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.iconButton}>
@@ -271,11 +269,11 @@ export const WorkoutScreen: React.FC = () => {
                 <Text style={styles.calendarDayHeaderText}>{day}</Text>
               </View>
             ))}
-            
+
             {calendarDays.map((day, index) => {
               const dayDate = new Date(day.date);
               const dayOfWeek = dayDate.getDay();
-              
+
               return (
                 <TouchableOpacity
                   key={day.date}
@@ -313,7 +311,7 @@ export const WorkoutScreen: React.FC = () => {
               <Text style={styles.statValue}>45分</Text>
               <Text style={styles.statLabel}>経過時間</Text>
             </Card>
-            
+
             <Card style={styles.statCard}>
               <View style={styles.statIcon}>
                 <Dumbbell size={20} color={colors.status.success} />
@@ -321,7 +319,7 @@ export const WorkoutScreen: React.FC = () => {
               <Text style={styles.statValue}>1,250kg</Text>
               <Text style={styles.statLabel}>総ボリューム</Text>
             </Card>
-            
+
             <Card style={styles.statCard}>
               <View style={styles.statIcon}>
                 <Target size={20} color={colors.status.warning} />
@@ -368,7 +366,7 @@ export const WorkoutScreen: React.FC = () => {
         {workoutInProgress && (
           <View style={styles.exercisesSection}>
             <Text style={styles.exercisesSectionTitle}>エクササイズ</Text>
-            
+
             {exercises.map((exercise) => (
               <Card key={exercise.id} style={styles.exerciseCard}>
                 <TouchableOpacity
@@ -453,9 +451,9 @@ export const WorkoutScreen: React.FC = () => {
                 <TouchableOpacity key={index} style={styles.historyItem}>
                   <View style={styles.historyItemLeft}>
                     <Text style={styles.historyDate}>
-                      {new Date(workout.date).toLocaleDateString('ja-JP', { 
-                        month: 'numeric', 
-                        day: 'numeric' 
+                      {new Date(workout.date).toLocaleDateString('ja-JP', {
+                        month: 'numeric',
+                        day: 'numeric'
                       })}
                     </Text>
                     <Text style={styles.historyType}>{workout.type}</Text>
@@ -499,12 +497,16 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
+    gap: spacing.sm,
   },
   headerTitle: {
     fontSize: typography.fontSize.xl,
     color: colors.text.primary,
     fontFamily: typography.fontFamily.bold,
+    fontWeight: 'bold',
   },
   headerSubtitle: {
     fontSize: typography.fontSize.sm,

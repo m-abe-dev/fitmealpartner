@@ -134,6 +134,7 @@ export const ProfileScreen: React.FC = () => {
       {/* ヘッダー */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
+          <User size={24} color={colors.primary.main} />
           <Text style={styles.headerTitle}>プロフィール</Text>
         </View>
         <View style={styles.headerRight}>
@@ -418,12 +419,16 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
+    gap: spacing.sm,
   },
   headerTitle: {
     fontSize: typography.fontSize.xl,
     color: colors.text.primary,
     fontFamily: typography.fontFamily.bold,
+    fontWeight: 'bold',
   },
   headerRight: {
     flexDirection: 'row',

@@ -32,7 +32,7 @@ export default function AppNavigator() {
         },
         tabBarIcon: ({ focused, color, size }) => {
           let Icon;
-          
+
           switch (route.name) {
             case 'Dashboard':
               Icon = BarChart3;
@@ -49,7 +49,7 @@ export default function AppNavigator() {
             default:
               Icon = BarChart3;
           }
-          
+
           return (
             <View style={[
               styles.iconContainer,
@@ -64,23 +64,23 @@ export default function AppNavigator() {
         },
       })}
     >
-      <Tab.Screen 
-        name="Dashboard" 
+      <Tab.Screen
+        name="Dashboard"
         component={DashboardScreen}
         options={{ tabBarLabel: 'ダッシュボード' }}
       />
-      <Tab.Screen 
-        name="Workout" 
+      <Tab.Screen
+        name="Workout"
         component={WorkoutScreen}
         options={{ tabBarLabel: '筋トレ' }}
       />
-      <Tab.Screen 
-        name="Nutrition" 
+      <Tab.Screen
+        name="Nutrition"
         component={NutritionScreen}
-        options={{ tabBarLabel: '栄養' }}
+        options={{ tabBarLabel: '食事' }}
       />
-      <Tab.Screen 
-        name="Profile" 
+      <Tab.Screen
+        name="Profile"
         component={ProfileScreen}
         options={{ tabBarLabel: 'プロフィール' }}
       />
