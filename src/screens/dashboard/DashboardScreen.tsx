@@ -78,11 +78,10 @@ export const DashboardScreen: React.FC = () => {
           {activeTab === 'coach' && (
             <AICoachSection currentAIData={getCurrentAIData()} />
           )}
-        </View>
 
         {/* アナリティクスセクション */}
         {activeTab === 'analytics' && (
-          <View style={styles.sectionContainer}>
+          <>
             <Text style={styles.sectionTitle}>データ分析</Text>
 
             {/* 筋トレボリュームセクション */}
@@ -119,8 +118,9 @@ export const DashboardScreen: React.FC = () => {
               type="nutrition"
               currentData={getCurrentNutritionPeriodData()}
             />
-          </View>
+          </>
         )}
+                </View>
       </ScrollView>
     </SafeAreaView>
   );
