@@ -27,6 +27,7 @@
     "expo-sqlite": "~14.0.6",
     "expo-status-bar": "~2.2.3",
     "i18next": "^23.7.0",
+    "lucide-react-native": "^0.460.0",
     "react": "19.0.0",
     "react-i18next": "^13.5.0",
     "react-native": "0.79.6",
