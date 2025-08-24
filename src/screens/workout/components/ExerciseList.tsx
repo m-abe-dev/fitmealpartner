@@ -46,7 +46,8 @@ export const ExerciseList: React.FC<ExerciseListProps> = ({
                 <Text style={styles.exerciseName}>{exercise.name}</Text>
                 <Text style={styles.exerciseSummary}>
                   {exercise.sets.length} セット • {exercise.sets.reduce((total, set) => total + set.reps, 0)} 回 •
-                  Max: {Math.max(...exercise.sets.map(s => s.weight), 0)}kg
+                  Max: {Math.max(...exercise.sets.map(s => s.weight), 0)}kg •
+                  合計RM: {exercise.sets.reduce((total, set) => total + (set.rm || 0), 0)}kg
                 </Text>
               </View>
               <View style={styles.exerciseActions}>
@@ -83,9 +84,9 @@ export const ExerciseList: React.FC<ExerciseListProps> = ({
                       placeholderTextColor={colors.text.tertiary}
                     />
                     <Text style={styles.unitText}>回</Text>
-                    {set.rm && (
-                      <Text style={styles.rmText}>1RM: {set.rm}</Text>
-                    )}
+                    <Text style={styles.rmText}>
+                      1RM: {set.rm || 0}kg
+                    </Text>
                     <TouchableOpacity
                       onPress={() => {
                         if (exercise.sets.length === 1) {

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { colors, typography, spacing, radius, shadows } from '../../../design-system';
 import { WorkoutDay } from '../types/workout.types';
 import { workoutHistory, monthNames } from '../data/mockData';
@@ -7,17 +8,20 @@ import { workoutHistory, monthNames } from '../data/mockData';
 const { width: screenWidth } = Dimensions.get('window');
 
 interface CalendarProps {
-  onDayClick: (day: number) => void;
+  onDayClick: (day: number, month: number, year: number) => void;
 }
 
 export const Calendar: React.FC<CalendarProps> = ({ onDayClick }) => {
   const currentDate = new Date();
-  const currentMonth = currentDate.getMonth();
-  const currentYear = currentDate.getFullYear();
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
+  
   const today = currentDate.getDate();
+  const todayMonth = currentDate.getMonth();
+  const todayYear = currentDate.getFullYear();
 
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+  const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+  const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1).getDay();
 
   // Create calendar days
   const calendarDays = [];
@@ -34,15 +38,43 @@ export const Calendar: React.FC<CalendarProps> = ({ onDayClick }) => {
 
   const handleDayClick = (day: number) => {
     if (hasWorkout(day)) {
-      onDayClick(day);
+      onDayClick(day, selectedMonth, selectedYear);
+    }
+  };
+
+  const goToPreviousMonth = () => {
+    if (selectedMonth === 0) {
+      setSelectedMonth(11);
+      setSelectedYear(selectedYear - 1);
+    } else {
+      setSelectedMonth(selectedMonth - 1);
+    }
+  };
+
+  const goToNextMonth = () => {
+    if (selectedMonth === 11) {
+      setSelectedMonth(0);
+      setSelectedYear(selectedYear + 1);
+    } else {
+      setSelectedMonth(selectedMonth + 1);
     }
   };
 
   return (
     <View style={styles.calendarCard}>
       <View style={styles.calendarHeader}>
-        <Text style={styles.monthText}>{monthNames[currentMonth]}</Text>
-        <Text style={styles.yearText}>{currentYear}</Text>
+        <TouchableOpacity onPress={goToPreviousMonth} style={styles.navButton}>
+          <ChevronLeft size={20} color={colors.text.secondary} />
+        </TouchableOpacity>
+        
+        <View style={styles.monthYearContainer}>
+          <Text style={styles.monthText}>{monthNames[selectedMonth]}</Text>
+          <Text style={styles.yearText}>{selectedYear}</Text>
+        </View>
+        
+        <TouchableOpacity onPress={goToNextMonth} style={styles.navButton}>
+          <ChevronRight size={20} color={colors.text.secondary} />
+        </TouchableOpacity>
       </View>
 
       {/* Week days header */}
@@ -59,7 +91,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onDayClick }) => {
             return <View key={`empty-${index}`} style={styles.dayCell} />;
           }
 
-          const isToday = day === today;
+          const isToday = day === today && selectedMonth === todayMonth && selectedYear === todayYear;
           const hasWorkoutDay = hasWorkout(day);
 
           return (
@@ -99,6 +131,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.md,
+  },
+  navButton: {
+    padding: spacing.sm,
+    borderRadius: radius.md,
+  },
+  monthYearContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   monthText: {
     fontSize: typography.fontSize.xl,
