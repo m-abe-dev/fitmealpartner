@@ -111,7 +111,7 @@ export const ExerciseDetailView: React.FC<ExerciseDetailViewProps> = ({
         <TouchableOpacity onPress={onBack}>
           <ArrowLeft size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.title}>{exercise?.name || "プッシュアップ"}</Text>
+        <Text style={styles.title}>{exercise?.name}</Text>
         <TouchableOpacity style={styles.unitToggle} onPress={toggleWeightUnit}>
           <Text style={[styles.unitText, weightUnit === 'kg' && styles.unitActive]}>kg</Text>
           <Text style={[styles.unitText, weightUnit === 'lbs' && styles.unitActive]}>lbs</Text>
