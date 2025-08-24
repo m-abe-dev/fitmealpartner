@@ -20,6 +20,7 @@ import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Badge } from '../../components/common/Badge';
 import { FloatingActionButton } from '../../components/common/FloatingActionButton';
+import { AddFoodModal } from '../../components/nutrition/AddFoodModal';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -42,6 +43,7 @@ interface FoodLogItem {
   meal: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   time: string;
   icon: string;
+  isFavorite?: boolean;
 }
 
 export const NutritionScreen: React.FC = () => {
@@ -49,6 +51,8 @@ export const NutritionScreen: React.FC = () => {
   const [showAddFood, setShowAddFood] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMeal, setSelectedMeal] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('breakfast');
+  const [editingFood, setEditingFood] = useState<FoodLogItem | null>(null);
+  const [todaysFoodLog, setTodaysFoodLog] = useState<FoodLogItem[]>([]);
 
   // モックデータ
   const [nutritionData] = useState<NutritionData>({
@@ -58,73 +62,76 @@ export const NutritionScreen: React.FC = () => {
     carbs: { current: 180, target: 200 }
   });
 
-  const [todaysFoodLog] = useState<FoodLogItem[]>([
-    {
-      id: '1',
-      name: '鶏胸肉（皮なし）',
-      amount: 150,
-      unit: 'g',
-      calories: 165,
-      protein: 33,
-      fat: 2,
-      carbs: 0,
-      meal: 'lunch',
-      time: '12:30',
-      icon: '🐔'
-    },
-    {
-      id: '2',
-      name: '白米（炊飯済み）',
-      amount: 200,
-      unit: 'g',
-      calories: 312,
-      protein: 5,
-      fat: 1,
-      carbs: 74,
-      meal: 'lunch',
-      time: '12:30',
-      icon: '🍚'
-    },
-    {
-      id: '3',
-      name: 'ブロッコリー',
-      amount: 100,
-      unit: 'g',
-      calories: 33,
-      protein: 4,
-      fat: 0,
-      carbs: 5,
-      meal: 'lunch',
-      time: '12:30',
-      icon: '🥦'
-    },
-    {
-      id: '4',
-      name: 'ホエイプロテイン',
-      amount: 30,
-      unit: 'g',
-      calories: 117,
-      protein: 24,
-      fat: 2,
-      carbs: 2,
-      meal: 'snack',
-      time: '15:00',
-      icon: '🥤'
-    },
-    {
-      id: '5',
-      name: 'バナナ',
-      amount: 120,
-      unit: 'g',
-      calories: 103,
-      protein: 1,
-      fat: 0,
-      carbs: 27,
-      meal: 'snack',
-      time: '10:00',
-      icon: '🍌'
-    }
-  ]);
+  // 初期データを設定
+  useState(() => {
+    setTodaysFoodLog([
+      {
+        id: '1',
+        name: '鶏胸肉（皮なし）',
+        amount: 150,
+        unit: 'g',
+        calories: 165,
+        protein: 33,
+        fat: 2,
+        carbs: 0,
+        meal: 'lunch',
+        time: '12:30',
+        icon: '🐔'
+      },
+      {
+        id: '2',
+        name: '白米（炊飯済み）',
+        amount: 200,
+        unit: 'g',
+        calories: 312,
+        protein: 5,
+        fat: 1,
+        carbs: 74,
+        meal: 'lunch',
+        time: '12:30',
+        icon: '🍚'
+      },
+      {
+        id: '3',
+        name: 'ブロッコリー',
+        amount: 100,
+        unit: 'g',
+        calories: 33,
+        protein: 4,
+        fat: 0,
+        carbs: 5,
+        meal: 'lunch',
+        time: '12:30',
+        icon: '🥦'
+      },
+      {
+        id: '4',
+        name: 'ホエイプロテイン',
+        amount: 30,
+        unit: 'g',
+        calories: 117,
+        protein: 24,
+        fat: 2,
+        carbs: 2,
+        meal: 'snack',
+        time: '15:00',
+        icon: '🥤'
+      },
+      {
+        id: '5',
+        name: 'バナナ',
+        amount: 120,
+        unit: 'g',
+        calories: 103,
+        protein: 1,
+        fat: 0,
+        carbs: 27,
+        meal: 'snack',
+        time: '10:00',
+        icon: '🍌'
+      }
+    ]);
+  });
 
   const [quickAddFoods] = useState([
     { id: '1', name: 'ホエイプロテイン', calories: 117, protein: 24, icon: '🥤' },
@@ -165,6 +172,39 @@ export const NutritionScreen: React.FC = () => {
       fat: totals.fat + food.fat,
       carbs: totals.carbs + food.carbs
     }), { calories: 0, protein: 0, fat: 0, carbs: 0 });
+  };
+
+  // 食材追加ハンドラー
+  const handleAddFood = (food: { id: string; name: string; calories: number; protein: number; fat: number; carbs: number; icon: string }) => {
+    const newFoodItem: FoodLogItem = {
+      ...food,
+      id: Date.now().toString(),
+      amount: 100,
+      unit: 'g',
+      meal: selectedMeal,
+      time: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setTodaysFoodLog(prev => [...prev, newFoodItem]);
+  };
+
+  // 食材更新ハンドラー
+  const handleUpdateFood = (updatedFood: FoodLogItem) => {
+    setTodaysFoodLog(prev => prev.map(food =>
+      food.id === updatedFood.id ? updatedFood : food
+    ));
+    setEditingFood(null);
+  };
+
+  // 食材編集ハンドラー
+  const handleEditFood = (food: FoodLogItem) => {
+    setEditingFood(food);
+    setShowAddFood(true);
+  };
+
+  // 食材削除ハンドラー
+  const handleDeleteFood = (foodId: string) => {
+    setTodaysFoodLog(prev => prev.filter(food => food.id !== foodId));
   };
 
   return (
@@ -316,10 +356,16 @@ export const NutritionScreen: React.FC = () => {
                     </View>
 
                     <View style={styles.foodActions}>
-                      <TouchableOpacity style={styles.foodActionButton}>
+                      <TouchableOpacity
+                        style={styles.foodActionButton}
+                        onPress={() => handleEditFood(food)}
+                      >
                         <Edit3 size={16} color={colors.text.secondary} />
                       </TouchableOpacity>
-                      <TouchableOpacity style={styles.foodActionButton}>
+                      <TouchableOpacity
+                        style={styles.foodActionButton}
+                        onPress={() => handleDeleteFood(food.id)}
+                      >
                         <Trash2 size={16} color={colors.status.error} />
                       </TouchableOpacity>
                     </View>
@@ -336,105 +382,24 @@ export const NutritionScreen: React.FC = () => {
       </ScrollView>
 
       {/* フローティングアクションボタン */}
-      <FloatingActionButton
+      {/* <FloatingActionButton
         onPress={() => setShowAddFood(true)}
         icon={<Plus size={24} color={colors.text.inverse} />}
         style={styles.fab}
-      />
+      /> */}
 
-      {/* 食品追加BottomSheet */}
-      <BottomSheet
+      {/* 食品追加モーダル */}
+      <AddFoodModal
         isVisible={showAddFood}
-        onClose={() => setShowAddFood(false)}
-        title="食品を追加"
-        snapPoints={['80%']}
-      >
-        <View style={styles.addFoodContent}>
-          {/* 検索バー */}
-          <Input
-            placeholder="食品を検索..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            leftIcon={<Search size={20} color={colors.text.tertiary} />}
-            style={styles.searchInput}
-          />
-
-          {/* クイック追加 */}
-          <View style={styles.quickAddSection}>
-            <Text style={styles.sectionTitle}>クイック追加</Text>
-            <View style={styles.quickAddGrid}>
-              {quickAddFoods.map((food) => (
-                <TouchableOpacity key={food.id} style={styles.quickAddItem}>
-                  <Text style={styles.quickAddIcon}>{food.icon}</Text>
-                  <Text style={styles.quickAddName}>{food.name}</Text>
-                  <Text style={styles.quickAddInfo}>
-                    {food.calories}kcal • P{food.protein}g
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* 最近使用した食品 */}
-          <View style={styles.recentSection}>
-            <View style={styles.sectionHeader}>
-              <Clock size={16} color={colors.text.secondary} />
-              <Text style={styles.sectionTitle}>最近使用した食品</Text>
-            </View>
-            <View style={styles.recentList}>
-              {todaysFoodLog.slice(0, 3).map((food) => (
-                <TouchableOpacity key={food.id} style={styles.recentItem}>
-                  <Text style={styles.recentIcon}>{food.icon}</Text>
-                  <View style={styles.recentInfo}>
-                    <Text style={styles.recentName}>{food.name}</Text>
-                    <Text style={styles.recentDetails}>
-                      {food.calories}kcal • P{food.protein}g F{food.fat}g C{food.carbs}g
-                    </Text>
-                  </View>
-                  <Plus size={20} color={colors.primary.main} />
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* お気に入り */}
-          <View style={styles.favoritesSection}>
-            <View style={styles.sectionHeader}>
-              <Star size={16} color={colors.status.warning} />
-              <Text style={styles.sectionTitle}>お気に入り</Text>
-            </View>
-            <View style={styles.favoritesList}>
-              {quickAddFoods.slice(0, 2).map((food) => (
-                <TouchableOpacity key={food.id} style={styles.favoriteItem}>
-                  <Text style={styles.favoriteIcon}>{food.icon}</Text>
-                  <View style={styles.favoriteInfo}>
-                    <Text style={styles.favoriteName}>{food.name}</Text>
-                    <Text style={styles.favoriteDetails}>
-                      {food.calories}kcal • P{food.protein}g
-                    </Text>
-                  </View>
-                  <Badge variant="warning" size="small">
-                    ⭐
-                  </Badge>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.addFoodActions}>
-            <Button
-              title="バーコードスキャン"
-              variant="outline"
-              onPress={() => {}}
-            />
-            <Button
-              title="手動で追加"
-              variant="primary"
-              onPress={() => {}}
-            />
-          </View>
-        </View>
-      </BottomSheet>
+        onClose={() => {
+          setShowAddFood(false);
+          setEditingFood(null);
+        }}
+        onAddFood={handleAddFood}
+        selectedMeal={selectedMeal}
+        editingFood={editingFood}
+        onUpdateFood={handleUpdateFood}
+      />
     </SafeAreaView>
   );
 };
