@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Alert, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Dumbbell, Crown } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, radius } from '../../design-system';
 
 // Components
@@ -19,12 +18,21 @@ import { FloatingActionButtons } from './components/FloatingActionButtons';
 import { WorkoutView, Exercise, ExerciseTemplate, WorkoutSet, WorkoutDay } from './types/workout.types';
 import { workoutHistory, initialExercises } from './data/mockData';
 
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
 export const WorkoutScreen: React.FC = () => {
-  const [refreshing, setRefreshing] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+  
+  // View state
   const [currentView, setCurrentView] = useState<WorkoutView>("main");
   const [selectedCategory, setSelectedCategory] = useState<string>("Chest");
   const [selectedExercise, setSelectedExercise] = useState<ExerciseTemplate | null>(null);
+  
+  // UI state
+  const [refreshing, setRefreshing] = useState(false);
   const [isTodayResultsExpanded, setIsTodayResultsExpanded] = useState(false);
+  
+  // Data state
   const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedDayWorkout, setSelectedDayWorkout] = useState<WorkoutDay | null>(null);
@@ -38,7 +46,7 @@ export const WorkoutScreen: React.FC = () => {
     return workoutHistory.find(workout => workout.date === day) || null;
   };
 
-  const onRefresh = async () => {
+  const handleRefresh = async () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 1000);
   };
@@ -62,7 +70,7 @@ export const WorkoutScreen: React.FC = () => {
               sets: [
                 ...exercise.sets,
                 {
-                  id: `${exerciseId}-${exercise.sets.length + 1}`,
+                  id: `${exerciseId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                   weight: 0,
                   reps: 0,
                   rm: undefined,
@@ -87,6 +95,10 @@ export const WorkoutScreen: React.FC = () => {
     );
   };
 
+  const handleDeleteExercise = (exerciseId: string) => {
+    setExercises((prev) => prev.filter((exercise) => exercise.id !== exerciseId));
+  };
+
   const handleUpdateSet = (exerciseId: string, setId: string, field: 'weight' | 'reps', value: string) => {
     const numericValue = parseFloat(value) || 0;
     setExercises((prev) =>
@@ -99,7 +111,7 @@ export const WorkoutScreen: React.FC = () => {
                   ? {
                       ...set,
                       [field]: numericValue,
-                      rm: field === 'weight' || field === 'reps' 
+                      rm: field === 'weight' || field === 'reps'
                         ? calculateRM(
                             field === 'weight' ? numericValue : set.weight,
                             field === 'reps' ? numericValue : set.reps
@@ -114,11 +126,13 @@ export const WorkoutScreen: React.FC = () => {
     );
   };
 
+  // Utility function for RM calculation
   const calculateRM = (weight: number, reps: number): number | undefined => {
     if (weight <= 0 || reps <= 0) return undefined;
     return Math.round(weight * (1 + reps / 30) * 100) / 100;
   };
 
+  // Calendar and preview handlers
   const handleDayClick = (day: number) => {
     const workoutData = getWorkoutForDay(day);
     if (workoutData) {
@@ -127,11 +141,12 @@ export const WorkoutScreen: React.FC = () => {
     }
   };
 
-  const closePreview = () => {
+  const handleClosePreview = () => {
     setSelectedDay(null);
     setSelectedDayWorkout(null);
   };
 
+  // Share functionality
   const handleShareWorkout = () => {
     const today_date = new Date().toLocaleDateString("ja-JP", {
       year: "numeric",
@@ -146,37 +161,40 @@ export const WorkoutScreen: React.FC = () => {
       return `🏋️ ${exercise.name}\n${setsInfo}`;
     }).join('\n\n');
 
-    const getTotalExercises = () => exercises.length;
-    const getTotalSets = () => exercises.reduce((total, exercise) => total + exercise.sets.length, 0);
-    const getTotalReps = () => exercises.reduce((total, exercise) => total + exercise.sets.reduce((setTotal, set) => setTotal + set.reps, 0), 0);
-    const getTotalRM = () => {
-      const allSets = exercises.flatMap(ex => ex.sets);
-      const rmsWithValues = allSets.map(set => set.rm).filter((rm): rm is number => rm !== undefined && rm > 0);
-      if (rmsWithValues.length === 0) return 0;
-      const sum = rmsWithValues.reduce((acc, rm) => acc + rm, 0);
-      return Math.round(sum / rmsWithValues.length);
+    const stats = {
+      exercises: exercises.length,
+      sets: exercises.reduce((total, exercise) => total + exercise.sets.length, 0),
+      reps: exercises.reduce((total, exercise) => total + exercise.sets.reduce((setTotal, set) => setTotal + set.reps, 0), 0),
+      averageRM: (() => {
+        const allSets = exercises.flatMap(ex => ex.sets);
+        const rmsWithValues = allSets.map(set => set.rm).filter((rm): rm is number => rm !== undefined && rm > 0);
+        if (rmsWithValues.length === 0) return 0;
+        const sum = rmsWithValues.reduce((acc, rm) => acc + rm, 0);
+        return Math.round(sum / rmsWithValues.length);
+      })()
     };
-    const calculateWorkoutScore = () => getTotalSets() + getTotalReps() + getTotalRM();
 
-    const shareText = `💪 今日のトレーニング (${today_date})\n\n${exercisesList}\n\n📊 Today's Training Volume\n・種目数: ${getTotalExercises()}\n・セット数: ${getTotalSets()}\n・総回数: ${getTotalReps()}\n・平均RM: ${getTotalRM()}\n・スコア: ${calculateWorkoutScore()}\n\n#筋トレ #ワークアウト #トレーニング`;
+    const score = stats.sets + stats.reps + stats.averageRM;
+    const shareText = `💪 今日のトレーニング (${today_date})\n\n${exercisesList}\n\n📊 Today's Training Volume\n・種目数: ${stats.exercises}\n・セット数: ${stats.sets}\n・総回数: ${stats.reps}\n・平均RM: ${stats.averageRM}\n・スコア: ${score}\n\n#筋トレ #ワークアウト #トレーニング`;
 
     Alert.alert('シェア', 'トレーニング情報をシェアしました');
   };
 
-  const logWorkout = () => {
+  // Navigation handlers
+  const handleLogWorkout = () => {
     setCurrentView("exercise-selection");
   };
 
-  const selectExercise = (exercise: ExerciseTemplate) => {
+  const handleSelectExercise = (exercise: ExerciseTemplate) => {
     setSelectedExercise(exercise);
     setCurrentView("exercise-detail");
   };
 
-  const goBackToMain = () => {
+  const handleBackToMain = () => {
     setCurrentView("main");
   };
 
-  const goBackToSelection = () => {
+  const handleBackToSelection = () => {
     setCurrentView("exercise-selection");
   };
 
@@ -198,8 +216,8 @@ export const WorkoutScreen: React.FC = () => {
       <ExerciseSelection
         selectedCategory={selectedCategory}
         onCategoryChange={setSelectedCategory}
-        onExerciseSelect={selectExercise}
-        onBack={goBackToMain}
+        onExerciseSelect={handleSelectExercise}
+        onBack={handleBackToMain}
       />
     );
   }
@@ -208,7 +226,7 @@ export const WorkoutScreen: React.FC = () => {
     return (
       <ExerciseDetailView
         exercise={selectedExercise}
-        onBack={goBackToSelection}
+        onBack={handleBackToSelection}
         onRecordWorkout={handleRecordWorkout}
       />
     );
@@ -233,9 +251,21 @@ export const WorkoutScreen: React.FC = () => {
       </View>
 
       <ScrollView
-        style={styles.content}
+        ref={scrollViewRef}
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            minHeight: SCREEN_HEIGHT - 100,
+            paddingBottom: 150
+          }
+        ]}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        keyboardShouldPersistTaps="handled"
+        bounces={false} // バウンスを無効化
+        overScrollMode="never" // Androidでのオーバースクロールを無効化
+        scrollEnabled={true}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         {/* Calendar View */}
         <Calendar onDayClick={handleDayClick} />
@@ -253,6 +283,7 @@ export const WorkoutScreen: React.FC = () => {
           onToggleExpansion={toggleExerciseExpansion}
           onAddSet={handleAddSet}
           onDeleteSet={handleDeleteSet}
+          onDeleteExercise={handleDeleteExercise}
           onUpdateSet={handleUpdateSet}
         />
 
@@ -262,14 +293,14 @@ export const WorkoutScreen: React.FC = () => {
           selectedDay={selectedDay}
           selectedDayWorkout={selectedDayWorkout}
           currentMonth={currentMonth}
-          onClose={closePreview}
+          onClose={handleClosePreview}
         />
       </ScrollView>
 
       {/* Floating Action Buttons */}
       <FloatingActionButtons
         onSharePress={handleShareWorkout}
-        onAddPress={logWorkout}
+        onAddPress={handleLogWorkout}
       />
     </SafeAreaView>
   );
@@ -318,8 +349,10 @@ const styles = StyleSheet.create({
     color: colors.primary.main,
     fontFamily: typography.fontFamily.bold,
   },
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: spacing.md,
   },
 });

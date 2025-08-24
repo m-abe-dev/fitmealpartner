@@ -1,15 +1,23 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
+} from 'react-native';
 import { ChevronUp, ChevronDown, Plus, Trash2 } from 'lucide-react-native';
 import { colors, typography, spacing, radius, shadows } from '../../../design-system';
 import { Badge } from '../../../components/common/Badge';
 import { Exercise } from '../types/workout.types';
+
 
 interface ExerciseListProps {
   exercises: Exercise[];
   onToggleExpansion: (exerciseId: string) => void;
   onAddSet: (exerciseId: string) => void;
   onDeleteSet: (exerciseId: string, setId: string) => void;
+  onDeleteExercise: (exerciseId: string) => void;
   onUpdateSet: (exerciseId: string, setId: string, field: 'weight' | 'reps', value: string) => void;
 }
 
@@ -18,84 +26,98 @@ export const ExerciseList: React.FC<ExerciseListProps> = ({
   onToggleExpansion,
   onAddSet,
   onDeleteSet,
-  onUpdateSet
+  onDeleteExercise,
+  onUpdateSet,
 }) => {
+
+  const handleAddSet = (exerciseId: string) => {
+    onAddSet(exerciseId);
+  };
+
   return (
     <View style={styles.exercisesSection}>
-      {exercises.map((exercise) => (
-        <View key={exercise.id} style={styles.exerciseCard}>
-          <TouchableOpacity
-            style={styles.exerciseHeader}
-            onPress={() => onToggleExpansion(exercise.id)}
-          >
-            <View>
-              <Text style={styles.exerciseName}>{exercise.name}</Text>
-              <Text style={styles.exerciseSummary}>
-                {exercise.sets.length} セット • {exercise.sets.reduce((total, set) => total + set.reps, 0)} 回 •
-                Max: {Math.max(...exercise.sets.map(s => s.weight))}kg
-              </Text>
-            </View>
-            <View style={styles.exerciseActions}>
-              <Badge variant="default" size="small" style={styles.setBadge}>
-                {exercise.sets.length}セット
-              </Badge>
-              {exercise.isExpanded ?
-                <ChevronUp size={20} color={colors.text.tertiary} /> :
-                <ChevronDown size={20} color={colors.text.tertiary} />
-              }
-            </View>
-          </TouchableOpacity>
+        {exercises.map((exercise) => (
+          <View key={exercise.id} style={styles.exerciseCard}>
+            <TouchableOpacity
+              style={styles.exerciseHeader}
+              onPress={() => onToggleExpansion(exercise.id)}
+            >
+              <View>
+                <Text style={styles.exerciseName}>{exercise.name}</Text>
+                <Text style={styles.exerciseSummary}>
+                  {exercise.sets.length} セット • {exercise.sets.reduce((total, set) => total + set.reps, 0)} 回 •
+                  Max: {Math.max(...exercise.sets.map(s => s.weight), 0)}kg
+                </Text>
+              </View>
+              <View style={styles.exerciseActions}>
+                <Badge variant="default" size="small" style={styles.setBadge}>
+                  {exercise.sets.length}セット
+                </Badge>
+                {exercise.isExpanded ?
+                  <ChevronUp size={20} color={colors.text.tertiary} /> :
+                  <ChevronDown size={20} color={colors.text.tertiary} />
+                }
+              </View>
+            </TouchableOpacity>
 
-          {exercise.isExpanded && (
-            <View style={styles.setsContainer}>
-              {exercise.sets.map((set, index) => (
-                <View key={set.id} style={styles.setRow}>
-                  <Text style={styles.setNumber}>{index + 1}</Text>
-                  <TextInput
-                    style={styles.weightInput}
-                    value={set.weight.toString()}
-                    onChangeText={(value) => onUpdateSet(exercise.id, set.id, 'weight', value)}
-                    keyboardType="numeric"
-                    placeholder="重量"
-                    placeholderTextColor={colors.text.tertiary}
-                  />
-                  <Text style={styles.unitText}>kg ×</Text>
-                  <TextInput
-                    style={styles.repsInput}
-                    value={set.reps.toString()}
-                    onChangeText={(value) => onUpdateSet(exercise.id, set.id, 'reps', value)}
-                    keyboardType="numeric"
-                    placeholder="回数"
-                    placeholderTextColor={colors.text.tertiary}
-                  />
-                  <Text style={styles.unitText}>回</Text>
-                  {set.rm && (
-                    <Text style={styles.rmText}>1RM: {set.rm}</Text>
-                  )}
-                  <TouchableOpacity onPress={() => onDeleteSet(exercise.id, set.id)}>
-                    <Trash2 size={16} color={colors.status.error} />
-                  </TouchableOpacity>
-                </View>
-              ))}
+            {exercise.isExpanded && (
+              <View style={styles.setsContainer}>
+                {exercise.sets.map((set, setIndex) => (
+                  <View key={set.id} style={styles.setRow}>
+                    <Text style={styles.setNumber}>{setIndex + 1}</Text>
+                    <TextInput
+                      style={styles.weightInput}
+                      value={set.weight.toString()}
+                      onChangeText={(value) => onUpdateSet(exercise.id, set.id, 'weight', value)}
+                      keyboardType="numeric"
+                      placeholder="重量"
+                      placeholderTextColor={colors.text.tertiary}
+                    />
+                    <Text style={styles.unitText}>kg ×</Text>
+                    <TextInput
+                      style={styles.repsInput}
+                      value={set.reps.toString()}
+                      onChangeText={(value) => onUpdateSet(exercise.id, set.id, 'reps', value)}
+                      keyboardType="numeric"
+                      placeholder="回数"
+                      placeholderTextColor={colors.text.tertiary}
+                    />
+                    <Text style={styles.unitText}>回</Text>
+                    {set.rm && (
+                      <Text style={styles.rmText}>1RM: {set.rm}</Text>
+                    )}
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (exercise.sets.length === 1) {
+                          onDeleteExercise(exercise.id);
+                        } else {
+                          onDeleteSet(exercise.id, set.id);
+                        }
+                      }}
+                      style={styles.deleteButton}
+                    >
+                      <Trash2 size={16} color={colors.status.error} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
 
-              <TouchableOpacity 
-                style={styles.addSetButton}
-                onPress={() => onAddSet(exercise.id)}
-              >
-                <Plus size={16} color={colors.primary.main} />
-                <Text style={styles.addSetText}>セットを追加</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      ))}
+                <TouchableOpacity
+                  style={styles.addSetButton}
+                  onPress={() => handleAddSet(exercise.id)}
+                >
+                  <Plus size={16} color={colors.primary.main} />
+                  <Text style={styles.addSetText}>セットを追加</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        ))}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   exercisesSection: {
-    marginBottom: spacing.xl,
     gap: spacing.sm,
   },
   exerciseCard: {
@@ -103,6 +125,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     overflow: 'hidden',
     ...shadows.sm,
+    marginBottom: spacing.xs, // 各カード間の余白を調整
   },
   exerciseHeader: {
     flexDirection: 'row',
@@ -134,6 +157,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border.light,
     paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
   },
   setRow: {
     flexDirection: 'row',
@@ -183,6 +207,9 @@ const styles = StyleSheet.create({
     color: colors.text.tertiary,
     flex: 1,
     marginLeft: spacing.sm,
+  },
+  deleteButton: {
+    padding: spacing.xs,
   },
   addSetButton: {
     flexDirection: 'row',

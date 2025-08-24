@@ -83,7 +83,7 @@ export const ExerciseDetailView: React.FC<ExerciseDetailViewProps> = ({
     }
 
     const exerciseSets: WorkoutSet[] = validSets.map((set, index) => ({
-      id: `${Date.now()}-${index}`,
+      id: `${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
       weight: Number(set.weight),
       reps: Number(set.reps),
       rm: Number(set.weight) > 0 && Number(set.reps) > 0
