@@ -74,6 +74,8 @@ export const WorkoutScreen: React.FC = () => {
                   weight: 0,
                   reps: 0,
                   rm: undefined,
+                  time: exercise.type === 'cardio' ? 0 : undefined,
+                  distance: exercise.type === 'cardio' ? 0 : undefined,
                 },
               ],
             }
@@ -99,7 +101,7 @@ export const WorkoutScreen: React.FC = () => {
     setExercises((prev) => prev.filter((exercise) => exercise.id !== exerciseId));
   };
 
-  const handleUpdateSet = (exerciseId: string, setId: string, field: 'weight' | 'reps', value: string) => {
+  const handleUpdateSet = (exerciseId: string, setId: string, field: 'weight' | 'reps' | 'time' | 'distance', value: string) => {
     const numericValue = parseFloat(value) || 0;
     setExercises((prev) =>
       prev.map((exercise) =>

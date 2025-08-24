@@ -68,13 +68,97 @@ export const TodayResults: React.FC<TodayResultsProps> = ({
     return exercises.some(ex => ex.type !== 'cardio');
   };
 
+  // 追加: ヘルパー（コンポーネント内に定義）
+  const clamp = (n: number, min = 0, max = 1) => Math.max(min, Math.min(max, n));
+
+  /** 筋トレ: reps>=8 を「ハードセット」の近似に（RPEや重量が無い前提のMVP） */
+  const countHardStrengthSets = () => {
+    const strength = exercises.filter(ex => ex.type !== 'cardio');
+    return strength.reduce(
+      (sum, ex) => sum + ex.sets.filter(set => (set.reps ?? 0) >= 8).length,
+      0
+    );
+  };
+
+  /** 筋トレスコア 0–100
+   *  S1 量(0–70): ハードセット数 vs 目安(10)
+   *  S2 質(0–30): 8–12回レンジの比率（筋肥大レンジ近似）
+   */
+  const strengthScoreFromExercises = () => {
+    const strength = exercises.filter(ex => ex.type !== 'cardio');
+    const totalSets = strength.reduce((t, ex) => t + ex.sets.length, 0);
+    if (totalSets === 0) return 0;
+
+    const HARD_TARGET = 10; // セッション目安
+    const hardSets = countHardStrengthSets();
+    const s1 = 70 * clamp(hardSets / HARD_TARGET, 0, 1);
+
+    const inHypertrophy =
+      strength.reduce(
+        (t, ex) => t + ex.sets.filter(s => {
+          const r = s.reps ?? 0;
+          return r >= 6 && r <= 12;
+        }).length,
+        0
+      );
+    const quality = totalSets > 0 ? inHypertrophy / totalSets : 0;
+    const s2 = 30 * clamp(quality, 0, 1);
+
+    return Math.round(s1 + s2);
+  };
+
+  /** 有酸素スコア 0–100
+   *  S1 負荷(0–70): 時間×強度係数 vs 目安(30分)
+   *  S2 質(0–30): 平均強度係数（6:00/km を基準1.0, 4:00/km≈1.5, 12:00/km≈0.5）
+   *  ※ distance/time が無いセットは係数=1.0 として扱う
+   */
+  const cardioScoreFromExercises = () => {
+    const cardio = exercises.filter(ex => ex.type === 'cardio');
+    if (cardio.length === 0) return 0;
+
+    type Agg = { time: number; weighted: number };
+    const agg = cardio.reduce<Agg>((acc, ex) => {
+      ex.sets.forEach(s => {
+        const minutes = s.time ?? 0;          // 分
+        const km = s.distance ?? 0;           // km
+        if (minutes <= 0) return;
+        // 強度係数: pace基準（安全な範囲でクリップ）
+        const pace = km > 0 ? minutes / km : null; // min/km
+        // 6:00/km => 1.0, 4:00/km => 1.5, 12:00/km => 0.5
+        const intensity = pace ? clamp(6 / pace, 0.5, 2) : 1.0;
+        acc.time += minutes;
+        acc.weighted += minutes * intensity;
+      });
+      return acc;
+    }, { time: 0, weighted: 0 });
+
+    if (agg.time <= 0) return 0;
+
+    const avgIntensity = agg.weighted / agg.time;
+    const eqLoad = agg.time * avgIntensity; // 「強度付き時間」
+
+    const DAILY_TARGET_MIN = 30; // デイリー目安
+    const s1 = 70 * clamp(eqLoad / DAILY_TARGET_MIN, 0, 1);
+    const s2 = 30 * clamp(avgIntensity / 1.2, 0, 1); // 1.2相当で満点寄せ
+
+    return Math.round(s1 + s2);
+  };
+
+  // 置き換え: トータルスコア（0–100）
   const calculateWorkoutScore = () => {
-    const strengthSets = getStrengthSets();
-    const totalReps = getTotalReps();
-    const totalRM = getTotalRM();
-    const totalTime = getTotalTime();
-    const totalDistance = getTotalDistance();
-    return strengthSets + totalReps + totalRM + Math.round(totalTime / 10) + Math.round(totalDistance * 10);
+    const hasStrength = hasStrengthExercises();
+    const hasCardio = hasCardioExercises();
+
+    if (!hasStrength && !hasCardio) return 0;
+
+    const sStrength = hasStrength ? strengthScoreFromExercises() : null;
+    const sCardio   = hasCardio   ? cardioScoreFromExercises()   : null;
+
+    // 両方ある日は50/50、どちらか片方のみならそれを採用
+    if (sStrength !== null && sCardio !== null) {
+      return Math.round((sStrength + sCardio) / 2);
+    }
+    return (sStrength ?? sCardio ?? 0);
   };
 
   const getScoreColor = (score: number) => {
