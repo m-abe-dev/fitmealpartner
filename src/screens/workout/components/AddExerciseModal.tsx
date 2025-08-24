@@ -9,6 +9,8 @@ import {
   StyleSheet,
   Alert,
   Dimensions,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { X, Plus, ChevronDown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -68,8 +70,8 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
 
   const CategoryPicker = () => (
     <View style={styles.dropdownContainer}>
-      <ScrollView 
-        style={styles.dropdownScrollView} 
+      <ScrollView
+        style={styles.dropdownScrollView}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled={true}
       >
@@ -123,16 +125,13 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
       animationType="fade"
       onRequestClose={handleClose}
     >
-      <TouchableOpacity 
-        style={styles.modalOverlay}
-        activeOpacity={1}
-        onPress={() => setShowCategoryPicker(false)}
-      >
-        <TouchableOpacity 
-          style={styles.modalContent}
-          activeOpacity={1}
-          onPress={(e) => e.stopPropagation()}
-        >
+      <TouchableWithoutFeedback onPress={() => {
+        Keyboard.dismiss();
+        setShowCategoryPicker(false);
+      }}>
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback onPress={() => {}}>
+            <View style={styles.modalContent}>
           {/* Header */}
           <LinearGradient
             colors={['#EFF6FF', '#E0E7FF', '#F3E8FF']}
@@ -217,8 +216,10 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
               />
             </View>
           </View>
-        </TouchableOpacity>
-      </TouchableOpacity>
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 };
@@ -227,10 +228,11 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xl, // 上下に余裕を追加
+    paddingTop: 140, // 上部から60ptの位置に配置
+    paddingBottom: spacing.xl,
   },
   modalContent: {
     backgroundColor: 'white',
