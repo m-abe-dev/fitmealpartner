@@ -72,24 +72,50 @@ export const ExerciseDetailView: React.FC<ExerciseDetailViewProps> = ({
   };
 
   const handleRecord = () => {
-    const validSets = currentSets.filter(set =>
-      set.weight && set.reps &&
-      !isNaN(Number(set.weight)) && !isNaN(Number(set.reps))
-    );
-
-    if (validSets.length === 0) {
-      Alert.alert('エラー', '少なくとも1セットの重量と回数を入力してください');
-      return;
+    let validSets;
+    
+    if (isCardio) {
+      validSets = currentSets.filter(set =>
+        set.time && set.distance &&
+        !isNaN(Number(set.time)) && !isNaN(Number(set.distance))
+      );
+      
+      if (validSets.length === 0) {
+        Alert.alert('エラー', '少なくとも1セットの時間と距離を入力してください');
+        return;
+      }
+    } else {
+      validSets = currentSets.filter(set =>
+        set.weight && set.reps &&
+        !isNaN(Number(set.weight)) && !isNaN(Number(set.reps))
+      );
+      
+      if (validSets.length === 0) {
+        Alert.alert('エラー', '少なくとも1セットの重量と回数を入力してください');
+        return;
+      }
     }
 
-    const exerciseSets: WorkoutSet[] = validSets.map((set, index) => ({
-      id: `${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
-      weight: Number(set.weight),
-      reps: Number(set.reps),
-      rm: Number(set.weight) > 0 && Number(set.reps) > 0
-        ? Math.round(Number(set.weight) * (1 + Number(set.reps) / 30) * 100) / 100
-        : 0
-    }));
+    const exerciseSets: WorkoutSet[] = validSets.map((set, index) => {
+      if (isCardio) {
+        return {
+          id: `${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+          weight: 0, // 有酸素の場合は重量は0
+          reps: 0, // 有酸素の場合は回数は0
+          time: Number(set.time),
+          distance: Number(set.distance),
+        };
+      } else {
+        return {
+          id: `${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+          weight: Number(set.weight),
+          reps: Number(set.reps),
+          rm: Number(set.weight) > 0 && Number(set.reps) > 0
+            ? Math.round(Number(set.weight) * (1 + Number(set.reps) / 30) * 100) / 100
+            : 0
+        };
+      }
+    });
 
     onRecordWorkout(exercise?.name || "Unknown Exercise", exerciseSets);
     Alert.alert('成功', `${exercise?.name}を記録しました`);

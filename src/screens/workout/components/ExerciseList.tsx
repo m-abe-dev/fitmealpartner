@@ -18,7 +18,7 @@ interface ExerciseListProps {
   onAddSet: (exerciseId: string) => void;
   onDeleteSet: (exerciseId: string, setId: string) => void;
   onDeleteExercise: (exerciseId: string) => void;
-  onUpdateSet: (exerciseId: string, setId: string, field: 'weight' | 'reps', value: string) => void;
+  onUpdateSet: (exerciseId: string, setId: string, field: 'weight' | 'reps' | 'time' | 'distance', value: string) => void;
 }
 
 export const ExerciseList: React.FC<ExerciseListProps> = ({
@@ -45,9 +45,11 @@ export const ExerciseList: React.FC<ExerciseListProps> = ({
               <View>
                 <Text style={styles.exerciseName}>{exercise.name}</Text>
                 <Text style={styles.exerciseSummary}>
-                  {exercise.sets.length} セット • {exercise.sets.reduce((total, set) => total + set.reps, 0)} 回 •
-                  Max: {Math.max(...exercise.sets.map(s => s.weight), 0)}kg •
-                  合計RM: {exercise.sets.reduce((total, set) => total + (set.rm || 0), 0)}kg
+                  {exercise.type === 'cardio' ? (
+                    `${exercise.sets.length} セット • 合計時間: ${exercise.sets.reduce((total, set) => total + (set.time || 0), 0)}分 • 合計距離: ${exercise.sets.reduce((total, set) => total + (set.distance || 0), 0)}km`
+                  ) : (
+                    `${exercise.sets.length} セット • ${exercise.sets.reduce((total, set) => total + set.reps, 0)} 回 • Max: ${Math.max(...exercise.sets.map(s => s.weight), 0)}kg • 合計RM: ${exercise.sets.reduce((total, set) => total + (set.rm || 0), 0)}kg`
+                  )}
                 </Text>
               </View>
               <View style={styles.exerciseActions}>
@@ -66,27 +68,59 @@ export const ExerciseList: React.FC<ExerciseListProps> = ({
                 {exercise.sets.map((set, setIndex) => (
                   <View key={set.id} style={styles.setRow}>
                     <Text style={styles.setNumber}>{setIndex + 1}</Text>
-                    <TextInput
-                      style={styles.weightInput}
-                      value={set.weight.toString()}
-                      onChangeText={(value) => onUpdateSet(exercise.id, set.id, 'weight', value)}
-                      keyboardType="numeric"
-                      placeholder="重量"
-                      placeholderTextColor={colors.text.tertiary}
-                    />
-                    <Text style={styles.unitText}>kg ×</Text>
-                    <TextInput
-                      style={styles.repsInput}
-                      value={set.reps.toString()}
-                      onChangeText={(value) => onUpdateSet(exercise.id, set.id, 'reps', value)}
-                      keyboardType="numeric"
-                      placeholder="回数"
-                      placeholderTextColor={colors.text.tertiary}
-                    />
-                    <Text style={styles.unitText}>回</Text>
-                    <Text style={styles.rmText}>
-                      1RM: {set.rm || 0}kg
-                    </Text>
+                    
+                    {exercise.type === 'cardio' ? (
+                      <View style={styles.cardioInputContainer}>
+                        <View style={styles.cardioInputRow}>
+                          <TextInput
+                            style={styles.timeInput}
+                            value={set.time?.toString() || ''}
+                            onChangeText={(value) => onUpdateSet(exercise.id, set.id, 'time', value)}
+                            keyboardType="numeric"
+                            placeholder="時間"
+                            placeholderTextColor={colors.text.tertiary}
+                          />
+                          <Text style={styles.unitText}>分</Text>
+                          <TextInput
+                            style={styles.distanceInput}
+                            value={set.distance?.toString() || ''}
+                            onChangeText={(value) => onUpdateSet(exercise.id, set.id, 'distance', value)}
+                            keyboardType="numeric"
+                            placeholder="距離"
+                            placeholderTextColor={colors.text.tertiary}
+                          />
+                          <Text style={styles.unitText}>km</Text>
+                        </View>
+                        <Text style={styles.paceText}>
+                          ペース: {set.time && set.distance && set.distance > 0 ? (set.time / set.distance).toFixed(1) : 0}分/km
+                        </Text>
+                      </View>
+                    ) : (
+                      <>
+                        <TextInput
+                          style={styles.weightInput}
+                          value={set.weight.toString()}
+                          onChangeText={(value) => onUpdateSet(exercise.id, set.id, 'weight', value)}
+                          keyboardType="numeric"
+                          placeholder="重量"
+                          placeholderTextColor={colors.text.tertiary}
+                        />
+                        <Text style={styles.unitText}>kg ×</Text>
+                        <TextInput
+                          style={styles.repsInput}
+                          value={set.reps.toString()}
+                          onChangeText={(value) => onUpdateSet(exercise.id, set.id, 'reps', value)}
+                          keyboardType="numeric"
+                          placeholder="回数"
+                          placeholderTextColor={colors.text.tertiary}
+                        />
+                        <Text style={styles.unitText}>回</Text>
+                        <Text style={styles.rmText}>
+                          1RM: {set.rm || 0}kg
+                        </Text>
+                      </>
+                    )}
+                    
                     <TouchableOpacity
                       onPress={() => {
                         if (exercise.sets.length === 1) {
@@ -208,6 +242,40 @@ const styles = StyleSheet.create({
     color: colors.text.tertiary,
     flex: 1,
     marginLeft: spacing.sm,
+  },
+  timeInput: {
+    width: 60,
+    padding: spacing.xs,
+    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    borderRadius: radius.sm,
+    fontSize: typography.fontSize.sm,
+    backgroundColor: 'white',
+  },
+  distanceInput: {
+    width: 60,
+    padding: spacing.xs,
+    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    borderRadius: radius.sm,
+    fontSize: typography.fontSize.sm,
+    backgroundColor: 'white',
+  },
+  cardioInputContainer: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  cardioInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  paceText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.tertiary,
+    textAlign: 'center',
   },
   deleteButton: {
     padding: spacing.xs,

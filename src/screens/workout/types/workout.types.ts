@@ -3,6 +3,8 @@ export interface WorkoutSet {
   weight: number;
   reps: number;
   rm?: number; // Calculated 1RM
+  time?: number; // Time in minutes for cardio
+  distance?: number; // Distance in km for cardio
 }
 
 export interface Exercise {
@@ -10,6 +12,7 @@ export interface Exercise {
   name: string;
   sets: WorkoutSet[];
   isExpanded: boolean;
+  type?: 'strength' | 'cardio'; // Exercise type
 }
 
 export type WorkoutView = "main" | "exercise-selection" | "exercise-detail";

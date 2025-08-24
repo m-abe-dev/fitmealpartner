@@ -204,6 +204,7 @@ export const WorkoutScreen: React.FC = () => {
       name: exerciseName,
       sets: sets.map(set => ({ ...set })),
       isExpanded: true,
+      type: selectedExercise?.category === '有酸素' ? 'cardio' : 'strength',
     };
 
     setExercises((prev) => [...prev, newExercise]);
