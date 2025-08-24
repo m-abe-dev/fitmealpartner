@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -29,6 +29,7 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Progress } from '../../components/common/Progress';
 import { Badge } from '../../components/common/Badge';
+import DatabaseService from '../../services/database/DatabaseService';
 
 interface UserProfile {
   name: string;
@@ -60,6 +61,14 @@ export const ProfileScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
+
+  // デバッグ用のstate
+  const [dbStatus, setDbStatus] = useState<string>('未確認');
+  const [recordCount, setRecordCount] = useState<{
+    foods: number;
+    workouts: number;
+    settings: number;
+  }>({ foods: 0, workouts: 0, settings: 0 });
 
   // モックデータ
   const [userProfile] = useState<UserProfile>({
@@ -128,6 +137,95 @@ export const ProfileScreen: React.FC = () => {
   const bmiStatus = getBMIStatus(userProfile.bmi);
 
   const weightProgress = Math.abs(userProfile.weight - userProfile.startWeight) / Math.abs(userProfile.targetWeight - userProfile.startWeight) * 100;
+
+  // データベース状態確認
+  const checkDatabaseStatus = async () => {
+    try {
+      const db = DatabaseService.getDatabase();
+      
+      // 各テーブルのレコード数を取得
+      const foodCount = await db.getFirstAsync<{ count: number }>(
+        'SELECT COUNT(*) as count FROM food_log'
+      );
+      
+      const workoutCount = await db.getFirstAsync<{ count: number }>(
+        'SELECT COUNT(*) as count FROM workout_session'
+      );
+      
+      const settingsCount = await db.getFirstAsync<{ count: number }>(
+        'SELECT COUNT(*) as count FROM user_settings'
+      );
+      
+      setRecordCount({
+        foods: foodCount?.count || 0,
+        workouts: workoutCount?.count || 0,
+        settings: settingsCount?.count || 0,
+      });
+      
+      setDbStatus('接続済み');
+    } catch (error: any) {
+      setDbStatus('エラー: ' + error.message);
+    }
+  };
+
+  // テストデータ追加
+  const addTestData = async () => {
+    try {
+      const db = DatabaseService.getDatabase();
+      
+      // テスト食事データ追加
+      await db.runAsync(
+        `INSERT INTO food_log (date, meal_type, food_name, amount_g, protein_g, fat_g, carb_g, kcal) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          new Date().toISOString().split('T')[0],
+          'lunch',
+          'テストチキン',
+          150,
+          30,
+          5,
+          0,
+          165
+        ]
+      );
+      
+      Alert.alert('成功', 'テストデータを追加しました');
+      checkDatabaseStatus();
+    } catch (error: any) {
+      Alert.alert('エラー', error.message);
+    }
+  };
+
+  // データ削除
+  const clearAllData = async () => {
+    Alert.alert(
+      '確認',
+      'すべてのデータを削除しますか？',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: '削除',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const db = DatabaseService.getDatabase();
+              await db.execAsync('DELETE FROM food_log');
+              await db.execAsync('DELETE FROM workout_session');
+              await db.execAsync('DELETE FROM workout_set');
+              Alert.alert('完了', 'データを削除しました');
+              checkDatabaseStatus();
+            } catch (error: any) {
+              Alert.alert('エラー', error.message);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  useEffect(() => {
+    checkDatabaseStatus();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -396,6 +494,55 @@ export const ProfileScreen: React.FC = () => {
             <ChevronRight size={20} color={colors.text.tertiary} />
           </TouchableOpacity>
         </Card>
+
+        {/* デバッグセクション */}
+        <View style={styles.debugSection}>
+          <Text style={styles.debugTitle}>🔧 データベースデバッグ</Text>
+          
+          <View style={styles.statusCard}>
+            <Text style={styles.statusLabel}>DB状態:</Text>
+            <Text style={styles.statusValue}>{dbStatus}</Text>
+          </View>
+          
+          <View style={styles.countCard}>
+            <Text style={styles.countTitle}>保存済みレコード数</Text>
+            <View style={styles.countRow}>
+              <Text style={styles.countLabel}>食事ログ:</Text>
+              <Text style={styles.countValue}>{recordCount.foods}件</Text>
+            </View>
+            <View style={styles.countRow}>
+              <Text style={styles.countLabel}>ワークアウト:</Text>
+              <Text style={styles.countValue}>{recordCount.workouts}件</Text>
+            </View>
+            <View style={styles.countRow}>
+              <Text style={styles.countLabel}>設定:</Text>
+              <Text style={styles.countValue}>{recordCount.settings}件</Text>
+            </View>
+          </View>
+          
+          <View style={styles.buttonGroup}>
+            <TouchableOpacity
+              style={[styles.debugButton, styles.refreshButton]}
+              onPress={checkDatabaseStatus}
+            >
+              <Text style={styles.buttonText}>🔄 状態を更新</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.debugButton, styles.addButton]}
+              onPress={addTestData}
+            >
+              <Text style={styles.buttonText}>➕ テストデータ追加</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.debugButton, styles.clearButton]}
+              onPress={clearAllData}
+            >
+              <Text style={styles.buttonText}>🗑️ データクリア</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>FitMeal Partner v1.0.0</Text>
@@ -768,5 +915,86 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.text.tertiary,
     fontFamily: typography.fontFamily.regular,
+  },
+  // デバッグセクションのスタイル
+  debugSection: {
+    margin: 16,
+    padding: 16,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    marginBottom: spacing.md,
+  },
+  debugTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+    color: colors.text.primary,
+  },
+  statusCard: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    ...shadows.sm,
+  },
+  statusLabel: {
+    fontWeight: 'bold',
+    marginRight: 8,
+    color: colors.text.primary,
+  },
+  statusValue: {
+    color: colors.primary.main,
+    fontWeight: 'bold',
+  },
+  countCard: {
+    backgroundColor: 'white',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    ...shadows.sm,
+  },
+  countTitle: {
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: colors.text.primary,
+  },
+  countRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  countLabel: {
+    color: colors.text.secondary,
+  },
+  countValue: {
+    fontWeight: 'bold',
+    color: colors.primary.main,
+  },
+  buttonGroup: {
+    gap: 8,
+  },
+  debugButton: {
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginVertical: 4,
+  },
+  refreshButton: {
+    backgroundColor: colors.primary.main,
+  },
+  addButton: {
+    backgroundColor: colors.status.success,
+  },
+  clearButton: {
+    backgroundColor: colors.status.error,
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: typography.fontSize.base,
   },
 });
