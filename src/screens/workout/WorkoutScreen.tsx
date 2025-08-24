@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Alert, Dimensions } from 'react-native';
+import React from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Dumbbell, Crown } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../../design-system';
@@ -14,204 +14,40 @@ import { ExerciseDetailView } from './components/ExerciseDetailView';
 import { WorkoutPreviewModal } from './components/WorkoutPreviewModal';
 import { FloatingActionButtons } from './components/FloatingActionButtons';
 
-// Types and Data
-import { WorkoutView, Exercise, ExerciseTemplate, WorkoutSet, WorkoutDay } from './types/workout.types';
-import { workoutHistory, initialExercises } from './data/mockData';
+// Hooks
+import { useWorkoutScreen } from '../../hooks/useWorkoutScreen';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export const WorkoutScreen: React.FC = () => {
-  const scrollViewRef = useRef<ScrollView>(null);
-  
-  // View state
-  const [currentView, setCurrentView] = useState<WorkoutView>("main");
-  const [selectedCategory, setSelectedCategory] = useState<string>("Chest");
-  const [selectedExercise, setSelectedExercise] = useState<ExerciseTemplate | null>(null);
-  
-  // UI state
-  const [refreshing, setRefreshing] = useState(false);
-  const [isTodayResultsExpanded, setIsTodayResultsExpanded] = useState(false);
-  
-  // Data state
-  const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [selectedDayWorkout, setSelectedDayWorkout] = useState<WorkoutDay | null>(null);
-
-  // Calendar data
-  const currentDate = new Date();
-  const currentMonth = currentDate.getMonth();
-
-  // Helper functions
-  const getWorkoutForDay = (day: number): WorkoutDay | null => {
-    return workoutHistory.find(workout => workout.date === day) || null;
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
-  };
-
-  const toggleExerciseExpansion = (exerciseId: string) => {
-    setExercises((prev) =>
-      prev.map((exercise) =>
-        exercise.id === exerciseId
-          ? { ...exercise, isExpanded: !exercise.isExpanded }
-          : exercise,
-      ),
-    );
-  };
-
-  const handleAddSet = (exerciseId: string) => {
-    setExercises((prev) =>
-      prev.map((exercise) =>
-        exercise.id === exerciseId
-          ? {
-              ...exercise,
-              sets: [
-                ...exercise.sets,
-                {
-                  id: `${exerciseId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                  weight: 0,
-                  reps: 0,
-                  rm: undefined,
-                  time: exercise.type === 'cardio' ? 0 : undefined,
-                  distance: exercise.type === 'cardio' ? 0 : undefined,
-                },
-              ],
-            }
-          : exercise,
-      ),
-    );
-  };
-
-  const handleDeleteSet = (exerciseId: string, setId: string) => {
-    setExercises((prev) =>
-      prev.map((exercise) =>
-        exercise.id === exerciseId
-          ? {
-              ...exercise,
-              sets: exercise.sets.filter((set) => set.id !== setId),
-            }
-          : exercise,
-      ),
-    );
-  };
-
-  const handleDeleteExercise = (exerciseId: string) => {
-    setExercises((prev) => prev.filter((exercise) => exercise.id !== exerciseId));
-  };
-
-  const handleUpdateSet = (exerciseId: string, setId: string, field: 'weight' | 'reps' | 'time' | 'distance', value: string) => {
-    const numericValue = parseFloat(value) || 0;
-    setExercises((prev) =>
-      prev.map((exercise) =>
-        exercise.id === exerciseId
-          ? {
-              ...exercise,
-              sets: exercise.sets.map((set) =>
-                set.id === setId
-                  ? {
-                      ...set,
-                      [field]: numericValue,
-                      rm: field === 'weight' || field === 'reps'
-                        ? calculateRM(
-                            field === 'weight' ? numericValue : set.weight,
-                            field === 'reps' ? numericValue : set.reps
-                          )
-                        : set.rm,
-                    }
-                  : set,
-              ),
-            }
-          : exercise,
-      ),
-    );
-  };
-
-  // Utility function for RM calculation
-  const calculateRM = (weight: number, reps: number): number | undefined => {
-    if (weight <= 0 || reps <= 0) return undefined;
-    return Math.round(weight * (1 + reps / 30) * 100) / 100;
-  };
-
-  // Calendar and preview handlers
-  const handleDayClick = (day: number) => {
-    const workoutData = getWorkoutForDay(day);
-    if (workoutData) {
-      setSelectedDay(day);
-      setSelectedDayWorkout(workoutData);
-    }
-  };
-
-  const handleClosePreview = () => {
-    setSelectedDay(null);
-    setSelectedDayWorkout(null);
-  };
-
-  // Share functionality
-  const handleShareWorkout = () => {
-    const today_date = new Date().toLocaleDateString("ja-JP", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-
-    const exercisesList = exercises.map(exercise => {
-      const setsInfo = exercise.sets.map((set, index) =>
-        `  ${index + 1}. ${set.weight}kg × ${set.reps}回${set.rm ? ` (RM: ${set.rm})` : ''}`
-      ).join('\n');
-      return `🏋️ ${exercise.name}\n${setsInfo}`;
-    }).join('\n\n');
-
-    const stats = {
-      exercises: exercises.length,
-      sets: exercises.reduce((total, exercise) => total + exercise.sets.length, 0),
-      reps: exercises.reduce((total, exercise) => total + exercise.sets.reduce((setTotal, set) => setTotal + set.reps, 0), 0),
-      averageRM: (() => {
-        const allSets = exercises.flatMap(ex => ex.sets);
-        const rmsWithValues = allSets.map(set => set.rm).filter((rm): rm is number => rm !== undefined && rm > 0);
-        if (rmsWithValues.length === 0) return 0;
-        const sum = rmsWithValues.reduce((acc, rm) => acc + rm, 0);
-        return Math.round(sum / rmsWithValues.length);
-      })()
-    };
-
-    const score = stats.sets + stats.reps + stats.averageRM;
-    const shareText = `💪 今日のトレーニング (${today_date})\n\n${exercisesList}\n\n📊 Today's Training Volume\n・種目数: ${stats.exercises}\n・セット数: ${stats.sets}\n・総回数: ${stats.reps}\n・平均RM: ${stats.averageRM}\n・スコア: ${score}\n\n#筋トレ #ワークアウト #トレーニング`;
-
-    Alert.alert('シェア', 'トレーニング情報をシェアしました');
-  };
-
-  // Navigation handlers
-  const handleLogWorkout = () => {
-    setCurrentView("exercise-selection");
-  };
-
-  const handleSelectExercise = (exercise: ExerciseTemplate) => {
-    setSelectedExercise(exercise);
-    setCurrentView("exercise-detail");
-  };
-
-  const handleBackToMain = () => {
-    setCurrentView("main");
-  };
-
-  const handleBackToSelection = () => {
-    setCurrentView("exercise-selection");
-  };
-
-  const handleRecordWorkout = (exerciseName: string, sets: WorkoutSet[]) => {
-    const newExercise: Exercise = {
-      id: `recorded-${Date.now()}`,
-      name: exerciseName,
-      sets: sets.map(set => ({ ...set })),
-      isExpanded: true,
-      type: selectedExercise?.category === '有酸素' ? 'cardio' : 'strength',
-    };
-
-    setExercises((prev) => [...prev, newExercise]);
-    setCurrentView("main");
-  };
+  const {
+    scrollViewRef,
+    currentView,
+    selectedCategory,
+    selectedExercise,
+    refreshing,
+    isTodayResultsExpanded,
+    exercises,
+    selectedDay,
+    selectedDayWorkout,
+    currentMonth,
+    setSelectedCategory,
+    setIsTodayResultsExpanded,
+    handleRefresh,
+    toggleExerciseExpansion,
+    handleAddSet,
+    handleDeleteSet,
+    handleDeleteExercise,
+    handleUpdateSet,
+    handleDayClick,
+    handleClosePreview,
+    handleShareWorkout,
+    handleLogWorkout,
+    handleSelectExercise,
+    handleBackToMain,
+    handleBackToSelection,
+    handleRecordWorkout,
+  } = useWorkoutScreen();
 
   // Render different views
   if (currentView === "exercise-selection") {

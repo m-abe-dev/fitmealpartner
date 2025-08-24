@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ScrollView, StyleSheet, RefreshControl, View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Activity, TrendingUp } from 'lucide-react-native';
@@ -12,38 +12,32 @@ import { AICoachSection } from './components/AICoachSection';
 import { AnalyticsChart } from './components/AnalyticsChart';
 import { StatsCards } from './components/StatsCards';
 
-// Data and Types
-import { scoreData, periodData, periodAIData } from './data/mockData';
-import { PeriodData } from './types/dashboard.types';
+// Hooks
+import { useDashboardScreen } from '../../hooks/useDashboardScreen';
 
 export const DashboardScreen: React.FC = () => {
-  const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState('coach');
-  const [currentWorkoutPeriod, setCurrentWorkoutPeriod] = useState(0);
-  const [currentNutritionPeriod, setCurrentNutritionPeriod] = useState(0);
-  const [currentScoreTab, setCurrentScoreTab] = useState(0);
+  const {
+    refreshing,
+    activeTab,
+    currentWorkoutPeriod,
+    currentNutritionPeriod,
+    currentScoreTab,
+    scoreData,
+    periodData,
+    setActiveTab,
+    setCurrentWorkoutPeriod,
+    setCurrentNutritionPeriod,
+    setCurrentScoreTab,
+    onRefresh,
+    getCurrentAIData,
+    getCurrentWorkoutPeriodData,
+    getCurrentNutritionPeriodData,
+  } = useDashboardScreen();
 
   const tabs = [
     { id: 'coach', label: 'AIコーチ', icon: <Activity size={16} color={colors.text.secondary} /> },
     { id: 'analytics', label: 'アナリティクス', icon: <TrendingUp size={16} color={colors.text.secondary} /> }
   ];
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
-  };
-
-  const getCurrentAIData = () => {
-    return periodAIData[currentScoreTab];
-  };
-
-  const getCurrentWorkoutPeriodData = (): PeriodData => {
-    return periodData[currentWorkoutPeriod];
-  };
-
-  const getCurrentNutritionPeriodData = (): PeriodData => {
-    return periodData[currentNutritionPeriod];
-  };
 
   return (
     <SafeAreaView style={styles.container}>
