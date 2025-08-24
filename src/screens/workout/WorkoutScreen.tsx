@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Calendar as CalendarIcon } from 'lucide-react-native';
+import { Dumbbell, Crown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, typography, spacing } from '../../design-system';
+import { colors, typography, spacing, radius } from '../../design-system';
 
 // Components
 import { NotificationCenter } from './components/NotificationCenter';
@@ -51,6 +51,72 @@ export const WorkoutScreen: React.FC = () => {
           : exercise,
       ),
     );
+  };
+
+  const handleAddSet = (exerciseId: string) => {
+    setExercises((prev) =>
+      prev.map((exercise) =>
+        exercise.id === exerciseId
+          ? {
+              ...exercise,
+              sets: [
+                ...exercise.sets,
+                {
+                  id: `${exerciseId}-${exercise.sets.length + 1}`,
+                  weight: 0,
+                  reps: 0,
+                  rm: undefined,
+                },
+              ],
+            }
+          : exercise,
+      ),
+    );
+  };
+
+  const handleDeleteSet = (exerciseId: string, setId: string) => {
+    setExercises((prev) =>
+      prev.map((exercise) =>
+        exercise.id === exerciseId
+          ? {
+              ...exercise,
+              sets: exercise.sets.filter((set) => set.id !== setId),
+            }
+          : exercise,
+      ),
+    );
+  };
+
+  const handleUpdateSet = (exerciseId: string, setId: string, field: 'weight' | 'reps', value: string) => {
+    const numericValue = parseFloat(value) || 0;
+    setExercises((prev) =>
+      prev.map((exercise) =>
+        exercise.id === exerciseId
+          ? {
+              ...exercise,
+              sets: exercise.sets.map((set) =>
+                set.id === setId
+                  ? {
+                      ...set,
+                      [field]: numericValue,
+                      rm: field === 'weight' || field === 'reps' 
+                        ? calculateRM(
+                            field === 'weight' ? numericValue : set.weight,
+                            field === 'reps' ? numericValue : set.reps
+                          )
+                        : set.rm,
+                    }
+                  : set,
+              ),
+            }
+          : exercise,
+      ),
+    );
+  };
+
+  const calculateRM = (weight: number, reps: number): number | undefined => {
+    if (weight <= 0 || reps <= 0) return undefined;
+    return Math.round(weight * (1 + reps / 30) * 100) / 100;
   };
 
   const handleDayClick = (day: number) => {
@@ -154,18 +220,14 @@ export const WorkoutScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.titleContainer}>
-          <CalendarIcon size={20} color={colors.text.secondary} />
+          <Dumbbell size={20} color={colors.primary.main} />
           <Text style={styles.title}>今日の筋トレ</Text>
         </View>
         <View style={styles.headerActions}>
           <NotificationCenter />
           <TouchableOpacity style={styles.proButton}>
-            <LinearGradient
-              colors={['#FFC107', '#FF9800']}
-              style={styles.proGradient}
-            >
-              <Text style={styles.proText}>PROに登録</Text>
-            </LinearGradient>
+            <Crown size={16} color={colors.primary.main} />
+            <Text style={styles.proButtonText}>PRO</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -189,6 +251,9 @@ export const WorkoutScreen: React.FC = () => {
         <ExerciseList
           exercises={exercises}
           onToggleExpansion={toggleExerciseExpansion}
+          onAddSet={handleAddSet}
+          onDeleteSet={handleDeleteSet}
+          onUpdateSet={handleUpdateSet}
         />
 
         {/* Workout Preview Modal */}
@@ -240,16 +305,17 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   proButton: {
-    borderRadius: spacing.md,
+   flexDirection: 'row',
+       alignItems: 'center',
+       backgroundColor: colors.primary[50],
+       paddingHorizontal: spacing.sm,
+       paddingVertical: spacing.xs,
+       borderRadius: radius.full,
+       gap: spacing.xxs,
   },
-  proGradient: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: spacing.md,
-  },
-  proText: {
+  proButtonText: {
     fontSize: typography.fontSize.xs,
-    color: colors.text.inverse,
+    color: colors.primary.main,
     fontFamily: typography.fontFamily.bold,
   },
   content: {

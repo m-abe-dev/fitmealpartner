@@ -8,11 +8,17 @@ import { Exercise } from '../types/workout.types';
 interface ExerciseListProps {
   exercises: Exercise[];
   onToggleExpansion: (exerciseId: string) => void;
+  onAddSet: (exerciseId: string) => void;
+  onDeleteSet: (exerciseId: string, setId: string) => void;
+  onUpdateSet: (exerciseId: string, setId: string, field: 'weight' | 'reps', value: string) => void;
 }
 
 export const ExerciseList: React.FC<ExerciseListProps> = ({
   exercises,
-  onToggleExpansion
+  onToggleExpansion,
+  onAddSet,
+  onDeleteSet,
+  onUpdateSet
 }) => {
   return (
     <View style={styles.exercisesSection}>
@@ -48,6 +54,7 @@ export const ExerciseList: React.FC<ExerciseListProps> = ({
                   <TextInput
                     style={styles.weightInput}
                     value={set.weight.toString()}
+                    onChangeText={(value) => onUpdateSet(exercise.id, set.id, 'weight', value)}
                     keyboardType="numeric"
                     placeholder="重量"
                     placeholderTextColor={colors.text.tertiary}
@@ -56,6 +63,7 @@ export const ExerciseList: React.FC<ExerciseListProps> = ({
                   <TextInput
                     style={styles.repsInput}
                     value={set.reps.toString()}
+                    onChangeText={(value) => onUpdateSet(exercise.id, set.id, 'reps', value)}
                     keyboardType="numeric"
                     placeholder="回数"
                     placeholderTextColor={colors.text.tertiary}
@@ -64,13 +72,16 @@ export const ExerciseList: React.FC<ExerciseListProps> = ({
                   {set.rm && (
                     <Text style={styles.rmText}>1RM: {set.rm}</Text>
                   )}
-                  <TouchableOpacity>
+                  <TouchableOpacity onPress={() => onDeleteSet(exercise.id, set.id)}>
                     <Trash2 size={16} color={colors.status.error} />
                   </TouchableOpacity>
                 </View>
               ))}
 
-              <TouchableOpacity style={styles.addSetButton}>
+              <TouchableOpacity 
+                style={styles.addSetButton}
+                onPress={() => onAddSet(exercise.id)}
+              >
                 <Plus size={16} color={colors.primary.main} />
                 <Text style={styles.addSetText}>セットを追加</Text>
               </TouchableOpacity>
