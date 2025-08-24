@@ -23,6 +23,7 @@
     "expo-barcode-scanner": "~13.0.1",
     "expo-camera": "~15.0.16",
     "expo-font": "~13.0.1",
+    "expo-linear-gradient": "~14.1.5",
     "expo-splash-screen": "~0.29.13",
     "expo-sqlite": "^15.2.14",
     "expo-status-bar": "~2.2.3",

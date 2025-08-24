@@ -1,0 +1,194 @@
+import React from 'react';
+import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
+import { ChevronUp, ChevronDown, Plus, Trash2 } from 'lucide-react-native';
+import { colors, typography, spacing, radius, shadows } from '../../../design-system';
+import { Badge } from '../../../components/common/Badge';
+import { Exercise } from '../types/workout.types';
+
+interface ExerciseListProps {
+  exercises: Exercise[];
+  onToggleExpansion: (exerciseId: string) => void;
+}
+
+export const ExerciseList: React.FC<ExerciseListProps> = ({
+  exercises,
+  onToggleExpansion
+}) => {
+  return (
+    <View style={styles.exercisesSection}>
+      {exercises.map((exercise) => (
+        <View key={exercise.id} style={styles.exerciseCard}>
+          <TouchableOpacity
+            style={styles.exerciseHeader}
+            onPress={() => onToggleExpansion(exercise.id)}
+          >
+            <View>
+              <Text style={styles.exerciseName}>{exercise.name}</Text>
+              <Text style={styles.exerciseSummary}>
+                {exercise.sets.length} セット • {exercise.sets.reduce((total, set) => total + set.reps, 0)} 回 •
+                Max: {Math.max(...exercise.sets.map(s => s.weight))}kg
+              </Text>
+            </View>
+            <View style={styles.exerciseActions}>
+              <Badge variant="default" size="small" style={styles.setBadge}>
+                {exercise.sets.length}セット
+              </Badge>
+              {exercise.isExpanded ?
+                <ChevronUp size={20} color={colors.text.tertiary} /> :
+                <ChevronDown size={20} color={colors.text.tertiary} />
+              }
+            </View>
+          </TouchableOpacity>
+
+          {exercise.isExpanded && (
+            <View style={styles.setsContainer}>
+              {exercise.sets.map((set, index) => (
+                <View key={set.id} style={styles.setRow}>
+                  <Text style={styles.setNumber}>{index + 1}</Text>
+                  <TextInput
+                    style={styles.weightInput}
+                    value={set.weight.toString()}
+                    keyboardType="numeric"
+                    placeholder="重量"
+                    placeholderTextColor={colors.text.tertiary}
+                  />
+                  <Text style={styles.unitText}>kg ×</Text>
+                  <TextInput
+                    style={styles.repsInput}
+                    value={set.reps.toString()}
+                    keyboardType="numeric"
+                    placeholder="回数"
+                    placeholderTextColor={colors.text.tertiary}
+                  />
+                  <Text style={styles.unitText}>回</Text>
+                  {set.rm && (
+                    <Text style={styles.rmText}>1RM: {set.rm}</Text>
+                  )}
+                  <TouchableOpacity>
+                    <Trash2 size={16} color={colors.status.error} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              <TouchableOpacity style={styles.addSetButton}>
+                <Plus size={16} color={colors.primary.main} />
+                <Text style={styles.addSetText}>セットを追加</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      ))}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  exercisesSection: {
+    marginBottom: spacing.xl,
+    gap: spacing.sm,
+  },
+  exerciseCard: {
+    backgroundColor: 'white',
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    ...shadows.sm,
+  },
+  exerciseHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.md,
+  },
+  exerciseName: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.primary,
+    fontFamily: typography.fontFamily.medium,
+    marginBottom: spacing.xxxs,
+  },
+  exerciseSummary: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    fontFamily: typography.fontFamily.regular,
+  },
+  exerciseActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  setBadge: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#EFF6FF',
+  },
+  setsContainer: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+    paddingTop: spacing.sm,
+  },
+  setRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+    backgroundColor: colors.background.secondary,
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.xs,
+    borderRadius: radius.lg,
+  },
+  setNumber: {
+    width: 24,
+    height: 24,
+    textAlign: 'center',
+    fontSize: typography.fontSize.sm,
+    color: colors.text.primary,
+    fontFamily: typography.fontFamily.medium,
+  },
+  weightInput: {
+    width: 60,
+    padding: spacing.xs,
+    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    borderRadius: radius.sm,
+    fontSize: typography.fontSize.sm,
+    backgroundColor: 'white',
+  },
+  repsInput: {
+    width: 60,
+    padding: spacing.xs,
+    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    borderRadius: radius.sm,
+    fontSize: typography.fontSize.sm,
+    backgroundColor: 'white',
+  },
+  unitText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+  },
+  rmText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.tertiary,
+    flex: 1,
+    marginLeft: spacing.sm,
+  },
+  addSetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+    borderTopWidth: 2,
+    borderTopColor: colors.primary[200],
+    borderStyle: 'dashed',
+    marginHorizontal: spacing.md,
+    marginTop: spacing.sm,
+    borderRadius: radius.lg,
+  },
+  addSetText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.primary.main,
+    fontFamily: typography.fontFamily.medium,
+  },
+});
