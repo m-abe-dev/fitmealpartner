@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bell, Crown, Plus, Share2, Search, Clock, Star, Apple, Edit3, Trash2, Heart } from 'lucide-react-native';
 import { colors, typography, spacing, radius, shadows } from '../../design-system';
 import { Card } from '../../components/common/Card';
-import { Progress, CircularProgress } from '../../components/common/Progress';
+import { Progress, CircularProgress, NutritionCircularProgress } from '../../components/common/Progress';
 import { FoodList, FoodListItem } from '../../components/common/FoodListItem';
 import { BottomSheet } from '../../components/common/BottomSheet';
 import { Button } from '../../components/common/Button';
@@ -55,7 +55,7 @@ export const NutritionScreen: React.FC = () => {
 
   // モックデータ
   const [nutritionData] = useState<NutritionData>({
-    calories: { current: 1847, target: 2200 },
+    calories: { current: 3147, target: 2200 },
     protein: { current: 112, target: 140 },
     fat: { current: 76, target: 85 },
     carbs: { current: 180, target: 200 }
@@ -238,68 +238,65 @@ export const NutritionScreen: React.FC = () => {
         <Card style={styles.nutritionCard}>
           <View style={styles.nutritionCardGradient}>
             <Text style={styles.nutritionTitle}>今日の栄養摂取</Text>
-            <View style={styles.caloriesSection}>
-              <Text style={styles.caloriesText}>
-                {nutritionData.calories.current} / {nutritionData.calories.target}
-              </Text>
-              <Text style={styles.caloriesUnit}>kcal</Text>
+            <View style={styles.caloriesMainSection}>
+              <NutritionCircularProgress
+                current={nutritionData.calories.current}
+                target={nutritionData.calories.target}
+                nutrientType="calories"
+                size={120}
+                strokeWidth={8}
+                color={colors.text.inverse}
+              />
+              <View style={styles.caloriesInfo}>
+                <Progress
+                  value={nutritionData.calories.current}
+                  max={nutritionData.calories.target}
+                  color={colors.text.inverse}
+                  backgroundColor={colors.text.inverse + '30'}
+                  height={8}
+                  style={styles.caloriesProgress}
+                />
+                <Text style={styles.remainingText}>
+                  残り {nutritionData.calories.target - nutritionData.calories.current} kcal
+                </Text>
+              </View>
             </View>
-            <Progress
-              value={nutritionData.calories.current}
-              max={nutritionData.calories.target}
-              color={colors.text.inverse}
-              backgroundColor={colors.text.inverse + '30'}
-              height={8}
-              style={styles.caloriesProgress}
-            />
-            <Text style={styles.remainingText}>
-              残り {nutritionData.calories.target - nutritionData.calories.current} kcal
-            </Text>
           </View>
 
         {/* マクロ栄養素 */}
         <View style={styles.macroSection}>
           <View style={styles.macroGrid}>
             <View style={styles.macroItem}>
-              <CircularProgress
+              <NutritionCircularProgress
+                current={nutritionData.protein.current}
+                target={nutritionData.protein.target}
+                nutrientType="protein"
                 size={80}
                 strokeWidth={6}
-                progress={(nutritionData.protein.current / nutritionData.protein.target) * 100}
-                color={colors.nutrition.protein}
-                backgroundColor={colors.gray[200]}
-              >
-                <Text style={styles.macroValue}>{nutritionData.protein.current}g</Text>
-              </CircularProgress>
+              />
               <Text style={styles.macroLabel}>タンパク質</Text>
-              <Text style={styles.macroTarget}>目標: {nutritionData.protein.target}g</Text>
             </View>
 
             <View style={styles.macroItem}>
-              <CircularProgress
+              <NutritionCircularProgress
+                current={nutritionData.fat.current}
+                target={nutritionData.fat.target}
+                nutrientType="fat"
                 size={80}
                 strokeWidth={6}
-                progress={(nutritionData.fat.current / nutritionData.fat.target) * 100}
-                color={colors.nutrition.fat}
-                backgroundColor={colors.gray[200]}
-              >
-                <Text style={styles.macroValue}>{nutritionData.fat.current}g</Text>
-              </CircularProgress>
+              />
               <Text style={styles.macroLabel}>脂質</Text>
-              <Text style={styles.macroTarget}>目標: {nutritionData.fat.target}g</Text>
             </View>
 
             <View style={styles.macroItem}>
-              <CircularProgress
+              <NutritionCircularProgress
+                current={nutritionData.carbs.current}
+                target={nutritionData.carbs.target}
+                nutrientType="carbs"
                 size={80}
                 strokeWidth={6}
-                progress={(nutritionData.carbs.current / nutritionData.carbs.target) * 100}
-                color={colors.nutrition.carbs}
-                backgroundColor={colors.gray[200]}
-              >
-                <Text style={styles.macroValue}>{nutritionData.carbs.current}g</Text>
-              </CircularProgress>
+              />
               <Text style={styles.macroLabel}>炭水化物</Text>
-              <Text style={styles.macroTarget}>目標: {nutritionData.carbs.target}g</Text>
             </View>
           </View>
         </View>
@@ -491,6 +488,15 @@ const styles = StyleSheet.create({
     color: colors.text.inverse,
     fontFamily: typography.fontFamily.medium,
     marginBottom: spacing.md,
+  },
+  caloriesMainSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+    gap: spacing.lg,
+  },
+  caloriesInfo: {
+    flex: 1,
   },
   caloriesSection: {
     flexDirection: 'row',

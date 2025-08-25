@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, Animated, Easing } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 import { colors, typography, radius, spacing } from '../../design-system';
 
 interface ProgressProps {
@@ -60,7 +61,7 @@ export const Progress: React.FC<ProgressProps> = ({
           </Text>
         </View>
       )}
-      
+
       <View
         style={[
           styles.track,
@@ -96,7 +97,11 @@ interface CircularProgressProps {
   backgroundColor?: string;
   children?: React.ReactNode;
   style?: ViewStyle;
+  animated?: boolean;
+  duration?: number;
 }
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export const CircularProgress: React.FC<CircularProgressProps> = ({
   size,
@@ -106,20 +111,28 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
   backgroundColor = colors.gray[200],
   children,
   style,
+  animated = true,
+  duration = 1000,
 }) => {
-  const [animatedValue] = React.useState(new Animated.Value(0));
+  const animatedValue = React.useRef(new Animated.Value(0)).current;
+
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const percentage = Math.min(Math.max(progress, 0), 100);
+  const center = size / 2;
 
   React.useEffect(() => {
-    Animated.timing(animatedValue, {
-      toValue: percentage,
-      duration: 1000,
-      easing: Easing.out(Easing.ease),
-      useNativeDriver: false,
-    }).start();
-  }, [percentage, animatedValue]);
+    if (animated) {
+      Animated.timing(animatedValue, {
+        toValue: percentage,
+        duration,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    } else {
+      animatedValue.setValue(percentage);
+    }
+  }, [percentage, animated, duration]);
 
   const strokeDashoffset = animatedValue.interpolate({
     inputRange: [0, 100],
@@ -127,45 +140,128 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
     extrapolate: 'clamp',
   });
 
+  // プログレスに応じた色の変化
+  const getDynamicColor = (progress: number): string => {
+    if (progress >= 100) return colors.status.success;
+    if (progress >= 80) return color;
+    if (progress >= 60) return colors.status.warning;
+    return colors.status.error;
+  };
+
+  const progressColor = getDynamicColor(percentage);
+
   return (
     <View style={[styles.circularContainer, { width: size, height: size }, style]}>
-      {/* Background Circle */}
-      <View
-        style={[
-          styles.circle,
-          {
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            borderWidth: strokeWidth,
-            borderColor: backgroundColor,
-          },
-        ]}
-      />
-      
-      {/* Progress Circle */}
-      <Animated.View
-        style={[
-          styles.circle,
-          styles.progressCircle,
-          {
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            borderWidth: strokeWidth,
-            borderColor: color,
-            transform: [{ rotate: '-90deg' }],
-          },
-        ]}
-      />
-      
-      {/* Content */}
+      <Svg width={size} height={size} style={styles.svgStyle}>
+        {/* 背景の円 */}
+        <Circle
+          cx={center}
+          cy={center}
+          r={radius}
+          stroke={backgroundColor}
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
+
+        {/* プログレスの円 */}
+        <AnimatedCircle
+          cx={center}
+          cy={center}
+          r={radius}
+          stroke={progressColor}
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${center} ${center})`}
+        />
+      </Svg>
+
+      {/* 中央のコンテンツ */}
       {children && (
         <View style={styles.circularContent}>
           {children}
         </View>
       )}
     </View>
+  );
+};
+
+// 栄養素用の特別なCircularProgress
+interface NutritionCircularProgressProps extends Omit<CircularProgressProps, 'progress'> {
+  current: number;
+  target: number;
+  nutrientType: 'protein' | 'fat' | 'carbs' | 'calories';
+  showUnit?: boolean;
+  unit?: string;
+}
+
+export const NutritionCircularProgress: React.FC<NutritionCircularProgressProps> = ({
+  current,
+  target,
+  nutrientType,
+  showUnit = true,
+  unit,
+  size = 80,
+  strokeWidth = 6,
+  ...props
+}) => {
+  const percentage = target > 0 ? (current / target) * 100 : 0;
+
+  // 栄養素タイプに応じた色
+  const getNutrientColor = (): string => {
+    switch (nutrientType) {
+      case 'protein':
+        return colors.nutrition.protein;
+      case 'fat':
+        return colors.nutrition.fat;
+      case 'carbs':
+        return colors.nutrition.carbs;
+      case 'calories':
+        return colors.nutrition.calories;
+      default:
+        return colors.primary.main;
+    }
+  };
+
+  // 栄養素タイプに応じた単位
+  const getUnit = (): string => {
+    if (unit) return unit;
+    return nutrientType === 'calories' ? 'kcal' : 'g';
+  };
+
+  // 達成率に応じた背景色の透明度
+  const getBackgroundColor = (): string => {
+    const baseColor = getNutrientColor();
+    if (percentage >= 100) return baseColor + '30';
+    if (percentage >= 80) return baseColor + '20';
+    return baseColor + '10';
+  };
+
+  return (
+    <CircularProgress
+      size={size}
+      strokeWidth={strokeWidth}
+      progress={percentage}
+      color={getNutrientColor()}
+      backgroundColor={getBackgroundColor()}
+      {...props}
+    >
+      <View style={styles.nutritionContent}>
+        <Text style={[styles.nutritionValue, { color: getNutrientColor() }]}>
+          {Math.round(current)}{showUnit && getUnit()}
+        </Text>
+        <Text style={[styles.nutritionTarget, { color: colors.text.secondary }]}>
+          /{target}{showUnit && getUnit()}
+        </Text>
+        {percentage >= 100 && (
+          <View style={[styles.completedBadge, { backgroundColor: getNutrientColor() }]}>
+            <Text style={styles.completedText}>✓</Text>
+          </View>
+        )}
+      </View>
+    </CircularProgress>
   );
 };
 
@@ -235,18 +331,54 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  circle: {
-    position: 'absolute',
-  },
-  progressCircle: {
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: 'transparent',
+  svgStyle: {
+    transform: [{ rotateZ: '0deg' }],
   },
   circularContent: {
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  nutritionContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background.primary + 'E6',
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    minWidth: 50,
+  },
+  nutritionValue: {
+    fontSize: typography.fontSize.md,
+    fontFamily: typography.fontFamily.bold,
+    color: colors.text.primary,
+    lineHeight: typography.fontSize.md * 1.1,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  nutritionTarget: {
+    fontSize: typography.fontSize.sm,
+    fontFamily: typography.fontFamily.medium,
+    color: colors.text.primary,
+    lineHeight: typography.fontSize.sm * 1.1,
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  completedBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: colors.status.success,
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  completedText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.inverse,
+    fontFamily: typography.fontFamily.bold,
   },
   // Multi Progress Styles
   multiContainer: {
