@@ -24,6 +24,93 @@ import { AddFoodModal } from '../../components/nutrition/AddFoodModal';
 
 const { width: screenWidth } = Dimensions.get('window');
 
+// --- 栄養スコア関数 ---
+const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+
+type Goal = 'cut' | 'bulk' | 'maintain';
+
+// 目標に「どれだけ近いか」を 0–100 点化する汎用スコア
+const closenessScore = (
+  current: number,
+  target: number,
+  opts?: { dead?: number; zeroAt?: number; pow?: number; under?: number; over?: number }
+) => {
+  const dead   = opts?.dead   ?? 0.05; // ±5%
+  const zeroAt = opts?.zeroAt ?? 0.60; // 60%ズレで0点
+  const pow    = opts?.pow    ?? 1.1;
+  const underW = opts?.under  ?? 1.0;
+  const overW  = opts?.over   ?? 1.0;
+
+  const dev = Math.abs(current - target) / Math.max(1, target);
+  const norm = clamp01((dev - dead) / Math.max(1e-9, zeroAt - dead));
+  const weight = current < target ? underW : overW;
+  const penalty = clamp01(Math.pow(norm, pow) * weight);
+  return Math.round(100 * (1 - penalty));
+};
+
+// カロリースコア（目的別の過不足重み）
+const scoreCalories = (current: number, target: number, goal: Goal) => {
+  const table = {
+    maintain: { under: 1.0, over: 1.0 },
+    cut:      { under: 0.8, over: 1.25 },
+    bulk:     { under: 1.25, over: 0.9  },
+  }[goal];
+  return closenessScore(current, target, { ...table, dead: 0.05, zeroAt: 0.60, pow: 1.1 });
+};
+
+// 各マクロのスコア
+type Macro = 'protein' | 'fat' | 'carbs';
+const scoreMacro = (macro: Macro, current: number, target: number, goal: Goal) => {
+  const weightsByGoal: Record<Goal, Record<Macro, { under: number; over: number }>> = {
+    maintain: {
+      protein: { under: 1.4,  over: 0.8 },
+      fat:     { under: 1.0,  over: 1.1 },
+      carbs:   { under: 0.9,  over: 1.0 },
+    },
+    cut: {
+      protein: { under: 1.6,  over: 0.7 },
+      fat:     { under: 1.0,  over: 1.25 },
+      carbs:   { under: 0.9,  over: 1.2  },
+    },
+    bulk: {
+      protein: { under: 1.7,  over: 0.8 },
+      fat:     { under: 1.1,  over: 1.0 },
+      carbs:   { under: 1.2,  over: 0.9  },
+    },
+  };
+
+  const w = weightsByGoal[goal][macro];
+  return closenessScore(current, target, { ...w, dead: 0.05, zeroAt: 0.60, pow: 1.05 });
+};
+
+// マクロ合成 & 総合スコア
+const weighted = (vals: number[], ws: number[]) =>
+  Math.round(vals.reduce((a, v, i) => a + v * ws[i], 0));
+
+const computeNutritionScores = (data: {
+  calories: { current: number; target: number };
+  protein:  { current: number; target: number };
+  fat:      { current: number; target: number };
+  carbs:    { current: number; target: number };
+}, goal: Goal = 'maintain') => {
+  const calS = scoreCalories(data.calories.current, data.calories.target, goal);
+  const pS   = scoreMacro('protein', data.protein.current, data.protein.target, goal);
+  const fS   = scoreMacro('fat',     data.fat.current,     data.fat.target,     goal);
+  const cS   = scoreMacro('carbs',   data.carbs.current,   data.carbs.target,   goal);
+
+  const macroS = weighted([pS, cS, fS], [0.5, 0.3, 0.2]);
+  const totalS = weighted([calS, macroS], [0.45, 0.55]);
+
+  return { calories: calS, protein: pS, fat: fS, carbs: cS, macro: macroS, total: totalS };
+};
+
+// スコア色づけ関数
+const getScoreColor = (score: number) => {
+  if (score >= 80) return { bg: colors.status.success + '20', text: colors.status.success };
+  if (score >= 60) return { bg: colors.status.warning + '20', text: colors.status.warning };
+  return { bg: colors.status.error + '20', text: colors.status.error };
+};
+
 interface NutritionData {
   calories: { current: number; target: number };
   protein: { current: number; target: number };
@@ -55,11 +142,18 @@ export const NutritionScreen: React.FC = () => {
 
   // モックデータ
   const [nutritionData] = useState<NutritionData>({
-    calories: { current: 3147, target: 2200 },
+    calories: { current: 1647, target: 2200 },
     protein: { current: 112, target: 140 },
     fat: { current: 76, target: 85 },
     carbs: { current: 180, target: 200 }
   });
+
+  // スコア計算
+  const GOAL: Goal = 'maintain'; // TODO: ユーザー設定から取得
+  const scores = React.useMemo(
+    () => computeNutritionScores(nutritionData, GOAL),
+    [nutritionData, GOAL]
+  );
 
   // 初期データを設定
   useState(() => {
@@ -237,16 +331,28 @@ export const NutritionScreen: React.FC = () => {
         {/* 栄養進捗カード */}
         <Card style={styles.nutritionCard}>
           <View style={styles.nutritionCardGradient}>
-            <Text style={styles.nutritionTitle}>今日のカロリー</Text>
+            <View style={styles.nutritionHeader}>
+              <Text style={styles.nutritionTitle}>今日の栄養</Text>
+              <View style={[styles.totalScoreBadge, { backgroundColor: getScoreColor(scores.total).bg }]}>
+                <Text style={[styles.totalScoreText, { color: getScoreColor(scores.total).text }]}>
+                  スコア {scores.total}
+                </Text>
+              </View>
+            </View>
             <View style={styles.caloriesMainSection}>
-              <NutritionCircularProgress
-                current={nutritionData.calories.current}
-                target={nutritionData.calories.target}
-                nutrientType="calories"
-                size={120}
-                strokeWidth={8}
-                color={colors.text.inverse}
-              />
+              <View style={styles.caloriesCircleContainer}>
+                <NutritionCircularProgress
+                  current={nutritionData.calories.current}
+                  target={nutritionData.calories.target}
+                  nutrientType="calories"
+                  size={120}
+                  strokeWidth={8}
+                  color={colors.text.inverse}
+                />
+                <View style={styles.caloriesScoreBadge}>
+                  <Text style={styles.caloriesScoreText}>スコア {scores.calories}</Text>
+                </View>
+              </View>
               <View style={styles.caloriesInfo}>
                 <Progress
                   value={nutritionData.calories.current}
@@ -275,6 +381,11 @@ export const NutritionScreen: React.FC = () => {
                 strokeWidth={6}
               />
               <Text style={styles.macroLabel}>タンパク質</Text>
+              <View style={[styles.macroScoreBadge, { backgroundColor: getScoreColor(scores.protein).bg }]}>
+                <Text style={[styles.macroScoreText, { color: getScoreColor(scores.protein).text }]}>
+                  {scores.protein}
+                </Text>
+              </View>
             </View>
 
             <View style={styles.macroItem}>
@@ -286,6 +397,11 @@ export const NutritionScreen: React.FC = () => {
                 strokeWidth={6}
               />
               <Text style={styles.macroLabel}>脂質</Text>
+              <View style={[styles.macroScoreBadge, { backgroundColor: getScoreColor(scores.fat).bg }]}>
+                <Text style={[styles.macroScoreText, { color: getScoreColor(scores.fat).text }]}>
+                  {scores.fat}
+                </Text>
+              </View>
             </View>
 
             <View style={styles.macroItem}>
@@ -297,6 +413,11 @@ export const NutritionScreen: React.FC = () => {
                 strokeWidth={6}
               />
               <Text style={styles.macroLabel}>炭水化物</Text>
+              <View style={[styles.macroScoreBadge, { backgroundColor: getScoreColor(scores.carbs).bg }]}>
+                <Text style={[styles.macroScoreText, { color: getScoreColor(scores.carbs).text }]}>
+                  {scores.carbs}
+                </Text>
+              </View>
             </View>
           </View>
         </View>
@@ -483,11 +604,28 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: radius.lg,
   },
+  nutritionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
   nutritionTitle: {
     fontSize: typography.fontSize.base,
     color: colors.text.inverse,
     fontFamily: typography.fontFamily.medium,
-    marginBottom: spacing.md,
+    fontWeight: 'bold',
+  },
+  totalScoreBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.text.inverse + '30',
+  },
+  totalScoreText: {
+    fontSize: typography.fontSize.xs,
+    fontFamily: typography.fontFamily.bold,
     fontWeight: 'bold',
   },
   caloriesMainSection: {
@@ -495,6 +633,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.sm,
     gap: spacing.lg,
+  },
+  caloriesCircleContainer: {
+    position: 'relative',
+    alignItems: 'center',
+  },
+  caloriesScoreBadge: {
+    position: 'absolute',
+    bottom: -8,
+    backgroundColor: colors.text.inverse + 'E6',
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+    shadowColor: colors.gray[600],
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  caloriesScoreText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.primary.main,
+    fontFamily: typography.fontFamily.bold,
+    fontWeight: 'bold',
   },
   caloriesInfo: {
     flex: 1,
@@ -534,6 +695,17 @@ const styles = StyleSheet.create({
   macroItem: {
     alignItems: 'center',
     gap: spacing.xs,
+  },
+  macroScoreBadge: {
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+    marginTop: spacing.xxxs,
+  },
+  macroScoreText: {
+    fontSize: typography.fontSize.xs,
+    fontFamily: typography.fontFamily.bold,
+    fontWeight: 'bold',
   },
   macroValue: {
     fontSize: typography.fontSize.sm,
