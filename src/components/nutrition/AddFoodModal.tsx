@@ -51,6 +51,7 @@ interface AddFoodModalProps {
   selectedMeal: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   editingFood?: Food | null;
   onUpdateFood?: (food: Food & { amount: number; unit: string; meal: string; time: string }) => void;
+  favoriteFoods?: Food[];
 }
 
 // モックデータ
@@ -83,6 +84,7 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
   selectedMeal,
   editingFood,
   onUpdateFood,
+  favoriteFoods = [],
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -121,7 +123,7 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
   };
 
   const getFavoritesFoods = (): Food[] => {
-    return mockFavoritesFoods;
+    return favoriteFoods.length > 0 ? favoriteFoods : mockFavoritesFoods;
   };
 
   const handleSearchFocus = () => {
@@ -558,7 +560,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     height: 48,
-    paddingLeft: spacing.xl,
+    paddingLeft: spacing.xl + spacing.sm,
     paddingRight: spacing.md,
     borderWidth: 1,
     borderColor: colors.border.light,
@@ -664,6 +666,7 @@ const styles = StyleSheet.create({
   },
   manualSection: {
     gap: spacing.md,
+    marginBottom: spacing.lg,
   },
   inputGroup: {
     flex: 1,
@@ -707,11 +710,12 @@ const styles = StyleSheet.create({
   caloriesLabel: {
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
+        fontWeight: 'bold',
   },
   caloriesValue: {
     fontSize: typography.fontSize.base,
     color: colors.text.primary,
-    fontFamily: typography.fontFamily.bold,
+        fontWeight: 'bold',
   },
   addButton: {
     marginTop: spacing.md,

@@ -10,7 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell, Crown, Plus, Share2, Search, Clock, Star, Apple, Edit3, Trash2 } from 'lucide-react-native';
+import { Bell, Crown, Plus, Share2, Search, Clock, Star, Apple, Edit3, Trash2, Heart } from 'lucide-react-native';
 import { colors, typography, spacing, radius, shadows } from '../../design-system';
 import { Card } from '../../components/common/Card';
 import { Progress, CircularProgress } from '../../components/common/Progress';
@@ -201,6 +201,13 @@ export const NutritionScreen: React.FC = () => {
     setTodaysFoodLog(prev => prev.filter(food => food.id !== foodId));
   };
 
+  // お気に入りトグルハンドラー
+  const handleToggleFavorite = (foodId: string) => {
+    setTodaysFoodLog(prev => prev.map(food =>
+      food.id === foodId ? { ...food, isFavorite: !food.isFavorite } : food
+    ));
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* ヘッダー */}
@@ -249,7 +256,6 @@ export const NutritionScreen: React.FC = () => {
               残り {nutritionData.calories.target - nutritionData.calories.current} kcal
             </Text>
           </View>
-        </Card>
 
         {/* マクロ栄養素 */}
         <View style={styles.macroSection}>
@@ -297,9 +303,10 @@ export const NutritionScreen: React.FC = () => {
             </View>
           </View>
         </View>
+        </Card>
 
         {/* 食事ログ */}
-        <Card style={styles.mealLogCard}>
+        <View style={styles.mealLogSection}>
           <View style={styles.mealLogHeader}>
             <Text style={styles.mealLogTitle}>今日の食事記録</Text>
             <TouchableOpacity style={styles.shareButton}>
@@ -312,16 +319,20 @@ export const NutritionScreen: React.FC = () => {
             const mealFoods = getMealFoods(meal.id);
 
             return (
-              <View key={meal.id} style={styles.mealSection}>
-                <TouchableOpacity style={styles.mealHeader}>
+              <Card key={meal.id} style={styles.mealCard}>
+                <View style={styles.mealHeader}>
                   <View style={styles.mealHeaderLeft}>
-                    <Text style={styles.mealIcon}>{meal.icon}</Text>
-                    <View>
+                    <View style={styles.mealIconContainer}>
+                      <Text style={styles.mealIcon}>{meal.icon}</Text>
+                    </View>
+                    <View style={styles.mealInfo}>
                       <Text style={styles.mealName}>{meal.label}</Text>
-                      {mealTotals.calories > 0 && (
+                      {mealTotals.calories > 0 ? (
                         <Text style={styles.mealTotals}>
                           {mealTotals.calories} kcal • P{mealTotals.protein}g F{mealTotals.fat}g C{mealTotals.carbs}g
                         </Text>
+                      ) : (
+                        <Text style={styles.mealEmpty}>記録なし</Text>
                       )}
                     </View>
                   </View>
@@ -334,44 +345,54 @@ export const NutritionScreen: React.FC = () => {
                   >
                     <Plus size={20} color={colors.primary.main} />
                   </TouchableOpacity>
-                </TouchableOpacity>
+                </View>
 
-                {mealFoods.map((food) => (
-                  <View key={food.id} style={styles.foodItem}>
-                    <View style={styles.foodItemContent}>
-                      <View style={styles.foodInfo}>
-                        <Text style={styles.foodName}>{food.name}</Text>
-                        <Text style={styles.foodDetails}>
-                          {food.amount}{food.unit} • {food.calories}kcal • P{food.protein}g
-                        </Text>
+                {mealFoods.length > 0 && (
+                  <View style={styles.mealContent}>
+                    {mealFoods.map((food) => (
+                      <View key={food.id} style={styles.foodItem}>
+                        <View style={styles.foodItemContent}>
+                          <View style={styles.foodItemHeader}>
+                            <Text style={styles.foodName}>{food.name}</Text>
+                            <Text style={styles.foodTime}>{food.time}</Text>
+                          </View>
+                          <Text style={styles.foodDetails}>
+                            {food.amount}{food.unit} • {food.calories}kcal • P{food.protein}g
+                          </Text>
+                        </View>
+
+                        <View style={styles.foodActions}>
+                          <TouchableOpacity
+                            style={styles.foodActionButton}
+                            onPress={() => handleToggleFavorite(food.id)}
+                          >
+                            <Heart
+                              size={16}
+                              color={food.isFavorite ? colors.status.error : colors.text.secondary}
+                              fill={food.isFavorite ? colors.status.error : 'transparent'}
+                            />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.foodActionButton}
+                            onPress={() => handleEditFood(food)}
+                          >
+                            <Edit3 size={16} color={colors.text.secondary} />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.foodActionButton}
+                            onPress={() => handleDeleteFood(food.id)}
+                          >
+                            <Trash2 size={16} color={colors.status.error} />
+                          </TouchableOpacity>
+                        </View>
                       </View>
-                      <Text style={styles.foodTime}>{food.time}</Text>
-                    </View>
-
-                    <View style={styles.foodActions}>
-                      <TouchableOpacity
-                        style={styles.foodActionButton}
-                        onPress={() => handleEditFood(food)}
-                      >
-                        <Edit3 size={16} color={colors.text.secondary} />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.foodActionButton}
-                        onPress={() => handleDeleteFood(food.id)}
-                      >
-                        <Trash2 size={16} color={colors.status.error} />
-                      </TouchableOpacity>
-                    </View>
+                    ))}
                   </View>
-                ))}
-
-                {mealFoods.length === 0 && (
-                  <Text style={styles.noFoodsText}>まだ記録がありません</Text>
                 )}
-              </View>
+              </Card>
             );
           })}
-        </Card>
+        </View>
       </ScrollView>
 
       {/* フローティングアクションボタン */}
@@ -392,6 +413,7 @@ export const NutritionScreen: React.FC = () => {
         selectedMeal={selectedMeal}
         editingFood={editingFood}
         onUpdateFood={handleUpdateFood}
+        favoriteFoods={todaysFoodLog.filter(food => food.isFavorite)}
       />
     </SafeAreaView>
   );
@@ -495,7 +517,8 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.regular,
   },
   macroSection: {
-    marginBottom: spacing.md,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
   },
   macroGrid: {
     flexDirection: 'row',
@@ -523,14 +546,14 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.regular,
     textAlign: 'center',
   },
-  mealLogCard: {
+  mealLogSection: {
     marginBottom: spacing.xl,
   },
   mealLogHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   mealLogTitle: {
     fontSize: typography.fontSize.lg,
@@ -541,16 +564,14 @@ const styles = StyleSheet.create({
   shareButton: {
     padding: spacing.xs,
   },
-  mealSection: {
+  mealCard: {
     marginBottom: spacing.md,
   },
   mealHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
+    padding: spacing.md,
   },
   mealHeaderLeft: {
     flexDirection: 'row',
@@ -558,8 +579,19 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     flex: 1,
   },
+  mealIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.full,
+    backgroundColor: colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   mealIcon: {
-    fontSize: typography.fontSize.xl,
+    fontSize: typography.fontSize.lg,
+  },
+  mealInfo: {
+    flex: 1,
   },
   mealName: {
     fontSize: typography.fontSize.base,
@@ -572,19 +604,37 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.regular,
     marginTop: spacing.xxxs,
   },
+  mealEmpty: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.tertiary,
+    fontFamily: typography.fontFamily.regular,
+    marginTop: spacing.xxxs,
+  },
+  mealContent: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+  },
   addMealButton: {
-    padding: spacing.xs,
+    padding: spacing.sm,
+    backgroundColor: colors.primary[50],
+    borderRadius: radius.full,
   },
   foodItem: {
     paddingVertical: spacing.sm,
-    paddingLeft: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.background.secondary,
+    marginVertical: spacing.xxs,
+    marginHorizontal: spacing.sm,
+    borderRadius: radius.md,
   },
   foodItemContent: {
+    flex: 1,
+  },
+  foodItemHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: spacing.sm,
+    marginBottom: spacing.xxxs,
   },
   foodIcon: {
     fontSize: typography.fontSize.base,
