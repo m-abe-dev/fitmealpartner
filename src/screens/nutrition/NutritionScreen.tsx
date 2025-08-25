@@ -400,7 +400,7 @@ export const NutritionScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.gray[50],
+    backgroundColor: colors.gray[100],
   },
   header: {
     flexDirection: 'row',
@@ -536,6 +536,7 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.lg,
     color: colors.text.primary,
     fontFamily: typography.fontFamily.bold,
+    fontWeight: 'bold',
   },
   shareButton: {
     padding: spacing.xs,

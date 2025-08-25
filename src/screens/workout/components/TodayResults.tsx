@@ -16,7 +16,7 @@ export const TodayResults: React.FC<TodayResultsProps> = ({
   onToggle
 }) => {
   const getStrengthExercises = () => exercises.filter(ex => ex.type !== 'cardio').length;
-  
+
   const getStrengthSets = () => {
     const strengthExercises = exercises.filter(ex => ex.type !== 'cardio');
     return strengthExercises.reduce((total, exercise) => total + exercise.sets.length, 0);
@@ -201,7 +201,7 @@ export const TodayResults: React.FC<TodayResultsProps> = ({
     }
 
     const best = Math.max(sStrength, sCardio);
-    
+
     // 'bonus'モード: もう片方が 50 を超えていれば最大 +12.5 点まで軽くブースト
     const weaker = Math.min(sStrength, sCardio);
     const bonus = 0.25 * Math.max(0, weaker - 50); // 0〜12.5点
@@ -311,6 +311,7 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.lg,
     color: colors.text.primary,
     fontFamily: typography.fontFamily.bold,
+    fontWeight: 'bold',
   },
   summaryActions: {
     flexDirection: 'row',

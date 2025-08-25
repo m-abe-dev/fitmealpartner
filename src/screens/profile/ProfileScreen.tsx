@@ -409,7 +409,7 @@ export const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: colors.gray[100],
   },
   header: {
     flexDirection: 'row',

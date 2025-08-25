@@ -148,7 +148,7 @@ export const WorkoutScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.gray[50],
+    backgroundColor: colors.gray[100],
   },
   header: {
     flexDirection: 'row',
