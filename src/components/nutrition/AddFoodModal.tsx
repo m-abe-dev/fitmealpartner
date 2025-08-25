@@ -10,14 +10,14 @@ import {
   Alert,
 } from 'react-native';
 import { Modal } from 'react-native';
-import { 
-  Search, 
-  Plus, 
-  Edit3, 
-  Heart, 
-  QrCode, 
-  Clock, 
-  X 
+import {
+  Search,
+  Plus,
+  Edit3,
+  Heart,
+  QrCode,
+  Clock,
+  X
 } from 'lucide-react-native';
 import { colors, typography, spacing, radius, shadows } from '../../design-system';
 import { Button } from '../common/Button';
@@ -30,7 +30,6 @@ interface Food {
   protein: number;
   fat: number;
   carbs: number;
-  icon: string;
   isFavorite?: boolean;
   amount?: number;
   unit?: string;
@@ -56,25 +55,25 @@ interface AddFoodModalProps {
 
 // モックデータ
 const mockFoodDatabase: Food[] = [
-  { id: '1', name: '鶏胸肉（皮なし）', calories: 108, protein: 22, fat: 2, carbs: 0, icon: '🐔' },
-  { id: '2', name: '白米（炊飯済み）', calories: 156, protein: 3, fat: 0, carbs: 37, icon: '🍚' },
-  { id: '3', name: 'ブロッコリー', calories: 33, protein: 4, fat: 0, carbs: 5, icon: '🥦' },
-  { id: '4', name: 'ホエイプロテイン', calories: 117, protein: 24, fat: 2, carbs: 2, icon: '🥤' },
-  { id: '5', name: 'バナナ', calories: 89, protein: 1, fat: 0, carbs: 23, icon: '🍌' },
-  { id: '6', name: '卵', calories: 151, protein: 12, fat: 11, carbs: 1, icon: '🥚' },
-  { id: '7', name: 'サーモン', calories: 142, protein: 20, fat: 6, carbs: 0, icon: '🐟' },
-  { id: '8', name: 'アーモンド', calories: 579, protein: 21, fat: 50, carbs: 22, icon: '🥜' },
+  { id: '1', name: '鶏胸肉（皮なし）', calories: 108, protein: 22, fat: 2, carbs: 0, },
+  { id: '2', name: '白米（炊飯済み）', calories: 156, protein: 3, fat: 0, carbs: 37 },
+  { id: '3', name: 'ブロッコリー', calories: 33, protein: 4, fat: 0, carbs: 5 },
+  { id: '4', name: 'ホエイプロテイン', calories: 117, protein: 24, fat: 2, carbs: 2 },
+  { id: '5', name: 'バナナ', calories: 89, protein: 1, fat: 0, carbs: 23},
+  { id: '6', name: '卵', calories: 151, protein: 12, fat: 11, carbs: 1 },
+  { id: '7', name: 'サーモン', calories: 142, protein: 20, fat: 6, carbs: 0 },
+  { id: '8', name: 'アーモンド', calories: 579, protein: 21, fat: 50, carbs: 22 },
 ];
 
 const mockFoodHistory: Food[] = [
-  { id: '1', name: '鶏胸肉（皮なし）', calories: 108, protein: 22, fat: 2, carbs: 0, icon: '🐔' },
-  { id: '4', name: 'ホエイプロテイン', calories: 117, protein: 24, fat: 2, carbs: 2, icon: '🥤' },
-  { id: '5', name: 'バナナ', calories: 89, protein: 1, fat: 0, carbs: 23, icon: '🍌' },
+  { id: '1', name: '鶏胸肉（皮なし）', calories: 108, protein: 22, fat: 2, carbs: 0 },
+  { id: '4', name: 'ホエイプロテイン', calories: 117, protein: 24, fat: 2, carbs: 2},
+  { id: '5', name: 'バナナ', calories: 89, protein: 1, fat: 0, carbs: 23 },
 ];
 
 const mockFavoritesFoods: Food[] = [
-  { id: '1', name: '鶏胸肉（皮なし）', calories: 108, protein: 22, fat: 2, carbs: 0, icon: '🐔', isFavorite: true },
-  { id: '4', name: 'ホエイプロテイン', calories: 117, protein: 24, fat: 2, carbs: 2, icon: '🥤', isFavorite: true },
+  { id: '1', name: '鶏胸肉（皮なし）', calories: 108, protein: 22, fat: 2, carbs: 0, isFavorite: true },
+  { id: '4', name: 'ホエイプロテイン', calories: 117, protein: 24, fat: 2, carbs: 2, isFavorite: true },
 ];
 
 export const AddFoodModal: React.FC<AddFoodModalProps> = ({
@@ -162,7 +161,6 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
       protein: newFood.protein,
       fat: newFood.fat,
       carbs: newFood.carbs,
-      icon: '🍽️',
     };
 
     onAddFood(food);
@@ -262,7 +260,6 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
                               >
                                 <View style={styles.searchResultContent}>
                                   <View style={styles.searchResultLeft}>
-                                    <Text style={styles.foodIcon}>{food.icon}</Text>
                                     <View>
                                       <Text style={styles.foodName}>{food.name}</Text>
                                       <Text style={styles.foodDetails}>
@@ -434,7 +431,6 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
                           style={styles.favoriteItem}
                         >
                           <View style={styles.favoriteContent}>
-                            <Text style={styles.foodIcon}>{food.icon}</Text>
                             <View style={styles.favoriteInfo}>
                               <Text style={styles.foodName}>{food.name}</Text>
                               <Text style={styles.foodDetails}>
@@ -495,7 +491,6 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
                       onPress={() => addFromHistory(food)}
                       style={styles.historyItem}
                     >
-                      <Text style={styles.foodIcon}>{food.icon}</Text>
                       <View style={styles.historyInfo}>
                         <Text style={styles.foodName}>{food.name}</Text>
                         <Text style={styles.foodDetails}>

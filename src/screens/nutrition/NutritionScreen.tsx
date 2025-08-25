@@ -42,7 +42,6 @@ interface FoodLogItem {
   carbs: number;
   meal: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   time: string;
-  icon: string;
   isFavorite?: boolean;
 }
 
@@ -76,7 +75,6 @@ export const NutritionScreen: React.FC = () => {
         carbs: 0,
         meal: 'lunch',
         time: '12:30',
-        icon: '🐔'
       },
       {
         id: '2',
@@ -89,7 +87,6 @@ export const NutritionScreen: React.FC = () => {
         carbs: 74,
         meal: 'lunch',
         time: '12:30',
-        icon: '🍚'
       },
       {
         id: '3',
@@ -102,7 +99,6 @@ export const NutritionScreen: React.FC = () => {
         carbs: 5,
         meal: 'lunch',
         time: '12:30',
-        icon: '🥦'
       },
       {
         id: '4',
@@ -115,7 +111,6 @@ export const NutritionScreen: React.FC = () => {
         carbs: 2,
         meal: 'snack',
         time: '15:00',
-        icon: '🥤'
       },
       {
         id: '5',
@@ -128,7 +123,6 @@ export const NutritionScreen: React.FC = () => {
         carbs: 27,
         meal: 'snack',
         time: '10:00',
-        icon: '🍌'
       }
     ]);
   });
@@ -175,7 +169,7 @@ export const NutritionScreen: React.FC = () => {
   };
 
   // 食材追加ハンドラー
-  const handleAddFood = (food: { id: string; name: string; calories: number; protein: number; fat: number; carbs: number; icon: string }) => {
+  const handleAddFood = (food: { id: string; name: string; calories: number; protein: number; fat: number; carbs: number; }) => {
     const newFoodItem: FoodLogItem = {
       ...food,
       id: Date.now().toString(),
@@ -345,7 +339,6 @@ export const NutritionScreen: React.FC = () => {
                 {mealFoods.map((food) => (
                   <View key={food.id} style={styles.foodItem}>
                     <View style={styles.foodItemContent}>
-                      <Text style={styles.foodIcon}>{food.icon}</Text>
                       <View style={styles.foodInfo}>
                         <Text style={styles.foodName}>{food.name}</Text>
                         <Text style={styles.foodDetails}>
@@ -407,7 +400,7 @@ export const NutritionScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: colors.gray[50],
   },
   header: {
     flexDirection: 'row',
