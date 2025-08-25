@@ -17,7 +17,7 @@ export interface UseNutritionDataReturn {
 export const useNutritionData = (): UseNutritionDataReturn => {
   // TODO: これらの値は将来的にはユーザー設定やAPIから取得する
   const [nutritionData, setNutritionData] = useState<NutritionData>({
-    calories: { current: 2147, target: 2200 },
+    calories: { current: 212, target: 2200 },
     protein: { current: 112, target: 140 },
     fat: { current: 86, target: 85 },
     carbs: { current: 180, target: 200 },

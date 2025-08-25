@@ -16,6 +16,19 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({
   currentScoreTab,
   onScoreTabChange,
 }) => {
+  // データが未定義または空の場合の早期リターン
+  if (!scoreData || scoreData.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>スコアサマリー</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>スコアを計算中...</Text>
+        </View>
+      </View>
+    );
+  }
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -122,7 +135,7 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({
   };
 
   const getCurrentScoreData = (): ScoreData => {
-    return scoreData[currentScoreTab];
+    return scoreData[currentScoreTab] || scoreData[0];
   };
 
   return (
@@ -517,5 +530,16 @@ const styles = StyleSheet.create({
     color: colors.text.tertiary,
     fontFamily: typography.fontFamily.regular,
     textAlign: 'center',
+  },
+  loadingContainer: {
+    padding: spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 200,
+  },
+  loadingText: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.secondary,
+    fontFamily: typography.fontFamily.medium,
   },
 });

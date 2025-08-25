@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ScrollView, Alert } from 'react-native';
 import { WorkoutView, Exercise, ExerciseTemplate, WorkoutSet, WorkoutDay } from '../screens/workout/types/workout.types';
-import { workoutHistory, initialExercises } from '../screens/workout/data/mockData';
+import { workoutHistory } from '../screens/workout/data/mockData';
+import { useWorkoutData } from './useWorkoutData';
 
 export const useWorkoutScreen = () => {
   const scrollViewRef = useRef<ScrollView>(null);
@@ -15,10 +16,26 @@ export const useWorkoutScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [isTodayResultsExpanded, setIsTodayResultsExpanded] = useState(false);
   
-  // Data state
-  const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
+  // Shared workout data
+  const { 
+    exercises, 
+    subscribe, 
+    addSet, 
+    updateSet,
+    deleteSet, 
+    deleteExercise,
+    updateExercise 
+  } = useWorkoutData();
+  
+  // Calendar state
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedDayWorkout, setSelectedDayWorkout] = useState<WorkoutDay | null>(null);
+
+  // Subscribe to workout data changes
+  useEffect(() => {
+    const unsubscribe = subscribe();
+    return unsubscribe;
+  }, [subscribe]);
 
   // Calendar data
   const currentDate = new Date();
@@ -45,70 +62,19 @@ export const useWorkoutScreen = () => {
   };
 
   const handleAddSet = (exerciseId: string) => {
-    setExercises((prev) =>
-      prev.map((exercise) =>
-        exercise.id === exerciseId
-          ? {
-              ...exercise,
-              sets: [
-                ...exercise.sets,
-                {
-                  id: `${exerciseId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                  weight: 0,
-                  reps: 0,
-                  rm: undefined,
-                  time: exercise.type === 'cardio' ? 0 : undefined,
-                  distance: exercise.type === 'cardio' ? 0 : undefined,
-                },
-              ],
-            }
-          : exercise,
-      ),
-    );
+    addSet(exerciseId);
   };
 
   const handleDeleteSet = (exerciseId: string, setId: string) => {
-    setExercises((prev) =>
-      prev.map((exercise) =>
-        exercise.id === exerciseId
-          ? {
-              ...exercise,
-              sets: exercise.sets.filter((set) => set.id !== setId),
-            }
-          : exercise,
-      ),
-    );
+    deleteSet(exerciseId, setId);
   };
 
   const handleDeleteExercise = (exerciseId: string) => {
-    setExercises((prev) => prev.filter((exercise) => exercise.id !== exerciseId));
+    deleteExercise(exerciseId);
   };
 
   const handleUpdateSet = (exerciseId: string, setId: string, field: 'weight' | 'reps' | 'time' | 'distance', value: string) => {
-    const numericValue = parseFloat(value) || 0;
-    setExercises((prev) =>
-      prev.map((exercise) =>
-        exercise.id === exerciseId
-          ? {
-              ...exercise,
-              sets: exercise.sets.map((set) =>
-                set.id === setId
-                  ? {
-                      ...set,
-                      [field]: numericValue,
-                      rm: field === 'weight' || field === 'reps'
-                        ? calculateRM(
-                            field === 'weight' ? numericValue : set.weight,
-                            field === 'reps' ? numericValue : set.reps
-                          )
-                        : set.rm,
-                    }
-                  : set,
-              ),
-            }
-          : exercise,
-      ),
-    );
+    updateSet(exerciseId, setId, field, value);
   };
 
   // Utility function for RM calculation
