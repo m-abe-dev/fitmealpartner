@@ -365,12 +365,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   scoreStatusBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.35)',
   },
   scoreMainContainer: {
     alignItems: 'center',
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
   },
   modernProgressTrack: {
     height: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: radius.full,
     overflow: 'hidden',
     position: 'relative',
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
     borderRadius: radius.full,
   },
   scoreTitle: {
@@ -438,11 +438,11 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   scoreDetailItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
     borderRadius: radius.md,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.35)',
   },
   scoreDetailHeader: {
     flexDirection: 'row',
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
   scoreProgressBar: {
     flex: 1,
     height: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
     borderRadius: 3,
     overflow: 'hidden',
   },
