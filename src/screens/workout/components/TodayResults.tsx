@@ -240,26 +240,26 @@ export const TodayResults: React.FC<TodayResultsProps> = ({
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>💪 筋力トレーニング</Text>
               <View style={styles.statsGrid}>
-                <View style={[styles.statCard, { backgroundColor: '#EFF6FF' }]}>
-                  <Text style={[styles.statValue, { color: '#3B82F6' }]}>
+                <View style={[styles.statCard, { backgroundColor: colors.primary[50] }]}>
+                  <Text style={[styles.statValue, { color: colors.primary.main }]}>
                     {getStrengthExercises()}
                   </Text>
                   <Text style={styles.statLabel}>種目数</Text>
                 </View>
-                <View style={[styles.statCard, { backgroundColor: '#F0FDF4' }]}>
-                  <Text style={[styles.statValue, { color: '#16A34A' }]}>
+                <View style={[styles.statCard, { backgroundColor: colors.secondary.main + '20' }]}>
+                  <Text style={[styles.statValue, { color: colors.secondary.dark }]}>
                     {getStrengthSets()}
                   </Text>
                   <Text style={styles.statLabel}>セット数</Text>
                 </View>
-                <View style={[styles.statCard, { backgroundColor: '#FAF5FF' }]}>
-                  <Text style={[styles.statValue, { color: '#9333EA' }]}>
+                <View style={[styles.statCard, { backgroundColor: colors.accent.purple + '20' }]}>
+                  <Text style={[styles.statValue, { color: colors.accent.purple }]}>
                     {getTotalReps()}
                   </Text>
                   <Text style={styles.statLabel}>総回数</Text>
                 </View>
-                <View style={[styles.statCard, { backgroundColor: '#FFF7ED' }]}>
-                  <Text style={[styles.statValue, { color: '#EA580C' }]}>
+                <View style={[styles.statCard, { backgroundColor: colors.accent.orange + '20' }]}>
+                  <Text style={[styles.statValue, { color: colors.accent.orange }]}>
                     {getTotalRM()}
                   </Text>
                   <Text style={styles.statLabel}>平均RM</Text>
@@ -273,14 +273,14 @@ export const TodayResults: React.FC<TodayResultsProps> = ({
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>🏃‍♂️ 有酸素運動</Text>
               <View style={styles.statsGrid}>
-                <View style={[styles.statCard, { backgroundColor: '#ECFDF5' }]}>
-                  <Text style={[styles.statValue, { color: '#10B981' }]}>
+                <View style={[styles.statCard, { backgroundColor: colors.gray[100] }]}>
+                  <Text style={[styles.statValue, { color: colors.gray[700] }]}>
                     {getTotalTime()}
                   </Text>
                   <Text style={styles.statLabel}>合計時間(分)</Text>
                 </View>
-                <View style={[styles.statCard, { backgroundColor: '#F0F9FF' }]}>
-                  <Text style={[styles.statValue, { color: '#0EA5E9' }]}>
+                <View style={[styles.statCard, { backgroundColor: colors.status.error + '20' }]}>
+                  <Text style={[styles.statValue, { color: colors.status.error }]}>
                     {getTotalDistance().toFixed(1)}
                   </Text>
                   <Text style={styles.statLabel}>合計距離(km)</Text>

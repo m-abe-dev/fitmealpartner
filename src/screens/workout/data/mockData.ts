@@ -117,15 +117,6 @@ export const initialExercises: Exercise[] = [
       { id: '2-3', weight: 45.0, reps: 4, rm: 50.63 },
     ],
   },
-  {
-    id: '3',
-    name: 'トレッドミル',
-    isExpanded: true,
-    sets: [
-      { id: '3-1', weight: 0, reps: 30, rm: 5.2 },
-      { id: '3-2', weight: 0, reps: 25, rm: 4.8 },
-    ],
-  },
 ];
 
 export const mockLastRecord: LastRecordSet[] = [
