@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  Bell,
+
   Crown,
   User,
   Target,
@@ -22,9 +22,11 @@ import {
   Edit3,
   TrendingUp,
   Calendar,
-  Award
+  Award,
+  Bell
 } from 'lucide-react-native';
 import { colors, typography, spacing, radius, shadows } from '../../design-system';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Progress } from '../../components/common/Progress';
@@ -131,22 +133,10 @@ export const ProfileScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ヘッダー */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <User size={24} color={colors.primary.main} />
-          <Text style={styles.headerTitle}>プロフィール</Text>
-        </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Bell size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.proButton}>
-            <Crown size={16} color={colors.primary.main} />
-            <Text style={styles.proButtonText}>PRO</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <ScreenHeader
+        title="プロフィール"
+        icon={<User size={24} color={colors.primary.main} />}
+      />
 
       <ScrollView
         style={styles.content}

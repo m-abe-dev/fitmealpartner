@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Dumbbell, Crown } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '../../design-system';
+import { Dumbbell } from 'lucide-react-native';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
+import { colors, typography, spacing, radius, shadows } from '../../design-system';
 
 // Components
 import { NotificationCenter } from './components/NotificationCenter';
@@ -74,20 +75,10 @@ export const WorkoutScreen: React.FC = () => {
   // Main view
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.titleContainer}>
-          <Dumbbell size={20} color={colors.primary.main} />
-          <Text style={styles.title}>今日の筋トレ</Text>
-        </View>
-        <View style={styles.headerActions}>
-          <NotificationCenter />
-          <TouchableOpacity style={styles.proButton}>
-            <Crown size={16} color={colors.primary.main} />
-            <Text style={styles.proButtonText}>PRO</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <ScreenHeader
+        title="今日の筋トレ"
+        icon={<Dumbbell size={20} color={colors.primary.main} />}
+      />
 
       <ScrollView
         ref={scrollViewRef}

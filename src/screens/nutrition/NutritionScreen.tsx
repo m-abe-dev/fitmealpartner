@@ -8,9 +8,10 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell, Crown, Apple } from 'lucide-react-native';
+import { Apple } from 'lucide-react-native';
 
-import { colors, typography, spacing } from '../../design-system';
+import { colors } from '../../design-system';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { NutritionScoreCard } from './components/NutritionScoreCard';
 import { MealLogCard } from './components/MealLogCard';
 import { AddFoodModal } from './components/AddFoodModal';
@@ -77,22 +78,10 @@ export const NutritionScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ヘッダー */}
-      <View style={styles.header}>
-        <View style={styles.headerTitleContainer}>
-           <Apple size={24} color={colors.primary.main} />
-           <Text style={styles.headerTitle}>今日の食事</Text>
-           </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Bell size={24} color={colors.text.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.proButton}>
-            <Crown size={16} color={colors.primary.main} />
-            <Text style={styles.proButtonText}>PRO</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <ScreenHeader
+        title="今日の食事"
+        icon={<Apple size={24} color={colors.primary.main} />}
+      />
 
       <ScrollView
         style={styles.content}
@@ -141,54 +130,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.gray[100],
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.gray[200],
-  },
-  headerTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  headerTitle: {
-    fontSize: typography.fontSize.xl,
-    fontFamily: typography.fontFamily.bold,
-    color: colors.text.primary,
-    fontWeight: 'bold',
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.background.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  proButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    backgroundColor: colors.primary[50],
-    borderRadius: 20,
-  },
-  proButtonText: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: typography.fontFamily.bold,
-    color: colors.primary.main,
-    fontWeight: 'bold',
   },
   content: {
     flex: 1,

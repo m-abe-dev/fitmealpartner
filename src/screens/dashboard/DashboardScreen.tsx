@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, RefreshControl, View, Text } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Activity, TrendingUp } from 'lucide-react-native';
 import { colors, typography, spacing, radius, shadows } from '../../design-system';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { TabBar } from '../../components/common/TabBar';
 
 // Dashboard Components
@@ -41,7 +42,11 @@ export const DashboardScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <DashboardHeader />
+      <ScreenHeader
+        title="ダッシュボード"
+        icon={<Activity size={24} color={colors.primary.main} />}
+        notificationCount={2}
+      />
 
       <ScrollView
         style={styles.content}

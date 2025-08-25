@@ -31,7 +31,7 @@ export const NutritionScoreCard: React.FC<NutritionScoreCardProps> = ({
   };
 
   return (
-    <Card style={styles.nutritionCard}>
+    <View style={styles.nutritionCard}>
       <View style={styles.nutritionCardGradient}>
         {/* ヘッダー */}
         <View style={styles.nutritionHeader}>
@@ -129,7 +129,7 @@ export const NutritionScoreCard: React.FC<NutritionScoreCardProps> = ({
           </View>
         </View>
       </View>
-    </Card>
+    </View>
   );
 };
 
@@ -137,6 +137,7 @@ const styles = StyleSheet.create({
   nutritionCard: {
     overflow: 'hidden',
     backgroundColor: colors.gray[100],
+    paddingHorizontal: spacing.lg,
   },
   nutritionCardGradient: {
     backgroundColor: colors.primary.main,
