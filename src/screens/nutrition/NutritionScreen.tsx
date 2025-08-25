@@ -214,7 +214,7 @@ export const NutritionScreen: React.FC = () => {
       <View style={styles.header}>
         <View style={styles.headerTitleContainer}>
            <Apple size={24} color={colors.primary.main} />
-           <Text style={styles.headerTitle}>食事</Text>
+           <Text style={styles.headerTitle}>今日の食事</Text>
            </View>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.iconButton}>
@@ -237,7 +237,7 @@ export const NutritionScreen: React.FC = () => {
         {/* 栄養進捗カード */}
         <Card style={styles.nutritionCard}>
           <View style={styles.nutritionCardGradient}>
-            <Text style={styles.nutritionTitle}>今日の栄養摂取</Text>
+            <Text style={styles.nutritionTitle}>今日のカロリー</Text>
             <View style={styles.caloriesMainSection}>
               <NutritionCircularProgress
                 current={nutritionData.calories.current}
@@ -488,6 +488,7 @@ const styles = StyleSheet.create({
     color: colors.text.inverse,
     fontFamily: typography.fontFamily.medium,
     marginBottom: spacing.md,
+    fontWeight: 'bold',
   },
   caloriesMainSection: {
     flexDirection: 'row',
@@ -571,13 +572,14 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
   },
   mealCard: {
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   mealHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
   mealHeaderLeft: {
     flexDirection: 'row',
@@ -586,8 +588,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   mealIconContainer: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: radius.full,
     backgroundColor: colors.primary[50],
     alignItems: 'center',
@@ -609,6 +611,7 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     fontFamily: typography.fontFamily.regular,
     marginTop: spacing.xxxs,
+    lineHeight: typography.fontSize.sm * 1.3,
   },
   mealEmpty: {
     fontSize: typography.fontSize.sm,
@@ -621,17 +624,17 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border.light,
   },
   addMealButton: {
-    padding: spacing.sm,
+    padding: spacing.xs,
     backgroundColor: colors.primary[50],
     borderRadius: radius.full,
   },
   foodItem: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
     backgroundColor: colors.background.secondary,
-    marginVertical: spacing.xxs,
-    marginHorizontal: spacing.sm,
-    borderRadius: radius.md,
+    marginVertical: spacing.xxxs,
+    marginHorizontal: spacing.xs,
+    borderRadius: radius.sm,
   },
   foodItemContent: {
     flex: 1,
@@ -640,7 +643,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xxxs,
+    marginBottom: 2,
   },
   foodIcon: {
     fontSize: typography.fontSize.base,
@@ -657,7 +660,8 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
     fontFamily: typography.fontFamily.regular,
-    marginTop: spacing.xxxs,
+    marginTop: 2,
+    lineHeight: typography.fontSize.sm * 1.2,
   },
   foodTime: {
     fontSize: typography.fontSize.sm,
@@ -667,8 +671,8 @@ const styles = StyleSheet.create({
   foodActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: spacing.sm,
-    marginTop: spacing.xs,
+    gap: spacing.xs,
+    marginTop: spacing.xxs,
   },
   foodActionButton: {
     padding: spacing.xs,

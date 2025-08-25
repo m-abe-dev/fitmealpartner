@@ -225,6 +225,23 @@ export const NutritionCircularProgress: React.FC<NutritionCircularProgressProps>
     }
   };
 
+  // 文字色を決定（コントラスト重視）
+  const getTextColor = (): string => {
+    // 背景が薄いので濃い色を使用
+    switch (nutrientType) {
+      case 'protein':
+        return colors.nutrition.protein;
+      case 'fat':
+        return colors.nutrition.fat;
+      case 'carbs':
+        return colors.nutrition.carbs;
+      case 'calories':
+        return colors.primary.main;
+      default:
+        return colors.text.primary;
+    }
+  };
+
   // 栄養素タイプに応じた単位
   const getUnit = (): string => {
     if (unit) return unit;
@@ -249,7 +266,7 @@ export const NutritionCircularProgress: React.FC<NutritionCircularProgressProps>
       {...props}
     >
       <View style={styles.nutritionContent}>
-        <Text style={[styles.nutritionValue, { color: getNutrientColor() }]}>
+        <Text style={[styles.nutritionValue, { color: getTextColor() }]}>
           {Math.round(current)}{showUnit && getUnit()}
         </Text>
         <Text style={[styles.nutritionTarget, { color: colors.text.secondary }]}>
@@ -342,11 +359,16 @@ const styles = StyleSheet.create({
   nutritionContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.background.primary + 'E6',
+    backgroundColor: colors.background.primary + 'F5',
     borderRadius: 20,
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 8,
-    minWidth: 50,
+    minWidth: 55,
+    shadowColor: colors.gray[300],
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   nutritionValue: {
     fontSize: typography.fontSize.md,
