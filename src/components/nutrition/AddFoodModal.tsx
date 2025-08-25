@@ -52,6 +52,8 @@ interface AddFoodModalProps {
   editingFood?: Food | null;
   onUpdateFood?: (food: Food & { amount: number; unit: string; meal: string; time: string }) => void;
   favoriteFoods?: Food[];
+  searchQuery?: string;
+  onSearchQueryChange?: (query: string) => void;
 }
 
 // モックデータ
@@ -85,9 +87,15 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
   editingFood,
   onUpdateFood,
   favoriteFoods = [],
+  searchQuery: externalSearchQuery,
+  onSearchQueryChange,
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [internalSearchQuery, setInternalSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  
+  // 外部から渡されたsearchQueryを使用するか、内部状態を使用するかを決定
+  const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : internalSearchQuery;
+  const setSearchQuery = onSearchQueryChange || setInternalSearchQuery;
   const [activeTab, setActiveTab] = useState<'manual' | 'favorites' | 'scan'>('manual');
   const [newFood, setNewFood] = useState<NewFood>({
     name: '',

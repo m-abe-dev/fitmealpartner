@@ -140,8 +140,16 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
     extrapolate: 'clamp',
   });
 
-  // プログレスに応じた色の変化
+  // プログレスに応じた色の変化（栄養素用CircularProgressでは元の色を保持）
   const getDynamicColor = (progress: number): string => {
+    // NutritionCircularProgressから呼ばれた場合は、元の色を保持
+    if (color && (color === colors.nutrition.protein || 
+                  color === colors.nutrition.fat || 
+                  color === colors.nutrition.carbs || 
+                  color === colors.nutrition.calories)) {
+      return color;
+    }
+    
     if (progress >= 100) return colors.status.success;
     if (progress >= 80) return color;
     if (progress >= 60) return colors.status.warning;

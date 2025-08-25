@@ -26,7 +26,7 @@ export const colors: ColorPalette = {
   },
   nutrition: {
     protein: '#10B981', // 緑
-    fat: '#8B5CF6', // 紫
+    fat: '#E11D48', // より濃い赤紫（視認性向上）
     carbs: '#FF9800', // オレンジ
     calories: '#3B82F6', // 青
   },
