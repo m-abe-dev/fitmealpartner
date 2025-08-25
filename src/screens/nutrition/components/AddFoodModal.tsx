@@ -19,30 +19,11 @@ import {
   Clock,
   X
 } from 'lucide-react-native';
-import { colors, typography, spacing, radius, shadows } from '../../design-system';
-import { Button } from '../common/Button';
-import { Badge } from '../common/Badge';
-
-interface Food {
-  id: string;
-  name: string;
-  calories: number;
-  protein: number;
-  fat: number;
-  carbs: number;
-  isFavorite?: boolean;
-  amount?: number;
-  unit?: string;
-  meal?: 'breakfast' | 'lunch' | 'dinner' | 'snack';
-  time?: string;
-}
-
-interface NewFood {
-  name: string;
-  protein: number;
-  fat: number;
-  carbs: number;
-}
+import { colors, typography, spacing, radius, shadows } from '../../../design-system';
+import { Button } from '../../../components/common/Button';
+import { Badge } from '../../../components/common/Badge';
+import { Food, NewFood } from '../types/nutrition.types';
+import { mockFoodDatabase, mockFoodHistory, mockFavoritesFoods } from '../data/mockData';
 
 interface AddFoodModalProps {
   isVisible: boolean;
@@ -56,28 +37,6 @@ interface AddFoodModalProps {
   onSearchQueryChange?: (query: string) => void;
 }
 
-// モックデータ
-const mockFoodDatabase: Food[] = [
-  { id: '1', name: '鶏胸肉（皮なし）', calories: 108, protein: 22, fat: 2, carbs: 0, },
-  { id: '2', name: '白米（炊飯済み）', calories: 156, protein: 3, fat: 0, carbs: 37 },
-  { id: '3', name: 'ブロッコリー', calories: 33, protein: 4, fat: 0, carbs: 5 },
-  { id: '4', name: 'ホエイプロテイン', calories: 117, protein: 24, fat: 2, carbs: 2 },
-  { id: '5', name: 'バナナ', calories: 89, protein: 1, fat: 0, carbs: 23},
-  { id: '6', name: '卵', calories: 151, protein: 12, fat: 11, carbs: 1 },
-  { id: '7', name: 'サーモン', calories: 142, protein: 20, fat: 6, carbs: 0 },
-  { id: '8', name: 'アーモンド', calories: 579, protein: 21, fat: 50, carbs: 22 },
-];
-
-const mockFoodHistory: Food[] = [
-  { id: '1', name: '鶏胸肉（皮なし）', calories: 108, protein: 22, fat: 2, carbs: 0 },
-  { id: '4', name: 'ホエイプロテイン', calories: 117, protein: 24, fat: 2, carbs: 2},
-  { id: '5', name: 'バナナ', calories: 89, protein: 1, fat: 0, carbs: 23 },
-];
-
-const mockFavoritesFoods: Food[] = [
-  { id: '1', name: '鶏胸肉（皮なし）', calories: 108, protein: 22, fat: 2, carbs: 0, isFavorite: true },
-  { id: '4', name: 'ホエイプロテイン', calories: 117, protein: 24, fat: 2, carbs: 2, isFavorite: true },
-];
 
 export const AddFoodModal: React.FC<AddFoodModalProps> = ({
   isVisible,

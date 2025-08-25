@@ -1,28 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Plus, Heart, Edit3, Trash2, Share2 } from 'lucide-react-native';
-import { Card } from '../common/Card';
-import { colors, typography, spacing, radius, shadows } from '../../design-system';
-
-export interface FoodLogItem {
-  id: string;
-  name: string;
-  amount: number;
-  unit: string;
-  calories: number;
-  protein: number;
-  fat: number;
-  carbs: number;
-  meal: 'breakfast' | 'lunch' | 'dinner' | 'snack';
-  time: string;
-  isFavorite?: boolean;
-}
-
-interface MealTab {
-  id: string;
-  label: string;
-  icon: string;
-}
+import { Card } from '../../../components/common/Card';
+import { colors, typography, spacing, radius, shadows } from '../../../design-system';
+import { FoodLogItem, MealTab } from '../types/nutrition.types';
 
 interface MealLogCardProps {
   foodLog: FoodLogItem[];

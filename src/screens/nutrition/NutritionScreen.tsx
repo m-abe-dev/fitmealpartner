@@ -11,11 +11,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bell, Crown, Apple } from 'lucide-react-native';
 
 import { colors, typography, spacing } from '../../design-system';
-import { NutritionScoreCard } from '../../components/nutrition/NutritionScoreCard';
-import { MealLogCard } from '../../components/nutrition/MealLogCard';
-import { AddFoodModal } from '../../components/nutrition/AddFoodModal';
+import { NutritionScoreCard } from './components/NutritionScoreCard';
+import { MealLogCard } from './components/MealLogCard';
+import { AddFoodModal } from './components/AddFoodModal';
 import { useNutritionData } from '../../hooks/useNutritionData';
 import { useFoodLog } from '../../hooks/useFoodLog';
+import { MealTab } from './types/nutrition.types';
 
 export const NutritionScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
@@ -36,7 +37,7 @@ export const NutritionScreen: React.FC = () => {
     toggleFavorite,
   } = useFoodLog();
 
-  const mealTabs = [
+  const mealTabs: MealTab[] = [
     { id: 'breakfast', label: '朝食', icon: '🌅' },
     { id: 'lunch', label: '昼食', icon: '🌞' },
     { id: 'dinner', label: '夕食', icon: '🌙' },

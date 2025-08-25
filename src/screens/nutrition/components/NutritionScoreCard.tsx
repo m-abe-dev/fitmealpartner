@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Card } from '../common/Card';
-import { Progress, NutritionCircularProgress } from '../common/Progress';
-import { colors, typography, spacing, radius } from '../../design-system';
-import { NutritionData, NutritionScores, getScoreColor } from '../../utils/nutritionScoring';
+import { Card } from '../../../components/common/Card';
+import { Progress, NutritionCircularProgress } from '../../../components/common/Progress';
+import { colors, typography, spacing, radius } from '../../../design-system';
+import { NutritionData, NutritionScores } from '../types/nutrition.types';
+import { getScoreColor } from '../../../utils/nutritionScoring';
 
 interface NutritionScoreCardProps {
   nutritionData: NutritionData;
