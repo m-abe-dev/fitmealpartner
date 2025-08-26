@@ -237,21 +237,10 @@ export const NutritionCircularProgress: React.FC<NutritionCircularProgressProps>
     }
   };
 
-  // 文字色を決定（コントラスト重視）
+  // 文字色を決定（全て黒で統一）
   const getTextColor = (): string => {
-    // 背景が薄いので濃い色を使用
-    switch (nutrientType) {
-      case 'protein':
-        return colors.nutrition.protein;
-      case 'fat':
-        return colors.nutrition.fat;
-      case 'carbs':
-        return colors.nutrition.carbs;
-      case 'calories':
-        return colors.primary.main;
-      default:
-        return colors.text.primary;
-    }
+    // 全ての栄養素で統一された黒文字を使用
+    return colors.text.primary;
   };
 
   // 栄養素タイプに応じた単位
@@ -270,6 +259,26 @@ export const NutritionCircularProgress: React.FC<NutritionCircularProgressProps>
     return baseColor + '10';
   };
 
+  // 中央コンテンツのスタイルを決定
+  const getContentStyle = () => {
+    if (customColor === colors.text.inverse) {
+      // カロリーセクション用：白い背景で視認性向上
+      return {
+        ...styles.nutritionContent,
+        backgroundColor: colors.background.primary + 'F0',
+        borderWidth: 1,
+        borderColor: colors.gray[200],
+      };
+    }
+    // その他の栄養素は従来通り
+    return styles.nutritionContent;
+  };
+
+  // 目標値の文字色を統一
+  const getTargetTextColor = () => {
+    return colors.text.secondary; // 全セクションで統一
+  };
+
   return (
     <CircularProgress
       size={size}
@@ -279,15 +288,22 @@ export const NutritionCircularProgress: React.FC<NutritionCircularProgressProps>
       backgroundColor={getBackgroundColor()}
       {...props}
     >
-      <View style={styles.nutritionContent}>
+      <View style={getContentStyle()}>
         <Text style={[styles.nutritionValue, { color: getTextColor() }]}>
           {Math.round(current)}{showUnit && getUnit()}
         </Text>
-        <Text style={[styles.nutritionTarget, { color: colors.text.secondary }]}>
+        <Text style={[styles.nutritionTarget, { color: getTargetTextColor() }]}>
           /{target}{showUnit && getUnit()}
         </Text>
         {percentage >= 100 && (
-          <View style={[styles.completedBadge, { backgroundColor: getNutrientColor() }]}>
+          <View style={[
+            styles.completedBadge, 
+            { 
+              backgroundColor: customColor === colors.text.inverse 
+                ? colors.status.success 
+                : getNutrientColor() 
+            }
+          ]}>
             <Text style={styles.completedText}>✓</Text>
           </View>
         )}
