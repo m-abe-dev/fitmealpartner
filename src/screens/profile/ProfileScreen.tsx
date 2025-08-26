@@ -31,12 +31,10 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Progress } from '../../components/common/Progress';
 import { Badge } from '../../components/common/Badge';
+import { ProfileEditModal, ProfileData } from './components/ProfileEditModal';
 
-interface UserProfile {
+interface UserProfile extends ProfileData {
   name: string;
-  age: number;
-  height: number;
-  weight: number;
   goal: 'cut' | 'bulk' | 'maintain';
   bmi: number;
   targetWeight: number;
@@ -62,13 +60,16 @@ export const ProfileScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
+  const [showProfileEditModal, setShowProfileEditModal] = useState(false);
 
   // モックデータ
-  const [userProfile] = useState<UserProfile>({
+  const [userProfile, setUserProfile] = useState<UserProfile>({
     name: '田中健太',
     age: 28,
     height: 175,
     weight: 71.2,
+    gender: 'male',
+    activityLevel: 'moderate',
     goal: 'cut',
     bmi: 23.2,
     targetWeight: 68.0,
@@ -102,6 +103,23 @@ export const ProfileScreen: React.FC = () => {
     setTimeout(() => setRefreshing(false), 1000);
   };
 
+  const calculateBMI = (height: number, weight: number): number => {
+    const heightInMeters = height / 100;
+    return parseFloat((weight / (heightInMeters * heightInMeters)).toFixed(1));
+  };
+
+  const handleProfileSave = (updatedProfile: ProfileData) => {
+    const newBMI = calculateBMI(updatedProfile.height, updatedProfile.weight);
+    
+    setUserProfile(prev => ({
+      ...prev,
+      ...updatedProfile,
+      bmi: newBMI,
+    }));
+
+    Alert.alert('成功', 'プロフィールが更新されました');
+  };
+
   const getGoalText = (goal: string): string => {
     switch (goal) {
       case 'cut': return '減量';
@@ -117,6 +135,17 @@ export const ProfileScreen: React.FC = () => {
       case 'bulk': return colors.status.success;
       case 'maintain': return colors.primary.main;
       default: return colors.text.secondary;
+    }
+  };
+
+  const getActivityLevelText = (level: string): string => {
+    switch (level) {
+      case 'sedentary': return '座りがち（運動なし）';
+      case 'light': return '軽い活動（週1-3回）';
+      case 'moderate': return '中程度（週3-5回）';
+      case 'active': return '活発（週6-7回）';
+      case 'very-active': return '非常に活発（1日2回）';
+      default: return '未設定';
     }
   };
 
@@ -148,20 +177,29 @@ export const ProfileScreen: React.FC = () => {
         {/* プロフィールヘッダー */}
         <Card style={styles.profileCard}>
           <View style={styles.profileGradient}>
+            <View style={styles.profileHeader}>
+              <View style={styles.profileHeaderLeft}>
+                <Text style={styles.profileSectionTitle}>基本情報</Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.profileUpdateButton}
+                onPress={() => setShowProfileEditModal(true)}
+              >
+                <Edit3 size={16} color={colors.text.inverse} />
+                <Text style={styles.profileUpdateText}>更新</Text>
+              </TouchableOpacity>
+            </View>
             <View style={styles.profileInfo}>
               <View style={styles.avatarContainer}>
                 <User size={40} color={colors.text.inverse} />
               </View>
               <View style={styles.userInfo}>
-                <Text style={styles.userName}>{userProfile.name}</Text>
-                <Text style={styles.userAge}>{userProfile.age}歳 • {userProfile.height}cm</Text>
+                <Text style={styles.userName}>{getActivityLevelText(userProfile.activityLevel)}</Text>
+                <Text style={styles.userAge}>{userProfile.age}歳 • {userProfile.height}cm • {userProfile.weight}kg</Text>
                 <Text style={styles.joinDate}>
                   {new Date(userProfile.joinDate).toLocaleDateString('ja-JP')} から利用開始
                 </Text>
               </View>
-              <TouchableOpacity style={styles.editButton}>
-                <Edit3 size={20} color={colors.text.inverse} />
-              </TouchableOpacity>
             </View>
           </View>
         </Card>
@@ -169,24 +207,33 @@ export const ProfileScreen: React.FC = () => {
         {/* BMI・体重カード */}
         <View style={styles.bodyStatsRow}>
           <Card style={styles.bmiCard}>
-            <Text style={styles.bmiTitle}>BMI</Text>
-            <Text style={styles.bmiValue}>{userProfile.bmi}</Text>
-            <Badge
-              variant={bmiStatus.color === colors.status.success ? 'success' : 'warning'}
-              size="small"
-              style={styles.bmiBadge}
-            >
-              {bmiStatus.status}
-            </Badge>
+            <Text style={styles.cardLabel}>BMI</Text>
+            <View style={styles.valueContainer}>
+              <Text style={styles.cardValue}>{userProfile.bmi}</Text>
+              <Badge
+                variant={bmiStatus.color === colors.status.success ? 'success' : 'warning'}
+                size="small"
+                style={styles.statusBadge}
+              >
+                {bmiStatus.status}
+              </Badge>
+            </View>
           </Card>
 
           <Card style={styles.weightCard}>
-            <Text style={styles.weightTitle}>現在の体重</Text>
-            <Text style={styles.weightValue}>{userProfile.weight}kg</Text>
-            <Text style={styles.weightChange}>
-              {userProfile.weight < userProfile.startWeight ? '-' : '+'}
-              {Math.abs(userProfile.weight - userProfile.startWeight).toFixed(1)}kg
-            </Text>
+            <Text style={styles.cardLabel}>体重変化</Text>
+            <View style={styles.valueContainer}>
+              <Text style={styles.cardValue}>{userProfile.weight}kg</Text>
+              <View style={styles.weightChangeContainer}>
+                <TrendingUp size={12} color={userProfile.weight < userProfile.startWeight ? colors.status.success : colors.status.warning} />
+                <Text style={[styles.weightChangeText, {
+                  color: userProfile.weight < userProfile.startWeight ? colors.status.success : colors.status.warning
+                }]}>
+                  {userProfile.weight < userProfile.startWeight ? '-' : '+'}
+                  {Math.abs(userProfile.weight - userProfile.startWeight).toFixed(1)}kg
+                </Text>
+              </View>
+            </View>
           </Card>
         </View>
 
@@ -226,43 +273,81 @@ export const ProfileScreen: React.FC = () => {
           </View>
         </Card>
 
-        {/* PFCバランス */}
+        {/* 栄養目標設定 */}
         <Card style={styles.nutritionCard}>
-          <Text style={styles.nutritionTitle}>栄養目標設定</Text>
-          <View style={styles.nutritionTargets}>
-            <View style={styles.macroRow}>
-              <View style={styles.macroItem}>
-                <Text style={styles.macroLabel}>カロリー</Text>
-                <Text style={styles.macroValue}>{nutritionTargets.calories}</Text>
-                <Text style={styles.macroUnit}>kcal</Text>
-              </View>
-              <View style={styles.macroSeparator} />
-              <View style={styles.macroItem}>
-                <Text style={styles.macroLabel}>タンパク質</Text>
-                <Text style={styles.macroValue}>{nutritionTargets.protein}</Text>
-                <Text style={styles.macroUnit}>g</Text>
-              </View>
+          <View style={styles.nutritionHeader}>
+            <Text style={styles.nutritionTitle}>計算された栄養目標</Text>
+            <Badge variant="default" size="small" style={styles.autoBadge}>
+              自動計算
+            </Badge>
+          </View>
+          
+          {/* 目標カロリーとタンパク質 */}
+          <View style={styles.macroRow}>
+            <View style={styles.macroItemNew}>
+              <Text style={styles.macroLabel}>目標カロリー</Text>
+              <Text style={styles.macroValueLarge}>{nutritionTargets.calories}</Text>
+              <Text style={styles.macroUnit}>kcal/日</Text>
             </View>
-            <View style={styles.macroRow}>
-              <View style={styles.macroItem}>
-                <Text style={styles.macroLabel}>脂質</Text>
-                <Text style={styles.macroValue}>{nutritionTargets.fat}</Text>
-                <Text style={styles.macroUnit}>g</Text>
+            <View style={styles.macroItemNew}>
+              <Text style={styles.macroLabel}>目標タンパク質</Text>
+              <Text style={styles.macroValueLarge}>{nutritionTargets.protein}</Text>
+              <Text style={styles.macroUnit}>g/日</Text>
+            </View>
+          </View>
+
+          {/* 脂質と炭水化物 */}
+          <View style={styles.macroRow}>
+            <View style={styles.macroItemNew}>
+              <Text style={styles.macroLabel}>目標炭水化物</Text>
+              <Text style={styles.macroValueLarge}>{nutritionTargets.carbs}</Text>
+              <Text style={styles.macroUnit}>g/日</Text>
+            </View>
+            <View style={styles.macroItemNew}>
+              <Text style={styles.macroLabel}>目標脂質</Text>
+              <Text style={styles.macroValueLarge}>{nutritionTargets.fat}</Text>
+              <Text style={styles.macroUnit}>g/日</Text>
+            </View>
+          </View>
+
+          {/* PFCバランス */}
+          <View style={styles.pfcBalanceContainer}>
+            <Text style={styles.pfcBalanceTitle}>PFCバランス</Text>
+            <View style={styles.pfcBalance}>
+              <View 
+                style={[styles.pfcBar, {
+                  backgroundColor: colors.nutrition.protein,
+                  flex: (nutritionTargets.protein * 4) / nutritionTargets.calories
+                }]}
+              />
+              <View 
+                style={[styles.pfcBar, {
+                  backgroundColor: colors.nutrition.fat,
+                  flex: (nutritionTargets.fat * 9) / nutritionTargets.calories
+                }]}
+              />
+              <View 
+                style={[styles.pfcBar, {
+                  backgroundColor: colors.nutrition.carbs,
+                  flex: (nutritionTargets.carbs * 4) / nutritionTargets.calories
+                }]}
+              />
+            </View>
+            <View style={styles.pfcLegend}>
+              <View style={styles.pfcLegendItem}>
+                <View style={[styles.pfcColorDot, { backgroundColor: colors.nutrition.protein }]} />
+                <Text style={styles.pfcLegendText}>P: {Math.round((nutritionTargets.protein * 4) / nutritionTargets.calories * 100)}%</Text>
               </View>
-              <View style={styles.macroSeparator} />
-              <View style={styles.macroItem}>
-                <Text style={styles.macroLabel}>炭水化物</Text>
-                <Text style={styles.macroValue}>{nutritionTargets.carbs}</Text>
-                <Text style={styles.macroUnit}>g</Text>
+              <View style={styles.pfcLegendItem}>
+                <View style={[styles.pfcColorDot, { backgroundColor: colors.nutrition.fat }]} />
+                <Text style={styles.pfcLegendText}>F: {Math.round((nutritionTargets.fat * 9) / nutritionTargets.calories * 100)}%</Text>
+              </View>
+              <View style={styles.pfcLegendItem}>
+                <View style={[styles.pfcColorDot, { backgroundColor: colors.nutrition.carbs }]} />
+                <Text style={styles.pfcLegendText}>C: {Math.round((nutritionTargets.carbs * 4) / nutritionTargets.calories * 100)}%</Text>
               </View>
             </View>
           </View>
-          <Button
-            title="栄養目標を編集"
-            variant="outline"
-            onPress={() => {}}
-            style={styles.editNutritionButton}
-          />
         </Card>
 
         {/* デバイス連携 */}
@@ -392,6 +477,21 @@ export const ProfileScreen: React.FC = () => {
           <Text style={styles.footerText}>© 2024 FitMeal Partner</Text>
         </View>
       </ScrollView>
+
+      {/* プロフィール編集モーダル */}
+      <ProfileEditModal
+        isVisible={showProfileEditModal}
+        onClose={() => setShowProfileEditModal(false)}
+        profileData={{
+          name: userProfile.name, // モーダルでは編集しないが、interfaceに必要
+          age: userProfile.age,
+          height: userProfile.height,
+          weight: userProfile.weight,
+          gender: userProfile.gender,
+          activityLevel: userProfile.activityLevel,
+        }}
+        onSave={handleProfileSave}
+      />
     </SafeAreaView>
   );
 };
@@ -455,6 +555,40 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: radius.lg,
   },
+  profileHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  profileHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  profileSectionTitle: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.inverse,
+    fontFamily: typography.fontFamily.medium,
+    fontWeight: 'bold',
+  },
+  profileUpdateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.text.inverse + '20',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.text.inverse + '30',
+  },
+  profileUpdateText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.inverse,
+    fontFamily: typography.fontFamily.bold,
+    fontWeight: 'bold',
+  },
   profileInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -488,9 +622,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.regular,
     marginTop: spacing.xxxs,
   },
-  editButton: {
-    padding: spacing.sm,
-  },
   bodyStatsRow: {
     flexDirection: 'row',
     gap: spacing.sm,
@@ -498,45 +629,43 @@ const styles = StyleSheet.create({
   },
   bmiCard: {
     flex: 1,
-    alignItems: 'center',
     padding: spacing.lg,
-  },
-  bmiTitle: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.secondary,
-    fontFamily: typography.fontFamily.medium,
-    marginBottom: spacing.xs,
-  },
-  bmiValue: {
-    fontSize: typography.fontSize['2xl'],
-    color: colors.text.primary,
-    fontFamily: typography.fontFamily.bold,
-    marginBottom: spacing.xs,
-  },
-  bmiBadge: {
-    alignSelf: 'center',
+    backgroundColor: colors.gray[50],
   },
   weightCard: {
     flex: 1,
-    alignItems: 'center',
     padding: spacing.lg,
+    backgroundColor: colors.gray[50],
   },
-  weightTitle: {
+  cardLabel: {
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
     fontFamily: typography.fontFamily.medium,
     marginBottom: spacing.xs,
   },
-  weightValue: {
+  valueContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardValue: {
     fontSize: typography.fontSize['2xl'],
     color: colors.text.primary,
     fontFamily: typography.fontFamily.bold,
-    marginBottom: spacing.xs,
+    fontWeight: 'bold',
   },
-  weightChange: {
+  statusBadge: {
+    marginLeft: spacing.sm,
+  },
+  weightChangeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  weightChangeText: {
     fontSize: typography.fontSize.sm,
-    color: colors.status.success,
     fontFamily: typography.fontFamily.bold,
+    fontWeight: 'bold',
   },
   goalCard: {
     marginBottom: spacing.md,
@@ -586,48 +715,89 @@ const styles = StyleSheet.create({
   nutritionCard: {
     marginBottom: spacing.md,
   },
-  nutritionTitle: {
-    fontSize: typography.fontSize.lg,
-    color: colors.text.primary,
-    fontFamily: typography.fontFamily.bold,
+  nutritionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
     marginBottom: spacing.md,
   },
-  nutritionTargets: {
-    gap: spacing.md,
-    marginBottom: spacing.lg,
+  nutritionTitle: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.primary,
+    fontFamily: typography.fontFamily.medium,
+    fontWeight: 'bold',
+  },
+  autoBadge: {
+    backgroundColor: colors.gray[100],
   },
   macroRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
   },
-  macroItem: {
+  macroItemNew: {
     flex: 1,
-    alignItems: 'center',
-    gap: spacing.xs,
+    backgroundColor: colors.gray[50],
+    borderRadius: radius.lg,
+    padding: spacing.md,
   },
   macroLabel: {
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
     fontFamily: typography.fontFamily.medium,
+    marginBottom: spacing.xs,
   },
-  macroValue: {
-    fontSize: typography.fontSize.xl,
+  macroValueLarge: {
+    fontSize: typography.fontSize['2xl'],
     color: colors.text.primary,
     fontFamily: typography.fontFamily.bold,
+    fontWeight: 'bold',
+    marginBottom: spacing.xxxs,
   },
   macroUnit: {
-    fontSize: typography.fontSize.sm,
+    fontSize: typography.fontSize.xs,
     color: colors.text.tertiary,
     fontFamily: typography.fontFamily.regular,
   },
-  macroSeparator: {
-    width: 1,
-    height: 40,
-    backgroundColor: colors.border.light,
-    marginHorizontal: spacing.md,
+  pfcBalanceContainer: {
+    backgroundColor: colors.gray[50],
+    borderRadius: radius.lg,
+    padding: spacing.md,
   },
-  editNutritionButton: {
-    alignSelf: 'center',
+  pfcBalanceTitle: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    fontFamily: typography.fontFamily.medium,
+    marginBottom: spacing.sm,
+  },
+  pfcBalance: {
+    flexDirection: 'row',
+    height: 8,
+    borderRadius: radius.full,
+    overflow: 'hidden',
+    marginBottom: spacing.sm,
+  },
+  pfcBar: {
+    height: '100%',
+  },
+  pfcLegend: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  pfcLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  pfcColorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: radius.sm,
+  },
+  pfcLegendText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.tertiary,
+    fontFamily: typography.fontFamily.regular,
   },
   devicesCard: {
     marginBottom: spacing.md,
