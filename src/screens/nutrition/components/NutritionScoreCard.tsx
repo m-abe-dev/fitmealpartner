@@ -53,6 +53,7 @@ export const NutritionScoreCard: React.FC<NutritionScoreCardProps> = ({
               size={120}
               strokeWidth={8}
               color={colors.text.inverse}
+              backgroundColor={colors.text.inverse + '30'}
             />
             <View style={styles.caloriesScoreBadge}>
               <Text style={styles.caloriesScoreText}>スコア {scores.calories}</Text>

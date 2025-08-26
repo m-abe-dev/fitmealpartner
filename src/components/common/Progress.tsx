@@ -213,12 +213,16 @@ export const NutritionCircularProgress: React.FC<NutritionCircularProgressProps>
   unit,
   size = 80,
   strokeWidth = 6,
+  color: customColor,
+  backgroundColor: customBackgroundColor,
   ...props
 }) => {
   const percentage = target > 0 ? (current / target) * 100 : 0;
 
   // 栄養素タイプに応じた色
   const getNutrientColor = (): string => {
+    if (customColor) return customColor;
+    
     switch (nutrientType) {
       case 'protein':
         return colors.nutrition.protein;
@@ -258,6 +262,8 @@ export const NutritionCircularProgress: React.FC<NutritionCircularProgressProps>
 
   // 達成率に応じた背景色の透明度
   const getBackgroundColor = (): string => {
+    if (customBackgroundColor) return customBackgroundColor;
+    
     const baseColor = getNutrientColor();
     if (percentage >= 100) return baseColor + '30';
     if (percentage >= 80) return baseColor + '20';
