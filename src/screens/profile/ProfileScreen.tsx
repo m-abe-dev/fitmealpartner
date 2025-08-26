@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Edit3,
   TrendingUp,
+  TrendingDown,
   Calendar,
   Award,
   Bell
@@ -70,12 +71,10 @@ export const ProfileScreen: React.FC = () => {
     weight: 71.2,
     gender: 'male',
     activityLevel: 'moderate',
-    weightChangeDirection: 'maintain',
-    weightChangeAmount: 0,
+    targetWeight: 68.0,
     targetDate: '2024-06-30',
     goal: 'cut',
     bmi: 23.2,
-    targetWeight: 68.0,
     startWeight: 74.5,
     joinDate: '2023-11-15'
   });
@@ -118,6 +117,8 @@ export const ProfileScreen: React.FC = () => {
       ...prev,
       ...updatedProfile,
       bmi: newBMI,
+      // targetWeightはユーザーが直接入力した値を使用
+      targetWeight: updatedProfile.targetWeight || updatedProfile.weight,
     }));
 
     Alert.alert('成功', 'プロフィールが更新されました');
@@ -228,9 +229,13 @@ export const ProfileScreen: React.FC = () => {
             <View style={styles.valueContainer}>
               <Text style={styles.cardValue}>{userProfile.weight}kg</Text>
               <View style={styles.weightChangeContainer}>
-                <TrendingUp size={12} color={userProfile.weight < userProfile.startWeight ? colors.status.success : colors.status.warning} />
+                {userProfile.weight < userProfile.startWeight ? (
+                  <TrendingDown size={12} color={colors.primary.main} />
+                ) : (
+                  <TrendingUp size={12} color={colors.status.error} />
+                )}
                 <Text style={[styles.weightChangeText, {
-                  color: userProfile.weight < userProfile.startWeight ? colors.status.success : colors.status.warning
+                  color: userProfile.weight < userProfile.startWeight ? colors.primary.main : colors.status.error
                 }]}>
                   {userProfile.weight < userProfile.startWeight ? '-' : '+'}
                   {Math.abs(userProfile.weight - userProfile.startWeight).toFixed(1)}kg
@@ -247,12 +252,6 @@ export const ProfileScreen: React.FC = () => {
               <Target size={20} color={colors.primary.main} />
               <Text style={styles.goalTitle}>目標進捗</Text>
             </View>
-            <Badge
-              variant={getGoalColor(userProfile.goal) === colors.status.success ? 'success' : 'default'}
-              size="small"
-            >
-              {getGoalText(userProfile.goal)}
-            </Badge>
           </View>
 
           <View style={styles.goalProgress}>
@@ -274,15 +273,13 @@ export const ProfileScreen: React.FC = () => {
               <Text style={styles.goalProgressRemaining}>
                 残り {Math.abs(userProfile.weight - userProfile.targetWeight).toFixed(1)}kg
               </Text>
-              {userProfile.weightChangeDirection && (
-                <Text style={styles.goalChangeDetail}>
-                  {userProfile.weightChangeDirection === 'decrease' ? '減量' : 
-                   userProfile.weightChangeDirection === 'increase' ? '増量' : '維持'}
-                  {userProfile.weightChangeAmount !== undefined && userProfile.weightChangeAmount > 0 && 
-                    ` ${userProfile.weightChangeAmount}kg`
-                  }
-                </Text>
-              )}
+              <Text style={styles.goalChangeDetail}>
+                {userProfile.weight > userProfile.targetWeight ? '減量' :
+                 userProfile.weight < userProfile.targetWeight ? '増量' : '維持'}
+                {userProfile.targetWeight !== userProfile.weight &&
+                  ` ${Math.abs(userProfile.weight - userProfile.targetWeight).toFixed(1)}kg`
+                }
+              </Text>
             </View>
             {userProfile.targetDate && (
               <View style={styles.targetDateContainer}>
@@ -510,8 +507,7 @@ export const ProfileScreen: React.FC = () => {
           weight: userProfile.weight,
           gender: userProfile.gender,
           activityLevel: userProfile.activityLevel,
-          weightChangeDirection: userProfile.weightChangeDirection,
-          weightChangeAmount: userProfile.weightChangeAmount,
+          targetWeight: userProfile.targetWeight,
           targetDate: userProfile.targetDate,
         }}
         onSave={handleProfileSave}

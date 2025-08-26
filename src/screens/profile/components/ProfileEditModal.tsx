@@ -31,8 +31,7 @@ export interface ProfileData {
   weight: number;
   gender: 'male' | 'female' | 'other';
   activityLevel: 'sedentary' | 'light' | 'moderate' | 'active' | 'very-active';
-  weightChangeDirection?: 'decrease' | 'increase' | 'maintain';
-  weightChangeAmount?: number;
+  targetWeight?: number;
   targetDate?: string;
 }
 
@@ -97,8 +96,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
   const [profile, setProfile] = useState<ProfileData>({
     ...profileData,
-    weightChangeDirection: profileData.weightChangeDirection || 'decrease',
-    weightChangeAmount: profileData.weightChangeAmount || 1,
+    targetWeight: profileData.targetWeight || profileData.weight || 70,
     targetDate: profileData.targetDate || getTodayDate(),
   });
 
@@ -107,8 +105,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   useEffect(() => {
     setProfile({
       ...profileData,
-      weightChangeDirection: profileData.weightChangeDirection || 'decrease',
-      weightChangeAmount: profileData.weightChangeAmount || 1,
+      targetWeight: profileData.targetWeight || profileData.weight || 70,
       targetDate: profileData.targetDate || getTodayDate(),
     });
   }, [profileData]);
@@ -167,14 +164,10 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     { value: 'very-active', label: '非常に活発（1日2回）' },
   ];
 
-  const weightChangeDirectionOptions = [
-    { value: 'decrease', label: '減量' },
-    { value: 'increase', label: '増量' },
-    { value: 'maintain', label: '維持' },
-  ];
 
-  const weightChangeAmountOptions = Array.from({ length: 60 }, (_, i) => {
-    const value = (i + 1) * 0.5;
+  // 目標体重のオプション (30kgから200kgまで、0.5kg刻み)
+  const targetWeightOptions = Array.from({ length: 341 }, (_, i) => {
+    const value = 30 + (i * 0.5);
     return { value, label: `${value}kg` };
   });
 
@@ -445,35 +438,15 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>体重変化の目標</Text>
 
-              <View style={styles.goalRow}>
-                {/* Direction Selection */}
-                <View style={styles.goalInputGroup}>
-                  <Text style={styles.goalLabel}>増減</Text>
-                  <DropdownSelector
-                    label=""
-                    value={profile.weightChangeDirection || 'decrease'}
-                    options={weightChangeDirectionOptions}
-                    onSelect={(weightChangeDirection) => {
-                      setProfile(prev => ({
-                        ...prev,
-                        weightChangeDirection,
-                        // 維持を選択した場合は変化量を0kgに設定
-                        weightChangeAmount: weightChangeDirection === 'maintain' ? 0 : prev.weightChangeAmount || 1
-                      }));
-                    }}
-                  />
-                </View>
-
-                {/* Amount Input */}
-                <View style={styles.goalInputGroup}>
-                  <Text style={styles.goalLabel}>変化量</Text>
-                  <DropdownSelector
-                    label=""
-                    value={profile.weightChangeDirection === 'maintain' ? 0 : (profile.weightChangeAmount || 1)}
-                    options={profile.weightChangeDirection === 'maintain' ? [{ value: 0, label: '0kg' }] : weightChangeAmountOptions}
-                    onSelect={(weightChangeAmount) => setProfile(prev => ({ ...prev, weightChangeAmount }))}
-                  />
-                </View>
+              {/* 目標体重 */}
+              <View style={styles.fullWidthGroup}>
+                <Text style={styles.goalLabel}>目標体重 (kg)</Text>
+                <DropdownSelector
+                  label=""
+                  value={profile.targetWeight || profile.weight || 70}
+                  options={targetWeightOptions}
+                  onSelect={(targetWeight) => setProfile(prev => ({ ...prev, targetWeight }))}
+                />
               </View>
 
               {/* Target Date */}
@@ -591,6 +564,7 @@ const styles = StyleSheet.create({
   },
   fullWidthGroup: {
     width: '100%',
+     marginBottom: spacing.xs,
   },
   label: {
     fontSize: typography.fontSize.sm,
@@ -664,6 +638,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border.light,
     backgroundColor: colors.background.primary,
+    marginBottom: spacing.md,
   },
   saveButton: {
     backgroundColor: colors.primary.main,
