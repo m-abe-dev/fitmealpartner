@@ -70,6 +70,9 @@ export const ProfileScreen: React.FC = () => {
     weight: 71.2,
     gender: 'male',
     activityLevel: 'moderate',
+    weightChangeDirection: 'maintain',
+    weightChangeAmount: 0,
+    targetDate: '2024-06-30',
     goal: 'cut',
     bmi: 23.2,
     targetWeight: 68.0,
@@ -110,7 +113,7 @@ export const ProfileScreen: React.FC = () => {
 
   const handleProfileSave = (updatedProfile: ProfileData) => {
     const newBMI = calculateBMI(updatedProfile.height, updatedProfile.weight);
-    
+
     setUserProfile(prev => ({
       ...prev,
       ...updatedProfile,
@@ -181,7 +184,7 @@ export const ProfileScreen: React.FC = () => {
               <View style={styles.profileHeaderLeft}>
                 <Text style={styles.profileSectionTitle}>基本情報</Text>
               </View>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.profileUpdateButton}
                 onPress={() => setShowProfileEditModal(true)}
               >
@@ -267,9 +270,28 @@ export const ProfileScreen: React.FC = () => {
               color={getGoalColor(userProfile.goal)}
               style={styles.progressBar}
             />
-            <Text style={styles.goalProgressRemaining}>
-              残り {Math.abs(userProfile.weight - userProfile.targetWeight).toFixed(1)}kg
-            </Text>
+            <View style={styles.goalDetails}>
+              <Text style={styles.goalProgressRemaining}>
+                残り {Math.abs(userProfile.weight - userProfile.targetWeight).toFixed(1)}kg
+              </Text>
+              {userProfile.weightChangeDirection && (
+                <Text style={styles.goalChangeDetail}>
+                  {userProfile.weightChangeDirection === 'decrease' ? '減量' : 
+                   userProfile.weightChangeDirection === 'increase' ? '増量' : '維持'}
+                  {userProfile.weightChangeAmount !== undefined && userProfile.weightChangeAmount > 0 && 
+                    ` ${userProfile.weightChangeAmount}kg`
+                  }
+                </Text>
+              )}
+            </View>
+            {userProfile.targetDate && (
+              <View style={styles.targetDateContainer}>
+                <Calendar size={14} color={colors.text.secondary} />
+                <Text style={styles.targetDateText}>
+                  目標日: {new Date(userProfile.targetDate).toLocaleDateString('ja-JP')}
+                </Text>
+              </View>
+            )}
           </View>
         </Card>
 
@@ -281,7 +303,7 @@ export const ProfileScreen: React.FC = () => {
               自動計算
             </Badge>
           </View>
-          
+
           {/* 目標カロリーとタンパク質 */}
           <View style={styles.macroRow}>
             <View style={styles.macroItemNew}>
@@ -314,19 +336,19 @@ export const ProfileScreen: React.FC = () => {
           <View style={styles.pfcBalanceContainer}>
             <Text style={styles.pfcBalanceTitle}>PFCバランス</Text>
             <View style={styles.pfcBalance}>
-              <View 
+              <View
                 style={[styles.pfcBar, {
                   backgroundColor: colors.nutrition.protein,
                   flex: (nutritionTargets.protein * 4) / nutritionTargets.calories
                 }]}
               />
-              <View 
+              <View
                 style={[styles.pfcBar, {
                   backgroundColor: colors.nutrition.fat,
                   flex: (nutritionTargets.fat * 9) / nutritionTargets.calories
                 }]}
               />
-              <View 
+              <View
                 style={[styles.pfcBar, {
                   backgroundColor: colors.nutrition.carbs,
                   flex: (nutritionTargets.carbs * 4) / nutritionTargets.calories
@@ -483,12 +505,14 @@ export const ProfileScreen: React.FC = () => {
         isVisible={showProfileEditModal}
         onClose={() => setShowProfileEditModal(false)}
         profileData={{
-          name: userProfile.name, // モーダルでは編集しないが、interfaceに必要
           age: userProfile.age,
           height: userProfile.height,
           weight: userProfile.weight,
           gender: userProfile.gender,
           activityLevel: userProfile.activityLevel,
+          weightChangeDirection: userProfile.weightChangeDirection,
+          weightChangeAmount: userProfile.weightChangeAmount,
+          targetDate: userProfile.targetDate,
         }}
         onSave={handleProfileSave}
       />
@@ -708,6 +732,28 @@ const styles = StyleSheet.create({
     marginVertical: spacing.xs,
   },
   goalProgressRemaining: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    fontFamily: typography.fontFamily.regular,
+  },
+  goalDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  goalChangeDetail: {
+    fontSize: typography.fontSize.sm,
+    color: colors.primary.main,
+    fontFamily: typography.fontFamily.medium,
+    fontWeight: '600',
+  },
+  targetDateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  targetDateText: {
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
     fontFamily: typography.fontFamily.regular,
