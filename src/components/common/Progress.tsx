@@ -254,9 +254,10 @@ export const NutritionCircularProgress: React.FC<NutritionCircularProgressProps>
     if (customBackgroundColor) return customBackgroundColor;
 
     const baseColor = getNutrientColor();
-    if (percentage >= 100) return baseColor + '30';
-    if (percentage >= 80) return baseColor + '20';
-    return baseColor + '10';
+    if (percentage >= 100) return baseColor + '50';
+    if (percentage >= 80) return baseColor + '40';
+    if (percentage === 0) return baseColor + '45'; // 0の時もはっきり見える透明度
+    return baseColor + '35'; // その他の場合もさらに濃く
   };
 
   // 中央コンテンツのスタイルを決定

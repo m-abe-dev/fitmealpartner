@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNutritionData } from './useNutritionData';
 import { Exercise } from '../screens/workout/types/workout.types';
 
@@ -110,8 +110,8 @@ export interface ScoreData {
   };
 }
 
-export const useScoreData = (exercises: Exercise[] = []) => {
-  const { scores: nutritionScores } = useNutritionData();
+export const useScoreData = (exercises: Exercise[] = [], foodLog: any[] = []) => {
+  const { scores: nutritionScores } = useNutritionData(foodLog);
   
   // 初期データで初期化
   const [scoreData, setScoreData] = useState<ScoreData[]>([
@@ -146,6 +146,13 @@ export const useScoreData = (exercises: Exercise[] = []) => {
       },
     },
   ]);
+
+  // exercisesの長さをメモ化して、実際に変更された場合のみ再計算
+  const exercisesLength = exercises.length;
+  const exercisesHash = useMemo(() => 
+    exercises.map(e => `${e.id}-${e.sets.length}`).join(','),
+    [exercises]
+  );
 
   useEffect(() => {
     const trainingScore = calculateWorkoutScore(exercises);
@@ -188,7 +195,7 @@ export const useScoreData = (exercises: Exercise[] = []) => {
     ];
 
     setScoreData(newScoreData);
-  }, [nutritionScores, exercises]);
+  }, [nutritionScores.total, exercisesLength, exercisesHash]);
 
   return { scoreData };
 };

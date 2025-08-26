@@ -25,7 +25,6 @@ export const NutritionScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   // カスタムフックを使用
-  const { nutritionData, scores } = useNutritionData();
   const {
     foodLog,
     selectedMeal,
@@ -37,6 +36,9 @@ export const NutritionScreen: React.FC = () => {
     deleteFood,
     toggleFavorite,
   } = useFoodLog();
+  
+  // foodLogを使って栄養データを計算
+  const { nutritionData, scores } = useNutritionData(foodLog);
 
   const mealTabs: MealTab[] = [
     { id: 'breakfast', label: '朝食', icon: '🌅' },
