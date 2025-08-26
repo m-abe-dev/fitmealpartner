@@ -79,12 +79,6 @@ export const ProfileScreen: React.FC = () => {
     joinDate: '2023-11-15'
   });
 
-  const [nutritionTargets] = useState<NutritionTargets>({
-    calories: 2200,
-    protein: 140,
-    fat: 85,
-    carbs: 200
-  });
 
   const [deviceConnections] = useState<DeviceConnection[]>([
     { name: 'Apple Watch', type: 'fitness', connected: true, icon: '⌚' },
@@ -162,7 +156,123 @@ export const ProfileScreen: React.FC = () => {
 
   const bmiStatus = getBMIStatus(userProfile.bmi);
 
-  const weightProgress = Math.abs(userProfile.weight - userProfile.startWeight) / Math.abs(userProfile.targetWeight - userProfile.startWeight) * 100;
+  // 詳細な体重分析を計算
+  const calculateWeightAnalysis = () => {
+    const targetDate = userProfile.targetDate ? new Date(userProfile.targetDate) : null;
+    const today = new Date();
+    const daysToGoal = targetDate ? Math.ceil((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+
+    // 現在体重から目標体重への必要変化量
+    const weightChangeToTarget = userProfile.targetWeight - userProfile.weight;
+    
+    // 目標達成に必要な週数を計算
+    const weeksToTarget = daysToGoal > 0 ? daysToGoal / 7 : 0;
+    
+    // 目標達成のための週間ペース（必要な変化量を残り週数で割る）
+    const requiredWeeklyPace = weeksToTarget > 0 ? weightChangeToTarget / weeksToTarget : 0;
+
+    // Harris-Benedict式で基礎代謝を計算
+    const calculateBMR = (): number => {
+      const { weight, height, age, gender } = userProfile;
+      if (gender === 'male') {
+        return 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age);
+      } else {
+        return 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
+      }
+    };
+
+    // 活動レベル係数
+    const getActivityMultiplier = (level: string): number => {
+      switch (level) {
+        case 'sedentary': return 1.2;
+        case 'light': return 1.375;
+        case 'moderate': return 1.55;
+        case 'active': return 1.725;
+        case 'very-active': return 1.9;
+        default: return 1.55;
+      }
+    };
+
+    const bmr = calculateBMR();
+    const maintenanceCalories = bmr * getActivityMultiplier(userProfile.activityLevel);
+
+    return {
+      daysToGoal,
+      weightChange: weightChangeToTarget,
+      weeklyPace: requiredWeeklyPace,
+      bmr: Math.round(bmr),
+      maintenanceCalories: Math.round(maintenanceCalories)
+    };
+  };
+
+  const analysis = calculateWeightAnalysis();
+
+  // 動的に栄養目標を計算（修正版）
+  const calculateNutritionTargets = (): NutritionTargets => {
+    const maintenanceCalories = analysis.maintenanceCalories;
+    
+    // 目標に応じたカロリー調整（より現実的に）
+    let targetCalories = maintenanceCalories;
+    const weightChangeNeeded = userProfile.targetWeight - userProfile.weight;
+    
+    if (Math.abs(weightChangeNeeded) > 0.1) {
+      // 理論値計算（1kg = 7700kcal）
+      const totalKcalChange = weightChangeNeeded * 7700;
+      const dailyKcalChange = analysis.daysToGoal > 0 ? totalKcalChange / analysis.daysToGoal : 0;
+      
+      if (weightChangeNeeded < 0) {
+        // 減量の場合
+        targetCalories = maintenanceCalories + dailyKcalChange; // dailyKcalChangeは負の値
+        // 安全な下限（基礎代謝の1.2倍）
+        targetCalories = Math.max(analysis.bmr * 1.2, targetCalories);
+      } else {
+        // 増量の場合
+        targetCalories = maintenanceCalories + dailyKcalChange; // dailyKcalChangeは正の値
+        // 現実的な上限（基礎代謝の2.5倍）
+        targetCalories = Math.min(analysis.bmr * 2.5, targetCalories);
+      }
+      
+      // 警告レベルの判定（オプション）
+      const weeklyPaceKg = Math.abs(analysis.weeklyPace);
+      if (weeklyPaceKg > 1.0) {
+        console.warn('週1kg以上の体重変化は推奨されません');
+      }
+    }
+    
+    // 増量時のタンパク質（体重×1.6-2.2g）
+    const getProteinMultiplier = (): number => {
+      if (weightChangeNeeded < 0) {
+        // 減量時：筋肉維持のため多め
+        return 2.0 + (userProfile.activityLevel === 'very-active' ? 0.2 : 0);
+      } else if (weightChangeNeeded > 0) {
+        // 増量時：筋肉合成に必要な量
+        return 1.8 + (userProfile.activityLevel === 'very-active' ? 0.2 : 0);
+      }
+      return 1.6; // 維持時
+    };
+    
+    const protein = Math.round(userProfile.weight * getProteinMultiplier());
+    
+    // 脂質：総カロリーの20-30%
+    const fatRatio = weightChangeNeeded > 0 ? 0.25 : 0.27; // 増量時は炭水化物を多めに
+    const fat = Math.round((targetCalories * fatRatio) / 9);
+    
+    // 炭水化物：残り
+    const carbCalories = targetCalories - (protein * 4) - (fat * 9);
+    const carbs = Math.round(Math.max(100, carbCalories / 4));
+    
+    // カロリーを再計算して調整
+    const actualCalories = (protein * 4) + (fat * 9) + (carbs * 4);
+    
+    return {
+      calories: Math.round(actualCalories),
+      protein,
+      fat,
+      carbs
+    };
+  };
+  
+  const nutritionTargets = calculateNutritionTargets();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -245,41 +355,12 @@ export const ProfileScreen: React.FC = () => {
           </Card>
         </View>
 
-        {/* 目標進捗 */}
+        {/* 目標分析 */}
         <Card style={styles.goalCard}>
           <View style={styles.goalHeader}>
             <View style={styles.goalHeaderLeft}>
               <Target size={20} color={colors.primary.main} />
-              <Text style={styles.goalTitle}>目標進捗</Text>
-            </View>
-          </View>
-
-          <View style={styles.goalProgress}>
-            <View style={styles.goalProgressHeader}>
-              <Text style={styles.goalProgressText}>
-                目標体重: {userProfile.targetWeight}kg
-              </Text>
-              <Text style={styles.goalProgressPercentage}>
-                {Math.round(weightProgress)}%
-              </Text>
-            </View>
-            <Progress
-              value={weightProgress}
-              max={100}
-              color={getGoalColor(userProfile.goal)}
-              style={styles.progressBar}
-            />
-            <View style={styles.goalDetails}>
-              <Text style={styles.goalProgressRemaining}>
-                残り {Math.abs(userProfile.weight - userProfile.targetWeight).toFixed(1)}kg
-              </Text>
-              <Text style={styles.goalChangeDetail}>
-                {userProfile.weight > userProfile.targetWeight ? '減量' :
-                 userProfile.weight < userProfile.targetWeight ? '増量' : '維持'}
-                {userProfile.targetWeight !== userProfile.weight &&
-                  ` ${Math.abs(userProfile.weight - userProfile.targetWeight).toFixed(1)}kg`
-                }
-              </Text>
+              <Text style={styles.goalTitle}>目標分析</Text>
             </View>
             {userProfile.targetDate && (
               <View style={styles.targetDateContainer}>
@@ -290,6 +371,56 @@ export const ProfileScreen: React.FC = () => {
               </View>
             )}
           </View>
+
+          <View style={styles.goalProgress}>
+            {/* 体重分析 */}
+            <View style={styles.analysisContainer}>
+              <View style={styles.analysisRow}>
+<View style={styles.analysisItem}>
+                  <Text style={styles.analysisLabel}>目標体重</Text>
+                  <Text style={styles.analysisValue}>
+                    {userProfile.targetWeight}kg
+                  </Text>
+                </View>
+                <View style={styles.analysisItem}>
+                  <Text style={styles.analysisLabel}>目標まで</Text>
+                  <Text style={styles.analysisValue}>
+                    {analysis.daysToGoal > 0 ? `${analysis.daysToGoal}日` : '目標日未設定'}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.analysisRow}>
+                <View style={styles.analysisItem}>
+                  <Text style={styles.analysisLabel}>必要な体重変化</Text>
+                  <Text style={[styles.analysisValue, {
+                    color: analysis.weightChange < 0 ? colors.primary.main : analysis.weightChange > 0 ? colors.status.error : colors.text.primary
+                  }]}>
+                    {analysis.weightChange >= 0 ? '+' : ''}{analysis.weightChange.toFixed(1)}kg
+                  </Text>
+                </View>
+                <View style={styles.analysisItem}>
+                  <Text style={styles.analysisLabel}>必要な週間ペース</Text>
+                  <Text style={[styles.analysisValue, {
+                    color: analysis.weeklyPace < 0 ? colors.primary.main : analysis.weeklyPace > 0 ? colors.status.error : colors.text.primary
+                  }]}>
+                    {analysis.weeklyPace >= 0 ? '+' : ''}{analysis.weeklyPace.toFixed(2)}kg/週
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.analysisRow}>
+                <View style={styles.analysisItem}>
+                  <Text style={styles.analysisLabel}>基礎代謝</Text>
+                  <Text style={styles.analysisValue}>{analysis.bmr}kcal</Text>
+                </View>
+                <View style={[styles.analysisItem, styles.analysisItemFull]}>
+                  <Text style={styles.analysisLabel}>維持カロリー</Text>
+                  <Text style={styles.analysisValue}>{analysis.maintenanceCalories}kcal/日</Text>
+                </View>
+              </View>
+            </View>
+          </View>
         </Card>
 
         {/* 栄養目標設定 */}
@@ -297,7 +428,10 @@ export const ProfileScreen: React.FC = () => {
           <View style={styles.nutritionHeader}>
             <Text style={styles.nutritionTitle}>計算された栄養目標</Text>
             <Badge variant="default" size="small" style={styles.autoBadge}>
-              自動計算
+              {Math.abs(userProfile.targetWeight - userProfile.weight) > 0.1 
+                ? (userProfile.targetWeight < userProfile.weight ? '減量用' : '増量用')
+                : '維持用'
+              }
             </Badge>
           </View>
 
@@ -694,7 +828,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.xs,
   },
   goalHeaderLeft: {
     flexDirection: 'row',
@@ -726,6 +860,35 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     marginVertical: spacing.xs,
+  },
+  analysisContainer: {
+    backgroundColor: colors.gray[50],
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+  },
+  analysisRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  analysisItem: {
+    flex: 1,
+  },
+  analysisItemFull: {
+    flex: 1,
+  },
+  analysisLabel: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    fontFamily: typography.fontFamily.medium,
+    marginBottom: spacing.xs,
+  },
+  analysisValue: {
+    fontSize: typography.fontSize.lg,
+    color: colors.text.primary,
+    fontFamily: typography.fontFamily.bold,
+    fontWeight: 'bold',
   },
   goalProgressRemaining: {
     fontSize: typography.fontSize.sm,
