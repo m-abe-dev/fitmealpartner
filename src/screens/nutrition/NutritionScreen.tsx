@@ -17,7 +17,7 @@ import { MealLogCard } from './components/MealLogCard';
 import { AddFoodModal } from './components/AddFoodModal';
 import { useNutritionData } from '../../hooks/useNutritionData';
 import { useFoodLog } from '../../hooks/useFoodLog';
-import { MealTab } from './types/nutrition.types';
+import { MealTab, FoodLogItem } from './types/nutrition.types';
 
 export const NutritionScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
@@ -53,9 +53,15 @@ export const NutritionScreen: React.FC = () => {
   // 食材追加ハンドラー
   const handleAddFood = (food: { id: string; name: string; calories: number; protein: number; fat: number; carbs: number; }) => {
     addFood({
-      ...food,
+      name: food.name,
+      calories: food.calories,
+      protein: food.protein,
+      fat: food.fat,
+      carbs: food.carbs,
+      foodId: food.id, // 元の食品ID
       amount: 100,
       unit: 'g',
+      // id, meal, timeはuseFoodLogのaddFoodで生成される
     });
   };
 
@@ -66,7 +72,7 @@ export const NutritionScreen: React.FC = () => {
   };
 
   // 食材編集ハンドラー
-  const handleEditFood = (food: any) => {
+  const handleEditFood = (food: FoodLogItem) => {
     setEditingFood(food);
     setShowAddFood(true);
   };

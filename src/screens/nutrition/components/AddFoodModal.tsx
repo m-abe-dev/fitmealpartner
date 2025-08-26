@@ -22,7 +22,7 @@ import {
 import { colors, typography, spacing, radius, shadows } from '../../../design-system';
 import { Button } from '../../../components/common/Button';
 import { Badge } from '../../../components/common/Badge';
-import { Food, NewFood } from '../types/nutrition.types';
+import { Food, NewFood, FoodLogItem } from '../types/nutrition.types';
 import { mockFoodDatabase, mockFoodHistory, mockFavoritesFoods } from '../data/mockData';
 
 interface AddFoodModalProps {
@@ -30,8 +30,8 @@ interface AddFoodModalProps {
   onClose: () => void;
   onAddFood: (food: Food) => void;
   selectedMeal: 'breakfast' | 'lunch' | 'dinner' | 'snack';
-  editingFood?: Food | null;
-  onUpdateFood?: (food: Food & { amount: number; unit: string; meal: string; time: string }) => void;
+  editingFood?: FoodLogItem | null;
+  onUpdateFood?: (food: FoodLogItem) => void;
   favoriteFoods?: Food[];
   searchQuery?: string;
   onSearchQueryChange?: (query: string) => void;

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { FoodLogItem } from '../components/nutrition/MealLogCard';
+import { FoodLogItem } from '../screens/nutrition/types/nutrition.types';
 
 export interface UseFoodLogReturn {
   foodLog: FoodLogItem[];
@@ -21,6 +21,7 @@ export const useFoodLog = (): UseFoodLogReturn => {
   const [foodLog, setFoodLog] = useState<FoodLogItem[]>([
     {
       id: '1',
+      foodId: 'food_001',
       name: '鶏胸肉（皮なし）',
       amount: 150,
       unit: 'g',
@@ -33,6 +34,7 @@ export const useFoodLog = (): UseFoodLogReturn => {
     },
     {
       id: '2',
+      foodId: 'food_002',
       name: '白米（炊飯済み）',
       amount: 200,
       unit: 'g',
@@ -45,6 +47,7 @@ export const useFoodLog = (): UseFoodLogReturn => {
     },
     {
       id: '3',
+      foodId: 'food_003',
       name: 'ブロッコリー',
       amount: 100,
       unit: 'g',
@@ -57,6 +60,7 @@ export const useFoodLog = (): UseFoodLogReturn => {
     },
     {
       id: '4',
+      foodId: 'food_004',
       name: 'ホエイプロテイン',
       amount: 30,
       unit: 'g',
@@ -69,6 +73,7 @@ export const useFoodLog = (): UseFoodLogReturn => {
     },
     {
       id: '5',
+      foodId: 'food_005',
       name: 'バナナ',
       amount: 120,
       unit: 'g',
