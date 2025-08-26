@@ -8,6 +8,7 @@ import {
   ScrollView,
   TouchableWithoutFeedback,
   Alert,
+  Pressable,
 } from 'react-native';
 import { Modal } from 'react-native';
 import {
@@ -51,6 +52,7 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
 }) => {
   const [internalSearchQuery, setInternalSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [preventBlur, setPreventBlur] = useState(false);
   
   // 外部から渡されたsearchQueryを使用するか、内部状態を使用するかを決定
   const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : internalSearchQuery;
@@ -98,17 +100,25 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
   };
 
   const handleSearchBlur = () => {
-    setIsSearchFocused(false);
+    if (preventBlur) {
+      return;
+    }
+    // 遅延処理でタップイベントを確実に処理
+    setTimeout(() => {
+      setIsSearchFocused(false);
+    }, 500);
   };
 
-  const handleOverlayClick = () => {
-    setIsSearchFocused(false);
-  };
 
   const selectSearchResult = (food: Food) => {
-    onAddFood(food);
-    setSearchQuery('');
+    // 即座に検索状態をクリア
     setIsSearchFocused(false);
+    setSearchQuery('');
+    
+    // 食品を追加
+    onAddFood(food);
+    
+    // モーダルを閉じる
     onClose();
   };
 
@@ -211,10 +221,16 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
 
             {/* Search Overlay */}
             {isSearchFocused && searchQuery.trim() && (
-              <TouchableWithoutFeedback onPress={handleOverlayClick}>
-                <View style={styles.searchOverlay}>
-                  <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
-                    <View style={styles.searchResults}>
+              <View style={styles.searchOverlay}>
+                <View 
+                  style={styles.searchResults}
+                  onTouchStart={() => {
+                    setPreventBlur(true);
+                  }}
+                  onTouchEnd={() => {
+                    setTimeout(() => setPreventBlur(false), 100);
+                  }}
+                >
                       <ScrollView style={styles.searchResultsList}>
                         {getSearchResults().length > 0 ? (
                           <View style={styles.searchResultsContent}>
@@ -224,8 +240,9 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
                             {getSearchResults().map((food) => (
                               <TouchableOpacity
                                 key={food.id}
-                                onPress={() => selectSearchResult(food)}
                                 style={styles.searchResultItem}
+                                activeOpacity={0.7}
+                                onPress={() => selectSearchResult(food)}
                               >
                                 <View style={styles.searchResultContent}>
                                   <View style={styles.searchResultLeft}>
@@ -254,9 +271,7 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
                         )}
                       </ScrollView>
                     </View>
-                  </TouchableWithoutFeedback>
-                </View>
-              </TouchableWithoutFeedback>
+              </View>
             )}
 
             {/* Content with overlay when search is focused */}
@@ -398,6 +413,7 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
                           key={food.id}
                           onPress={() => addFromHistory(food)}
                           style={styles.favoriteItem}
+                          activeOpacity={0.7}
                         >
                           <View style={styles.favoriteContent}>
                             <View style={styles.favoriteInfo}>
@@ -459,6 +475,7 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
                       key={food.id}
                       onPress={() => addFromHistory(food)}
                       style={styles.historyItem}
+                      activeOpacity={0.7}
                     >
                       <View style={styles.historyInfo}>
                         <Text style={styles.foodName}>{food.name}</Text>
@@ -541,8 +558,15 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    zIndex: 1000,
+  },
+  overlayBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.2)',
-    zIndex: 50,
   },
   searchResults: {
     backgroundColor: colors.background.primary,
@@ -550,6 +574,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     maxHeight: 288,
     ...shadows.lg,
+    elevation: 10,
+    zIndex: 1100,
   },
   searchResultsList: {
     maxHeight: 288,
@@ -564,16 +590,19 @@ const styles = StyleSheet.create({
   },
   searchResultItem: {
     marginBottom: spacing.xs,
+    zIndex: 1200,
+    backgroundColor: 'transparent',
   },
   searchResultContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: spacing.sm,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: colors.background.primary,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border.light,
+    borderColor: colors.primary.main + '30',
+    ...shadows.sm,
   },
   searchResultLeft: {
     flexDirection: 'row',

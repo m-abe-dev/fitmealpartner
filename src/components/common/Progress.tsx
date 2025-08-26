@@ -143,13 +143,13 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
   // プログレスに応じた色の変化（栄養素用CircularProgressでは元の色を保持）
   const getDynamicColor = (progress: number): string => {
     // NutritionCircularProgressから呼ばれた場合は、元の色を保持
-    if (color && (color === colors.nutrition.protein || 
-                  color === colors.nutrition.fat || 
-                  color === colors.nutrition.carbs || 
+    if (color && (color === colors.nutrition.protein ||
+                  color === colors.nutrition.fat ||
+                  color === colors.nutrition.carbs ||
                   color === colors.nutrition.calories)) {
       return color;
     }
-    
+
     if (progress >= 100) return colors.status.success;
     if (progress >= 80) return color;
     if (progress >= 60) return colors.status.warning;
@@ -222,7 +222,7 @@ export const NutritionCircularProgress: React.FC<NutritionCircularProgressProps>
   // 栄養素タイプに応じた色
   const getNutrientColor = (): string => {
     if (customColor) return customColor;
-    
+
     switch (nutrientType) {
       case 'protein':
         return colors.nutrition.protein;
@@ -252,7 +252,7 @@ export const NutritionCircularProgress: React.FC<NutritionCircularProgressProps>
   // 達成率に応じた背景色の透明度
   const getBackgroundColor = (): string => {
     if (customBackgroundColor) return customBackgroundColor;
-    
+
     const baseColor = getNutrientColor();
     if (percentage >= 100) return baseColor + '30';
     if (percentage >= 80) return baseColor + '20';
@@ -297,11 +297,11 @@ export const NutritionCircularProgress: React.FC<NutritionCircularProgressProps>
         </Text>
         {percentage >= 100 && (
           <View style={[
-            styles.completedBadge, 
-            { 
-              backgroundColor: customColor === colors.text.inverse 
-                ? colors.status.success 
-                : getNutrientColor() 
+            styles.completedBadge,
+            {
+              backgroundColor: customColor === colors.text.inverse
+                ? colors.status.success
+                : getNutrientColor()
             }
           ]}>
             <Text style={styles.completedText}>✓</Text>
@@ -391,8 +391,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.background.primary + 'F5',
     borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     minWidth: 55,
     shadowColor: colors.gray[300],
     shadowOffset: { width: 0, height: 1 },
