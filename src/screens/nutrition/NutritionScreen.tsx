@@ -27,11 +27,6 @@ export const NutritionScreen: React.FC = () => {
 
   // プロフィールデータから動的な目標値を取得
   const { nutritionTargets } = useProfileData();
-  
-  console.log('NutritionScreen: useProfileData結果', {
-    nutritionTargets,
-    timestamp: Date.now()
-  });
 
   // カスタムフックを使用
   const {
@@ -45,19 +40,9 @@ export const NutritionScreen: React.FC = () => {
     deleteFood,
     toggleFavorite,
   } = useFoodLog();
-  
+
   // foodLogと動的な目標値を使って栄養データを計算
   const { nutritionData, scores } = useNutritionData(foodLog, nutritionTargets);
-  
-  console.log('NutritionScreen: 栄養データ更新', {
-    nutritionTargets,
-    nutritionData: {
-      calories: nutritionData.calories,
-      protein: nutritionData.protein,
-      fat: nutritionData.fat,
-      carbs: nutritionData.carbs
-    }
-  });
 
   const mealTabs: MealTab[] = [
     { id: 'breakfast', label: '朝食', icon: '🌅' },

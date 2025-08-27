@@ -111,18 +111,49 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   }, [profileData]);
 
   const handleSave = () => {
-    if (profile.age < 10 || profile.age > 100) {
-      Alert.alert('エラー', '年齢は10〜100歳の間で入力してください');
+    // 必須項目のバリデーション
+    if (!profile.age || profile.age < 10 || profile.age > 100) {
+      Alert.alert('入力エラー', '年齢は10〜100歳の間で選択してください');
       return;
     }
 
-    if (profile.height < 140 || profile.height > 220) {
-      Alert.alert('エラー', '身長は140〜220cmの間で入力してください');
+    if (!profile.height || profile.height < 140 || profile.height > 220) {
+      Alert.alert('入力エラー', '身長は140〜220cmの間で選択してください');
       return;
     }
 
-    if (profile.weight < 30 || profile.weight > 200) {
-      Alert.alert('エラー', '体重は30〜200kgの間で入力してください');
+    if (!profile.weight || profile.weight < 30 || profile.weight > 200) {
+      Alert.alert('入力エラー', '体重は30〜200kgの間で選択してください');
+      return;
+    }
+
+    if (!profile.gender) {
+      Alert.alert('入力エラー', '性別を選択してください');
+      return;
+    }
+
+    if (!profile.activityLevel) {
+      Alert.alert('入力エラー', '活動レベルを選択してください');
+      return;
+    }
+
+    if (!profile.targetWeight || profile.targetWeight < 30 || profile.targetWeight > 200) {
+      Alert.alert('入力エラー', '目標体重は30〜200kgの間で選択してください');
+      return;
+    }
+
+    if (!profile.targetDate) {
+      Alert.alert('入力エラー', '目標達成日を選択してください');
+      return;
+    }
+
+    // 目標日が今日以前でないかチェック
+    const targetDate = new Date(profile.targetDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (targetDate < today) {
+      Alert.alert('入力エラー', '目標達成日は今日以降の日付を選択してください');
       return;
     }
 
