@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native';
-import { Activity, Target, Share2 } from 'lucide-react-native';
+import { Activity, Target, Share } from 'lucide-react-native';
 import { colors, typography, spacing, radius, shadows } from '../../../design-system';
 import { Card } from '../../../components/common/Card';
 import { ScoreData } from '../types/dashboard.types';
@@ -149,7 +149,7 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({
             console.log('Share score to SNS');
           }}
         >
-          <Share2 size={20} color={colors.primary.main} />
+          <Share size={20} color={colors.text.secondary} />
         </TouchableOpacity>
       </View>
 

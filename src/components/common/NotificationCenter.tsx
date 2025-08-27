@@ -45,7 +45,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   renderTrigger,
 }) => {
   const [internalVisible, setInternalVisible] = useState(false);
-  
+
   // グローバル状態管理フックを使用
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useNotificationCenter();
 
@@ -170,7 +170,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                     onPress={() => markAsRead(notification.id)}
                   >
                     <Check size={14} color={colors.primary.main} />
-                    <Text style={styles.actionButtonText}>既読</Text>
+                    <Text style={styles.actionButtonText}>既読する</Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity

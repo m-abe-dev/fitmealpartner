@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Plus, Heart, Edit3, Trash2, Share2 } from 'lucide-react-native';
+import { Plus, Heart, Edit3, Trash2, Share } from 'lucide-react-native';
 import { Card } from '../../../components/common/Card';
 import { colors, typography, spacing, radius, shadows } from '../../../design-system';
 import { FoodLogItem, MealTab } from '../types/nutrition.types';
@@ -43,7 +43,7 @@ export const MealLogCard: React.FC<MealLogCardProps> = ({
       <View style={styles.mealLogHeader}>
         <Text style={styles.mealLogTitle}>今日の食事記録</Text>
         <TouchableOpacity style={styles.shareButton} onPress={onShare}>
-          <Share2 size={20} color={colors.text.secondary} />
+          <Share size={20} color={colors.text.secondary} />
         </TouchableOpacity>
       </View>
 

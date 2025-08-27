@@ -26,6 +26,8 @@ export const ProfileScreen: React.FC = () => {
     handleProfileSave,
   } = useProfileData();
 
+  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
+
   const [deviceConnections] = useState<DeviceConnection[]>([
     { name: 'Apple Watch', type: 'fitness', connected: true, icon: '⌚' },
     { name: 'iPhone ヘルスケア', type: 'health', connected: true, icon: '📱' },
@@ -70,6 +72,8 @@ export const ProfileScreen: React.FC = () => {
           setNotificationsEnabled={setNotificationsEnabled}
           deviceConnections={deviceConnections}
           achievements={achievements}
+          darkModeEnabled={darkModeEnabled}
+          setDarkModeEnabled={setDarkModeEnabled}
         />
 
         <View style={styles.footer}>

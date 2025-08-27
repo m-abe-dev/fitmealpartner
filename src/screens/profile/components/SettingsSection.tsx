@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Switch, Alert } from 'react-n
 import { 
   Crown, 
   Smartphone, 
-  Settings, 
+  Moon, 
   ChevronRight, 
   Activity, 
   Award, 
@@ -33,6 +33,8 @@ interface SettingsSectionProps {
   setNotificationsEnabled: (enabled: boolean) => void;
   deviceConnections: DeviceConnection[];
   achievements: Achievement[];
+  darkModeEnabled: boolean;
+  setDarkModeEnabled: (enabled: boolean) => void;
 }
 
 export const SettingsSection: React.FC<SettingsSectionProps> = ({
@@ -40,6 +42,8 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
   setNotificationsEnabled,
   deviceConnections,
   achievements,
+  darkModeEnabled,
+  setDarkModeEnabled,
 }) => {
   return (
     <>
@@ -142,10 +146,18 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 
         <TouchableOpacity style={styles.settingItem}>
           <View style={styles.settingItemLeft}>
-            <Settings size={20} color={colors.text.secondary} />
-            <Text style={styles.settingItemText}>一般設定</Text>
+            <Moon size={20} color={colors.text.secondary} />
+            <Text style={styles.settingItemText}>ダークモード</Text>
           </View>
-          <ChevronRight size={20} color={colors.text.tertiary} />
+          <Switch
+            value={darkModeEnabled}
+            onValueChange={setDarkModeEnabled}
+            trackColor={{
+              false: colors.gray[300],
+              true: colors.primary[100]
+            }}
+            thumbColor={darkModeEnabled ? colors.primary.main : colors.gray[400]}
+          />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.settingItem}>
