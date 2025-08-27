@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNutritionData } from './useNutritionData';
+import { useNutritionData, NutritionTargets } from './useNutritionData';
 import { Exercise } from '../screens/workout/types/workout.types';
 
 // WorkoutスコアをTodayResultsと同じロジックで計算するヘルパー
@@ -110,8 +110,12 @@ export interface ScoreData {
   };
 }
 
-export const useScoreData = (exercises: Exercise[] = [], foodLog: any[] = []) => {
-  const { scores: nutritionScores } = useNutritionData(foodLog);
+export const useScoreData = (
+  exercises: Exercise[] = [], 
+  foodLog: any[] = [], 
+  nutritionTargets?: NutritionTargets
+) => {
+  const { scores: nutritionScores } = useNutritionData(foodLog, nutritionTargets);
   
   // 初期データで初期化
   const [scoreData, setScoreData] = useState<ScoreData[]>([

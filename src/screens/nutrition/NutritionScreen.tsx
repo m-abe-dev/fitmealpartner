@@ -17,12 +17,21 @@ import { MealLogCard } from './components/MealLogCard';
 import { AddFoodModal } from './components/AddFoodModal';
 import { useNutritionData } from '../../hooks/useNutritionData';
 import { useFoodLog } from '../../hooks/useFoodLog';
+import { useProfileData } from '../../hooks/useProfileData';
 import { MealTab, FoodLogItem } from './types/nutrition.types';
 
 export const NutritionScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [showAddFood, setShowAddFood] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // プロフィールデータから動的な目標値を取得
+  const { nutritionTargets } = useProfileData();
+  
+  console.log('NutritionScreen: useProfileData結果', {
+    nutritionTargets,
+    timestamp: Date.now()
+  });
 
   // カスタムフックを使用
   const {
@@ -37,8 +46,18 @@ export const NutritionScreen: React.FC = () => {
     toggleFavorite,
   } = useFoodLog();
   
-  // foodLogを使って栄養データを計算
-  const { nutritionData, scores } = useNutritionData(foodLog);
+  // foodLogと動的な目標値を使って栄養データを計算
+  const { nutritionData, scores } = useNutritionData(foodLog, nutritionTargets);
+  
+  console.log('NutritionScreen: 栄養データ更新', {
+    nutritionTargets,
+    nutritionData: {
+      calories: nutritionData.calories,
+      protein: nutritionData.protein,
+      fat: nutritionData.fat,
+      carbs: nutritionData.carbs
+    }
+  });
 
   const mealTabs: MealTab[] = [
     { id: 'breakfast', label: '朝食', icon: '🌅' },
