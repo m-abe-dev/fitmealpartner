@@ -47,22 +47,28 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
           ) : (
             <>
               {showNotification && (
-                <TouchableOpacity 
-                  style={styles.iconButton} 
-                  onPress={handleBellPress}
-                >
-                  <Bell size={24} color={colors.text.primary} />
-                  {notificationCount && notificationCount > 0 && (
-                    <View style={styles.notificationBadge}>
-                      <Text style={styles.notificationBadgeText}>
-                        {notificationCount > 99 ? '99+' : notificationCount.toString()}
-                      </Text>
-                    </View>
+                <NotificationCenter
+                  visible={showNotificationCenter}
+                  onClose={() => setShowNotificationCenter(false)}
+                  renderTrigger={(unreadCount) => (
+                    <TouchableOpacity
+                      style={styles.iconButton}
+                      onPress={handleBellPress}
+                    >
+                      <Bell size={24} color={colors.text.primary} />
+                      {unreadCount > 0 && (
+                        <View style={styles.notificationBadge}>
+                          <Text style={styles.notificationBadgeText}>
+                            {unreadCount > 99 ? '99+' : unreadCount.toString()}
+                          </Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
                   )}
-                </TouchableOpacity>
+                />
               )}
               {showProButton && (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.proButton}
                   onPress={onProButtonPress}
                 >
@@ -74,13 +80,6 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
           )}
         </View>
       </View>
-
-      {showNotificationCenter && (
-        <NotificationCenter
-          visible={showNotificationCenter}
-          onClose={() => setShowNotificationCenter(false)}
-        />
-      )}
     </>
   );
 };

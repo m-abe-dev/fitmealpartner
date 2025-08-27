@@ -10,11 +10,8 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
-import {
-  PanGestureHandler,
-  GestureHandlerRootView,
-} from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNotificationCenter, Notification } from '../../hooks/useNotificationCenter';
 import {
   Bell,
   X,
@@ -33,102 +30,29 @@ import { Card } from './Card';
 import { Badge } from './Badge';
 import { Button } from './Button';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { height: screenHeight } = Dimensions.get('window');
 
-interface Notification {
-  id: string;
-  type: 'workout' | 'nutrition' | 'achievement' | 'reminder' | 'feature' | 'system';
-  title: string;
-  message: string;
-  time: string;
-  isRead: boolean;
-  priority: 'high' | 'medium' | 'low';
-  actionRequired?: boolean;
-}
 
 interface NotificationCenterProps {
   visible?: boolean;
   onClose?: () => void;
+  renderTrigger?: (unreadCount: number) => React.ReactNode;
 }
 
 export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   visible: externalVisible,
   onClose: externalOnClose,
+  renderTrigger,
 }) => {
   const [internalVisible, setInternalVisible] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      type: 'workout',
-      title: '今日の筋トレ予定',
-      message: '上半身トレーニングの時間です！プッシュアップ・プルアップ・プランクを組み合わせて効果的に進めましょう。',
-      time: '2時間前',
-      isRead: false,
-      priority: 'high',
-      actionRequired: true,
-    },
-    {
-      id: '2',
-      type: 'achievement',
-      title: '目標達成おめでとう！',
-      message: 'タンパク質摂取目標を7日連続で達成しました！この調子で筋肉合成を最適化していきましょう。',
-      time: '4時間前',
-      isRead: false,
-      priority: 'medium',
-    },
-    {
-      id: '3',
-      type: 'nutrition',
-      title: 'プロテイン摂取のタイミング',
-      message: 'トレーニング後30分以内のプロテイン摂取が効果的です。今すぐプロテインドリンクを飲みましょう！',
-      time: '6時間前',
-      isRead: true,
-      priority: 'medium',
-      actionRequired: true,
-    },
-    {
-      id: '4',
-      type: 'feature',
-      title: '新機能: AIミール提案',
-      message: 'あなたの目標に最適化されたミールプランを自動生成する機能が追加されました。栄養タブからお試しください！',
-      time: '1日前',
-      isRead: false,
-      priority: 'low',
-    },
-    {
-      id: '5',
-      type: 'reminder',
-      title: '水分補給リマインダー',
-      message: '最後の水分補給から2時間が経過しました。コップ1杯の水を飲んで代謝をサポートしましょう。',
-      time: '2日前',
-      isRead: true,
-      priority: 'low',
-    },
-    {
-      id: '6',
-      type: 'system',
-      title: 'データバックアップ完了',
-      message: 'あなたの健康データが安全にバックアップされました。SQLiteによる端末内処理で安心です。',
-      time: '3日前',
-      isRead: true,
-      priority: 'low',
-    },
-  ]);
+  
+  // グローバル状態管理フックを使用
+  const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useNotificationCenter();
 
   const modalY = useRef(new Animated.Value(screenHeight)).current;
-  const swipeRefs = useRef<{ [key: string]: Animated.Value }>({});
-
-  // Initialize swipe animations for each notification
-  notifications.forEach((notification) => {
-    if (!swipeRefs.current[notification.id]) {
-      swipeRefs.current[notification.id] = new Animated.Value(0);
-    }
-  });
 
   const isVisible = externalVisible !== undefined ? externalVisible : internalVisible;
   const handleClose = externalOnClose || (() => setInternalVisible(false));
-
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const showModal = () => {
     if (externalVisible === undefined) {
@@ -143,51 +67,31 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   };
 
   const hideModal = () => {
-    Animated.spring(modalY, {
-      toValue: screenHeight,
-      useNativeDriver: true,
-      tension: 100,
-      friction: 8,
-    }).start(() => {
+
       handleClose();
-    });
   };
 
-  const getNotificationIcon = (type: string, size: number = 20) => {
+  const getNotificationIcon = (category: string, size: number = 20) => {
     const iconProps = { size, color: colors.text.primary };
-    
-    switch (type) {
+
+    switch (category) {
       case 'workout':
         return <Dumbbell {...iconProps} />;
       case 'nutrition':
         return <Utensils {...iconProps} />;
-      case 'achievement':
-        return <Star {...iconProps} />;
-      case 'reminder':
-        return <Calendar {...iconProps} />;
-      case 'feature':
-        return <Sparkles {...iconProps} />;
-      case 'system':
-        return <Settings {...iconProps} />;
+      case 'announcement':
+        return <Bell {...iconProps} />;
       default:
         return <Bell {...iconProps} />;
     }
   };
 
-  const getNotificationColors = (type: string, priority: string) => {
-    if (priority === 'high') {
-      return {
-        background: colors.status.error + '10',
-        border: colors.status.error + '30',
-        icon: colors.status.error,
-      };
-    }
-
-    switch (type) {
+  const getNotificationColors = (category: string) => {
+    switch (category) {
       case 'workout':
         return {
-          background: colors.primary[50],
-          border: colors.primary[200],
+          background: colors.primary.main + '10',
+          border: colors.primary.main + '30',
           icon: colors.primary.main,
         };
       case 'nutrition':
@@ -196,30 +100,12 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           border: colors.status.success + '30',
           icon: colors.status.success,
         };
-      case 'achievement':
+      case 'announcement':
         return {
           background: colors.status.warning + '10',
           border: colors.status.warning + '30',
           icon: colors.status.warning,
         };
-      case 'reminder':
-        return {
-          background: colors.accent.purple + '10',
-          border: colors.accent.purple + '30',
-          icon: colors.accent.purple,
-        };
-      case 'feature':
-        return {
-          background: colors.primary[100],
-          border: colors.primary[200],
-          icon: colors.primary[600],
-        };
-      case 'system':
-        return {
-          background: colors.gray[50],
-          border: colors.gray[200],
-          icon: colors.gray[500],
-        };
       default:
         return {
           background: colors.gray[50],
@@ -229,140 +115,75 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     }
   };
 
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return <Badge variant="error" size="small">緊急</Badge>;
-      case 'medium':
-        return <Badge variant="warning" size="small">重要</Badge>;
+  const getCategoryBadge = (category: string) => {
+    switch (category) {
+      case 'workout':
+        return <Badge variant="default" size="small">筋トレ</Badge>;
+      case 'nutrition':
+        return <Badge variant="success" size="small">食べ物</Badge>;
+      case 'announcement':
+        return <Badge variant="warning" size="small">お知らせ</Badge>;
       default:
         return null;
     }
   };
 
-  const markAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((notification) =>
-        notification.id === id ? { ...notification, isRead: true } : notification
-      )
-    );
-  };
-
-  const markAllAsRead = () => {
-    setNotifications((prev) =>
-      prev.map((notification) => ({ ...notification, isRead: true }))
-    );
-  };
-
-  const deleteNotification = (id: string) => {
-    const swipeAnim = swipeRefs.current[id];
-    
-    Animated.spring(swipeAnim, {
-      toValue: screenWidth,
-      useNativeDriver: true,
-      tension: 100,
-      friction: 8,
-    }).start(() => {
-      setNotifications((prev) => prev.filter((notification) => notification.id !== id));
-      delete swipeRefs.current[id];
-    });
-  };
-
-  const handleSwipeGesture = (id: string, gestureState: { nativeEvent: { translationX: number; velocityX: number } }) => {
-    const { translationX, velocityX } = gestureState.nativeEvent;
-    const swipeAnim = swipeRefs.current[id];
-
-    if (Math.abs(translationX) > screenWidth * 0.3 || Math.abs(velocityX) > 1000) {
-      // Delete if swiped far enough or fast enough
-      deleteNotification(id);
-    } else {
-      // Bounce back
-      Animated.spring(swipeAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 100,
-        friction: 8,
-      }).start();
-    }
-  };
 
   const renderNotificationItem = (notification: Notification, index: number) => {
-    const colors_theme = getNotificationColors(notification.type, notification.priority);
-    const swipeAnim = swipeRefs.current[notification.id];
+    const colors_theme = getNotificationColors(notification.category);
 
     return (
-      <PanGestureHandler
+      <Card
         key={notification.id}
-        onGestureEvent={Animated.event(
-          [{ nativeEvent: { translationX: swipeAnim } }],
-          { useNativeDriver: true }
-        )}
-        onHandlerStateChange={(event) => handleSwipeGesture(notification.id, event)}
+        style={{
+          ...styles.notificationItem,
+          backgroundColor: colors_theme.background,
+          borderColor: colors_theme.border,
+          opacity: notification.isRead ? 0.7 : 1,
+        }}
       >
-        <Animated.View
-          style={[
-            {
-              transform: [{ translateX: swipeAnim }],
-            },
-          ]}
-        >
-          <Card
-            style={{
-              ...styles.notificationItem,
-              backgroundColor: colors_theme.background,
-              borderColor: colors_theme.border,
-              opacity: notification.isRead ? 0.7 : 1,
-            }}
-          >
-            <View style={styles.notificationContent}>
-              <View style={[styles.iconContainer, { backgroundColor: colors_theme.background }]}>
-                {getNotificationIcon(notification.type, 20)}
-              </View>
+        <View style={styles.notificationContent}>
+          <View style={[styles.iconContainer, { backgroundColor: colors_theme.background }]}>
+            {getNotificationIcon(notification.category, 20)}
+          </View>
 
-              <View style={styles.contentContainer}>
-                <View style={styles.headerRow}>
-                  <Text style={styles.notificationTitle} numberOfLines={2}>
-                    {notification.title}
-                  </Text>
-                  <View style={styles.badgeContainer}>
-                    {getPriorityBadge(notification.priority)}
-                    {notification.actionRequired && (
-                      <Badge variant="warning" size="small">
-                        要アクション
-                      </Badge>
-                    )}
-                  </View>
-                </View>
-
-                <Text style={styles.notificationMessage} numberOfLines={3}>
-                  {notification.message}
-                </Text>
-
-                <View style={styles.footerRow}>
-                  <Text style={styles.timeText}>{notification.time}</Text>
-                  <View style={styles.actionButtons}>
-                    {!notification.isRead && (
-                      <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={() => markAsRead(notification.id)}
-                      >
-                        <Check size={14} color={colors.primary.main} />
-                        <Text style={styles.actionButtonText}>既読</Text>
-                      </TouchableOpacity>
-                    )}
-                    <TouchableOpacity
-                      style={[styles.actionButton, styles.deleteButton]}
-                      onPress={() => deleteNotification(notification.id)}
-                    >
-                      <X size={14} color={colors.status.error} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
+          <View style={styles.contentContainer}>
+            <View style={styles.headerRow}>
+              <Text style={styles.notificationTitle} numberOfLines={2}>
+                {notification.title}
+              </Text>
+              <View style={styles.badgeContainer}>
+                {getCategoryBadge(notification.category)}
               </View>
             </View>
-          </Card>
-        </Animated.View>
-      </PanGestureHandler>
+
+            <Text style={styles.notificationMessage} numberOfLines={3}>
+              {notification.message}
+            </Text>
+
+            <View style={styles.footerRow}>
+              <Text style={styles.timeText}>{notification.time}</Text>
+              <View style={styles.actionButtons}>
+                {!notification.isRead && (
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => markAsRead(notification.id)}
+                  >
+                    <Check size={14} color={colors.primary.main} />
+                    <Text style={styles.actionButtonText}>既読</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.deleteButton]}
+                  onPress={() => deleteNotification(notification.id)}
+                >
+                  <X size={14} color={colors.status.error} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Card>
     );
   };
 
@@ -390,13 +211,13 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       animationType="none"
       onRequestClose={hideModal}
     >
-      <GestureHandlerRootView style={styles.modalOverlay}>
-        <TouchableOpacity 
-          style={styles.backdrop} 
-          activeOpacity={1} 
+      <View style={styles.modalOverlay}>
+        <TouchableOpacity
+          style={styles.backdrop}
+          activeOpacity={1}
           onPress={hideModal}
         />
-        
+
         <Animated.View
           style={[
             styles.modalContent,
@@ -409,17 +230,26 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             {/* Header */}
             <View style={styles.modalHeader}>
               <View style={styles.dragIndicator} />
-              <View style={styles.headerContent}>
-                <View style={styles.titleRow}>
+
+              {/* Title and Close Button Row */}
+              <View style={styles.titleCloseRow}>
+                <View style={styles.titleSection}>
                   <Bell size={24} color={colors.text.primary} />
                   <Text style={styles.modalTitle}>通知センター</Text>
-                  {unreadCount > 0 && (
-                    <Badge variant="error" size="small">
-                      {unreadCount}件未読
-                    </Badge>
-                  )}
                 </View>
-                
+                <TouchableOpacity style={styles.closeButton} onPress={hideModal}>
+                  <X size={24} color={colors.text.secondary} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Badge and Actions Row */}
+              <View style={styles.badgeActionsRow}>
+                {unreadCount > 0 && (
+                  <Badge variant="error" size="small">
+                    {unreadCount}件未読
+                  </Badge>
+                )}
+                <View style={styles.spacer} />
                 {notifications.length > 0 && unreadCount > 0 && (
                   <Button
                     title="すべて既読"
@@ -430,10 +260,6 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                   />
                 )}
               </View>
-              
-              <TouchableOpacity style={styles.closeButton} onPress={hideModal}>
-                <X size={24} color={colors.text.secondary} />
-              </TouchableOpacity>
             </View>
 
             {/* Content */}
@@ -458,7 +284,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             </ScrollView>
           </SafeAreaView>
         </Animated.View>
-      </GestureHandlerRootView>
+      </View>
     </Modal>
   );
 
@@ -467,6 +293,16 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       showModal();
     }
   }, [isVisible]);
+
+  // If renderTrigger is provided, use it (for ScreenHeader integration)
+  if (renderTrigger) {
+    return (
+      <>
+        {renderTrigger(unreadCount)}
+        {isVisible && <ModalContent />}
+      </>
+    );
+  }
 
   // If used as controlled component, only return modal
   if (externalVisible !== undefined) {
@@ -528,7 +364,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
-    maxHeight: screenHeight * 0.8,
+    height: screenHeight * 0.8,
     ...shadows.xl,
   },
   modalInner: {
@@ -551,29 +387,36 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border.light,
   },
-  headerContent: {
+  titleCloseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: spacing.sm,
   },
-  titleRow: {
+  titleSection: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginBottom: spacing.sm,
+    flex: 1,
   },
   modalTitle: {
     fontSize: typography.fontSize.xl,
     fontFamily: typography.fontFamily.bold,
     color: colors.text.primary,
+  },
+  closeButton: {
+    padding: spacing.xs,
+  },
+  badgeActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 24,
+  },
+  spacer: {
     flex: 1,
   },
   markAllButton: {
-    alignSelf: 'flex-start',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: spacing.md,
-    right: spacing.lg,
-    padding: spacing.xs,
+    marginLeft: spacing.sm,
   },
 
   // Content
@@ -582,6 +425,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.lg,
+    paddingBottom: spacing.xl,
   },
   notificationList: {
     gap: spacing.md,
@@ -609,7 +453,6 @@ const styles = StyleSheet.create({
   // Notification Item
   notificationItem: {
     borderWidth: 2,
-    marginBottom: spacing.sm,
   },
   notificationContent: {
     flexDirection: 'row',
