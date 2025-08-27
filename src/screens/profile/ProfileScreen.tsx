@@ -29,8 +29,8 @@ export const ProfileScreen: React.FC = () => {
   const [deviceConnections] = useState<DeviceConnection[]>([
     { name: 'Apple Watch', type: 'fitness', connected: true, icon: '⌚' },
     { name: 'iPhone ヘルスケア', type: 'health', connected: true, icon: '📱' },
-    { name: 'スマート体重計', type: 'smart_scale', connected: false, icon: '⚖️' },
-    { name: 'MyFitnessPal', type: 'fitness', connected: false, icon: '📊' }
+    // { name: 'スマート体重計', type: 'smart_scale', connected: false, icon: '⚖️' },
+    // { name: 'MyFitnessPal', type: 'fitness', connected: false, icon: '📊' }
   ]);
 
   const [achievements] = useState<Achievement[]>([
