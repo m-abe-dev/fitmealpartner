@@ -154,6 +154,12 @@ export const useScoreData = (exercises: Exercise[] = [], foodLog: any[] = []) =>
     [exercises]
   );
 
+  // nutrition scoresの変化を検知するためのハッシュ
+  const nutritionScoresHash = useMemo(() => 
+    JSON.stringify(nutritionScores),
+    [nutritionScores]
+  );
+
   useEffect(() => {
     const trainingScore = calculateWorkoutScore(exercises);
     const nutritionScore = nutritionScores.total;
@@ -195,7 +201,7 @@ export const useScoreData = (exercises: Exercise[] = [], foodLog: any[] = []) =>
     ];
 
     setScoreData(newScoreData);
-  }, [nutritionScores.total, exercisesLength, exercisesHash]);
+  }, [nutritionScoresHash, exercisesLength, exercisesHash]);
 
   return { scoreData };
 };

@@ -3,6 +3,7 @@ import { periodData, periodAIData } from '../screens/dashboard/data/mockData';
 import { PeriodData } from '../screens/dashboard/types/dashboard.types';
 import { useScoreData } from './useScoreData';
 import { useWorkoutData } from './useWorkoutData';
+import { useFoodLog } from './useFoodLog';
 
 export const useDashboardScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
@@ -14,8 +15,11 @@ export const useDashboardScreen = () => {
   // 実際のワークアウトデータを取得
   const { exercises, subscribe } = useWorkoutData();
   
-  // 実際のスコアデータを取得
-  const { scoreData } = useScoreData(exercises);
+  // 実際の食事データを取得
+  const { foodLog } = useFoodLog();
+  
+  // 実際のスコアデータを取得（食事ログも含む）
+  const { scoreData } = useScoreData(exercises, foodLog);
   
   // Subscribe to workout data changes
   useEffect(() => {
