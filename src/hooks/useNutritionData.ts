@@ -44,54 +44,49 @@ const DEFAULT_NUTRITION_TARGETS = {
 };
 
 export const useNutritionData = (
-  foodLog: FoodLogItem[] = [], 
+  foodLog: FoodLogItem[] = [],
   targets?: NutritionTargets
 ): UseNutritionDataReturn => {
   const [goal, setGoal] = useState<Goal>('maintain');
-  
-  console.log('useNutritionData: フック呼び出し', {
-    foodLogLength: foodLog.length,
-    targets,
-    timestamp: Date.now()
-  });
 
   // 実際の食事データから現在の摂取量を計算
-  const currentNutrition = useMemo(() => calculateTotalNutrition(foodLog), [foodLog]);
+  const currentNutrition = useMemo(
+    () => calculateTotalNutrition(foodLog),
+    [foodLog]
+  );
 
   // 使用する目標値を決定（動的な目標値が提供されていればそれを使用、なければデフォルト値）
   const nutritionTargets = targets || DEFAULT_NUTRITION_TARGETS;
-  
-  console.log('useNutritionData: 目標値更新', {
-    provided: targets,
-    using: nutritionTargets,
-    isFromProfile: !!targets
-  });
 
   // nutritionTargetsの変化を確実に検知するためのハッシュ
-  const nutritionTargetsHash = useMemo(() => 
-    JSON.stringify(nutritionTargets), 
+  const nutritionTargetsHash = useMemo(
+    () => JSON.stringify(nutritionTargets),
     [nutritionTargets]
   );
 
   // 栄養データを構築
   const nutritionData = useMemo<NutritionData>(() => {
-    console.log('useNutritionData: nutritionData再構築', {
-      targets: nutritionTargets,
-      hash: nutritionTargetsHash
-    });
-    
     return {
-      calories: { current: currentNutrition.calories, target: nutritionTargets.calories },
-      protein: { current: currentNutrition.protein, target: nutritionTargets.protein },
+      calories: {
+        current: currentNutrition.calories,
+        target: nutritionTargets.calories,
+      },
+      protein: {
+        current: currentNutrition.protein,
+        target: nutritionTargets.protein,
+      },
       fat: { current: currentNutrition.fat, target: nutritionTargets.fat },
-      carbs: { current: currentNutrition.carbs, target: nutritionTargets.carbs },
+      carbs: {
+        current: currentNutrition.carbs,
+        target: nutritionTargets.carbs,
+      },
     };
   }, [
-    currentNutrition.calories, 
-    currentNutrition.protein, 
-    currentNutrition.fat, 
+    currentNutrition.calories,
+    currentNutrition.protein,
+    currentNutrition.fat,
     currentNutrition.carbs,
-    nutritionTargetsHash
+    nutritionTargetsHash,
   ]);
 
   const scores = useMemo(

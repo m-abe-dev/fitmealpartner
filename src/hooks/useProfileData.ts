@@ -60,7 +60,6 @@ export const useProfileData = () => {
   // グローバル状態の変更を監視
   useEffect(() => {
     const listener = () => {
-      console.log('useProfileData: グローバル状態更新検知');
       setUserProfile({ ...globalUserProfile });
       forceUpdate({});
     };
@@ -92,8 +91,6 @@ export const useProfileData = () => {
       bmi: newBMI,
       targetWeight: updatedProfile.targetWeight || updatedProfile.weight,
     };
-
-    console.log('handleProfileSave: グローバル状態更新', globalUserProfile);
 
     // 全てのリスナーに通知
     profileListeners.forEach(listener => listener());
@@ -162,19 +159,25 @@ export const useProfileData = () => {
         // 減量の場合
         recommendedWeeks = Math.abs(weightChangeToTarget) / 0.5;
         maxSafeWeeks = Math.abs(weightChangeToTarget) / 0.75;
-        
+
         if (weeklyPaceKg > 0.75) {
           warningLevel = 'danger';
-          warningMessage = `危険な減量ペース（週${weeklyPaceKg.toFixed(1)}kg）です。推奨期間は${recommendedWeeks.toFixed(0)}週間です。`;
+          warningMessage = `危険な減量ペース（週${weeklyPaceKg.toFixed(
+            1
+          )}kg）です。推奨期間は${recommendedWeeks.toFixed(0)}週間です。`;
         } else if (weeklyPaceKg > 0.5) {
           warningLevel = 'caution';
-          warningMessage = `やや速い減量ペース（週${weeklyPaceKg.toFixed(1)}kg）です。注意して進めてください。`;
+          warningMessage = `やや速い減量ペース（週${weeklyPaceKg.toFixed(
+            1
+          )}kg）です。注意して進めてください。`;
         }
       } else {
         // 増量の場合
         if (weeklyPaceKg > 0.5) {
           warningLevel = 'caution';
-          warningMessage = `速い増量ペース（週${weeklyPaceKg.toFixed(1)}kg）です。`;
+          warningMessage = `速い増量ペース（週${weeklyPaceKg.toFixed(
+            1
+          )}kg）です。`;
         }
       }
     }
@@ -199,13 +202,6 @@ export const useProfileData = () => {
     const maintenanceCalories = analysis.maintenanceCalories;
     let targetCalories = maintenanceCalories;
     const weightChangeNeeded = userProfile.targetWeight - userProfile.weight;
-    
-    console.log('カロリー計算:', {
-      maintenanceCalories,
-      weightChangeNeeded,
-      bmr: analysis.bmr,
-      daysToGoal: analysis.daysToGoal
-    });
 
     if (Math.abs(weightChangeNeeded) > 0.1) {
       const totalKcalChange = weightChangeNeeded * 7700;
@@ -215,48 +211,38 @@ export const useProfileData = () => {
       if (weightChangeNeeded < 0) {
         const theoreticalCalories = maintenanceCalories + dailyKcalChange;
         const weeklyPaceKg = Math.abs(analysis.weeklyPace);
-        
+
         // 週0.5kg（推奨）〜0.75kg（上限）の減量ペースで推奨期間を計算
         const recommendedWeeks = Math.abs(weightChangeNeeded) / 0.5; // 週0.5kg基準
         const maxSafeWeeks = Math.abs(weightChangeNeeded) / 0.75; // 週0.75kg基準
-        
+
         // 理論値をそのまま採用（BMR制限なし）
         targetCalories = theoreticalCalories;
-        
+
         if (weeklyPaceKg > 0.75) {
           console.warn(`⚠️ 危険な減量ペース: 週${weeklyPaceKg.toFixed(1)}kg`);
-          console.warn(`推奨期間: ${recommendedWeeks.toFixed(0)}週間（週0.5kg）`);
-          console.warn(`最短安全期間: ${maxSafeWeeks.toFixed(0)}週間（週0.75kg）`);
+          console.warn(
+            `推奨期間: ${recommendedWeeks.toFixed(0)}週間（週0.5kg）`
+          );
+          console.warn(
+            `最短安全期間: ${maxSafeWeeks.toFixed(0)}週間（週0.75kg）`
+          );
         } else if (weeklyPaceKg > 0.5) {
-          console.warn(`注意: やや速い減量ペース（週${weeklyPaceKg.toFixed(1)}kg）`);
+          console.warn(
+            `注意: やや速い減量ペース（週${weeklyPaceKg.toFixed(1)}kg）`
+          );
         }
-        
-        console.log('減量計算:', {
-          theoreticalCalories,
-          dailyKcalChange,
-          weeklyPaceKg,
-          bmr: analysis.bmr,
-          finalTargetCalories: targetCalories,
-          bmrDifference: targetCalories - analysis.bmr,
-          recommendedWeeks,
-          maxSafeWeeks
-        });
-        
       } else if (weightChangeNeeded > 0) {
         const weeklyPaceKg = Math.abs(analysis.weeklyPace);
-        
+
         if (weeklyPaceKg > 0.5) {
-          console.warn(`注意: 速い増量ペース（週${weeklyPaceKg.toFixed(1)}kg）`);
+          console.warn(
+            `注意: 速い増量ペース（週${weeklyPaceKg.toFixed(1)}kg）`
+          );
         }
-        
+
         targetCalories = maintenanceCalories + dailyKcalChange;
         targetCalories = Math.min(analysis.bmr * 2.5, targetCalories);
-        
-        console.log('増量計算:', {
-          dailyKcalChange,
-          weeklyPaceKg,
-          finalTargetCalories: targetCalories
-        });
       }
     }
 
@@ -299,7 +285,6 @@ export const useProfileData = () => {
 
   const nutritionTargets = useMemo(() => {
     const targets = calculateNutritionTargets(analysis);
-    console.log('useProfileData: nutritionTargets memo更新', targets);
     return targets;
   }, [
     analysis,

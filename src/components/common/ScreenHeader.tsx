@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Bell, Crown } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../../design-system';
+import { NotificationCenter } from './NotificationCenter';
 
 interface ScreenHeaderProps {
   title: string;
@@ -24,45 +25,63 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   onProButtonPress,
   rightComponent,
 }) => {
+  const [showNotificationCenter, setShowNotificationCenter] = useState(false);
+
+  const handleBellPress = () => {
+    setShowNotificationCenter(true);
+    if (onNotificationPress) {
+      onNotificationPress();
+    }
+  };
+
   return (
-    <View style={styles.header}>
-      <View style={styles.headerLeft}>
-        {icon && icon}
-        <Text style={styles.headerTitle}>{title}</Text>
+    <>
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          {icon && icon}
+          <Text style={styles.headerTitle}>{title}</Text>
+        </View>
+        <View style={styles.headerRight}>
+          {rightComponent ? (
+            rightComponent
+          ) : (
+            <>
+              {showNotification && (
+                <TouchableOpacity 
+                  style={styles.iconButton} 
+                  onPress={handleBellPress}
+                >
+                  <Bell size={24} color={colors.text.primary} />
+                  {notificationCount && notificationCount > 0 && (
+                    <View style={styles.notificationBadge}>
+                      <Text style={styles.notificationBadgeText}>
+                        {notificationCount > 99 ? '99+' : notificationCount.toString()}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              )}
+              {showProButton && (
+                <TouchableOpacity 
+                  style={styles.proButton}
+                  onPress={onProButtonPress}
+                >
+                  <Crown size={16} color={colors.primary.main} />
+                  <Text style={styles.proButtonText}>PRO</Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+        </View>
       </View>
-      <View style={styles.headerRight}>
-        {rightComponent ? (
-          rightComponent
-        ) : (
-          <>
-            {showNotification && (
-              <TouchableOpacity 
-                style={styles.iconButton} 
-                onPress={onNotificationPress}
-              >
-                <Bell size={24} color={colors.text.primary} />
-                {notificationCount && notificationCount > 0 && (
-                  <View style={styles.notificationBadge}>
-                    <Text style={styles.notificationBadgeText}>
-                      {notificationCount > 99 ? '99+' : notificationCount.toString()}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            )}
-            {showProButton && (
-              <TouchableOpacity 
-                style={styles.proButton}
-                onPress={onProButtonPress}
-              >
-                <Crown size={16} color={colors.primary.main} />
-                <Text style={styles.proButtonText}>PRO</Text>
-              </TouchableOpacity>
-            )}
-          </>
-        )}
-      </View>
-    </View>
+
+      {showNotificationCenter && (
+        <NotificationCenter
+          visible={showNotificationCenter}
+          onClose={() => setShowNotificationCenter(false)}
+        />
+      )}
+    </>
   );
 };
 
