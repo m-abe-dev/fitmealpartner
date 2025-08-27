@@ -24,7 +24,9 @@ export const useWorkoutScreen = () => {
     updateSet,
     deleteSet, 
     deleteExercise,
-    updateExercise 
+    updateExercise,
+    addExercise,
+    toggleExerciseExpansion: toggleExerciseExpansionData
   } = useWorkoutData();
   
   // Calendar state
@@ -52,13 +54,7 @@ export const useWorkoutScreen = () => {
   };
 
   const toggleExerciseExpansion = (exerciseId: string) => {
-    setExercises((prev) =>
-      prev.map((exercise) =>
-        exercise.id === exerciseId
-          ? { ...exercise, isExpanded: !exercise.isExpanded }
-          : exercise,
-      ),
-    );
+    toggleExerciseExpansionData(exerciseId);
   };
 
   const handleAddSet = (exerciseId: string) => {
@@ -158,7 +154,7 @@ export const useWorkoutScreen = () => {
       type: selectedExercise?.category === '有酸素' ? 'cardio' : 'strength',
     };
 
-    setExercises((prev) => [...prev, newExercise]);
+    addExercise(newExercise);
     setCurrentView("main");
   };
 

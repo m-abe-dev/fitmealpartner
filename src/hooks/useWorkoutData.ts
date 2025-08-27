@@ -119,6 +119,22 @@ export const useWorkoutData = () => {
     notifySubscribers();
   }, []);
 
+  // エクササイズを追加
+  const addExercise = useCallback((newExercise: Exercise) => {
+    globalExercises = [...globalExercises, newExercise];
+    notifySubscribers();
+  }, []);
+
+  // エクササイズの展開状態を切り替え
+  const toggleExerciseExpansion = useCallback((exerciseId: string) => {
+    globalExercises = globalExercises.map((exercise) =>
+      exercise.id === exerciseId
+        ? { ...exercise, isExpanded: !exercise.isExpanded }
+        : exercise
+    );
+    notifySubscribers();
+  }, []);
+
   return {
     exercises,
     subscribe,
@@ -128,5 +144,7 @@ export const useWorkoutData = () => {
     updateSet,
     deleteSet,
     deleteExercise,
+    addExercise,
+    toggleExerciseExpansion,
   };
 };
