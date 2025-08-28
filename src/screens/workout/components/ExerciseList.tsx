@@ -68,7 +68,7 @@ export const ExerciseList: React.FC<ExerciseListProps> = ({
                 {exercise.sets.map((set, setIndex) => (
                   <View key={set.id} style={styles.setRow}>
                     <Text style={styles.setNumber}>{setIndex + 1}</Text>
-                    
+
                     {exercise.type === 'cardio' ? (
                       <View style={styles.cardioInputContainer}>
                         <View style={styles.cardioInputRow}>
@@ -120,7 +120,7 @@ export const ExerciseList: React.FC<ExerciseListProps> = ({
                         </Text>
                       </>
                     )}
-                    
+
                     <TouchableOpacity
                       onPress={() => {
                         if (exercise.sets.length === 1) {
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     overflow: 'hidden',
     ...shadows.sm,
-    marginBottom: spacing.xs, // 各カード間の余白を調整
+    marginBottom: spacing.xs,
   },
   exerciseHeader: {
     flexDirection: 'row',

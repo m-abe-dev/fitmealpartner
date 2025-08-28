@@ -110,24 +110,34 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
   };
 
 
-  const selectSearchResult = (food: Food) => {
+  const selectSearchResult = async (food: Food) => {
     // 即座に検索状態をクリア
     setIsSearchFocused(false);
     setSearchQuery('');
     
-    // 食品を追加
-    onAddFood(food);
-    
-    // モーダルを閉じる
-    onClose();
+    try {
+      // 食品を追加
+      await onAddFood(food);
+      
+      // モーダルを閉じる
+      onClose();
+    } catch (error) {
+      console.error('食材追加エラー:', error);
+      Alert.alert('エラー', '食材の追加に失敗しました');
+    }
   };
 
-  const addFromHistory = (food: Food) => {
-    onAddFood(food);
-    onClose();
+  const addFromHistory = async (food: Food) => {
+    try {
+      await onAddFood(food);
+      onClose();
+    } catch (error) {
+      console.error('食材追加エラー:', error);
+      Alert.alert('エラー', '食材の追加に失敗しました');
+    }
   };
 
-  const addFood = () => {
+  const addFood = async () => {
     if (!newFood.name.trim()) {
       Alert.alert('エラー', '食材名を入力してください');
       return;
@@ -142,12 +152,17 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
       carbs: newFood.carbs,
     };
 
-    onAddFood(food);
-    setNewFood({ name: '', protein: 0, fat: 0, carbs: 0 });
-    onClose();
+    try {
+      await onAddFood(food);
+      setNewFood({ name: '', protein: 0, fat: 0, carbs: 0 });
+      onClose();
+    } catch (error) {
+      console.error('食材追加エラー:', error);
+      Alert.alert('エラー', '食材の追加に失敗しました');
+    }
   };
 
-  const updateFood = () => {
+  const updateFood = async () => {
     if (!editingFood || !onUpdateFood) return;
 
     if (!newFood.name.trim()) {
@@ -168,8 +183,13 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
       time: editingFood.time || new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
     };
 
-    onUpdateFood(updatedFood);
-    onClose();
+    try {
+      await onUpdateFood(updatedFood);
+      onClose();
+    } catch (error) {
+      console.error('食材更新エラー:', error);
+      Alert.alert('エラー', '食材の更新に失敗しました');
+    }
   };
 
   const handleClose = () => {

@@ -1,82 +1,13 @@
 import { useState, useCallback, useEffect } from 'react';
 import { FoodLogItem } from '../screens/nutrition/types/nutrition.types';
+import DatabaseService from '../services/database/DatabaseService';
 
-// グローバル状態として食事ログを管理
-let globalFoodLog: FoodLogItem[] = [
-  {
-    id: '1',
-    foodId: 'food_001',
-    name: '鶏胸肉（皮なし）',
-    amount: 150,
-    unit: 'g',
-    calories: 165,
-    protein: 33,
-    fat: 2,
-    carbs: 0,
-    meal: 'lunch',
-    time: '12:30',
-  },
-  {
-    id: '2',
-    foodId: 'food_002',
-    name: '白米（炊飯済み）',
-    amount: 200,
-    unit: 'g',
-    calories: 312,
-    protein: 5,
-    fat: 1,
-    carbs: 74,
-    meal: 'lunch',
-    time: '12:30',
-  },
-  {
-    id: '3',
-    foodId: 'food_003',
-    name: 'ブロッコリー',
-    amount: 100,
-    unit: 'g',
-    calories: 33,
-    protein: 4,
-    fat: 0,
-    carbs: 5,
-    meal: 'lunch',
-    time: '12:30',
-  },
-  {
-    id: '4',
-    foodId: 'food_004',
-    name: 'ホエイプロテイン',
-    amount: 30,
-    unit: 'g',
-    calories: 117,
-    protein: 24,
-    fat: 2,
-    carbs: 2,
-    meal: 'snack',
-    time: '15:00',
-  },
-  {
-    id: '5',
-    foodId: 'food_005',
-    name: 'バナナ',
-    amount: 120,
-    unit: 'g',
-    calories: 103,
-    protein: 1,
-    fat: 0,
-    carbs: 27,
-    meal: 'snack',
-    time: '10:00',
-  }
-];
-
-// グローバル状態の変更を通知するためのリスナー
-let listeners: (() => void)[] = [];
 
 export interface UseFoodLogReturn {
   foodLog: FoodLogItem[];
   selectedMeal: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   editingFood: FoodLogItem | null;
+  isLoading: boolean;
   setSelectedMeal: (meal: 'breakfast' | 'lunch' | 'dinner' | 'snack') => void;
   setEditingFood: (food: FoodLogItem | null) => void;
   addFood: (food: Omit<FoodLogItem, 'id' | 'meal' | 'time'>) => void;
@@ -88,26 +19,85 @@ export interface UseFoodLogReturn {
 export const useFoodLog = (): UseFoodLogReturn => {
   const [selectedMeal, setSelectedMeal] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('breakfast');
   const [editingFood, setEditingFood] = useState<FoodLogItem | null>(null);
-  const [, forceUpdate] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
 
-  // グローバル状態から食事ログを取得
-  const [foodLog, setFoodLog] = useState<FoodLogItem[]>(globalFoodLog);
+  const [foodLog, setFoodLog] = useState<FoodLogItem[]>([]);
 
-  // グローバル状態の変更を監視
+  // 起動時にSQLiteからデータを読み込み
   useEffect(() => {
-    const listener = () => {
-      setFoodLog([...globalFoodLog]);
-      forceUpdate({});
-    };
-    
-    listeners.push(listener);
-    
-    return () => {
-      listeners = listeners.filter(l => l !== listener);
-    };
+    loadTodaysFoodLog();
   }, []);
 
-  const addFood = useCallback((food: Omit<FoodLogItem, 'id' | 'meal' | 'time'>) => {
+  const loadTodaysFoodLog = async () => {
+    try {
+      await DatabaseService.initialize();
+      
+      // ローカルタイムゾーンで今日の日付を取得
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const todayString = `${year}-${month}-${day}`;
+      
+      console.log('📅 検索日付:', todayString);
+      
+      // お気に入りテーブルの作成を確認
+      await DatabaseService.execAsync(`
+        CREATE TABLE IF NOT EXISTS food_favorites (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id TEXT,
+          food_name TEXT,
+          food_id TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(user_id, food_name)
+        );
+      `);
+      
+      // お気に入り情報を取得
+      const favorites = await DatabaseService.getAllAsync<any>(
+        'SELECT food_name FROM food_favorites WHERE user_id = ?',
+        ['guest']
+      );
+      const favoriteNames = new Set(favorites.map(f => f.food_name));
+      
+      // 食事ログを取得
+      const logs = await DatabaseService.getAllAsync<any>(
+        'SELECT * FROM food_log WHERE date = ? ORDER BY logged_at DESC',
+        [todayString]
+      );
+      
+      console.log(`📊 ${todayString}のログ数:`, logs.length);
+      console.log('取得データ:', logs);
+      
+      const mappedLogs: FoodLogItem[] = logs.map(log => ({
+        id: log.id.toString(),
+        foodId: log.food_id,
+        name: log.food_name,
+        amount: log.amount_g,
+        unit: 'g',
+        calories: log.kcal,
+        protein: log.protein_g,
+        fat: log.fat_g,
+        carbs: log.carb_g,
+        meal: log.meal_type,
+        time: new Date(log.logged_at).toLocaleTimeString('ja-JP', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        }),
+        isFavorite: favoriteNames.has(log.food_name)
+      }));
+      
+      setFoodLog(mappedLogs);
+    } catch (error) {
+      console.error('食事ログの読み込みエラー:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const addFood = useCallback(async (food: Omit<FoodLogItem, 'id' | 'meal' | 'time'>) => {
+    console.log('📝 addFood開始:', food);
+    
     const newFoodItem: FoodLogItem = {
       ...food,
       id: Date.now().toString(),
@@ -115,46 +105,159 @@ export const useFoodLog = (): UseFoodLogReturn => {
       time: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
     };
 
-    // グローバル状態を更新
-    globalFoodLog = [...globalFoodLog, newFoodItem];
-    
-    // 全てのリスナーに通知
-    listeners.forEach(listener => listener());
+    try {
+      // 日付を明示的に指定
+      const today = new Date();
+      const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      
+      // SQLiteに保存
+      const result = await DatabaseService.runAsync(
+        `INSERT INTO food_log (
+          user_id, date, meal_type, food_id, food_name, 
+          amount_g, protein_g, fat_g, carb_g, kcal
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          'guest',
+          dateString,
+          selectedMeal,
+          food.foodId || null,
+          food.name,
+          food.amount,
+          food.protein,
+          food.fat,
+          food.carbs,
+          food.calories
+        ]
+      );
+
+      console.log('✅ SQLite保存成功:', {
+        id: result.lastInsertRowId,
+        rowsAffected: result.changes
+      });
+
+      // 保存後の確認
+      const verify = await DatabaseService.getFirstAsync(
+        'SELECT * FROM food_log WHERE id = ?',
+        [result.lastInsertRowId]
+      );
+      console.log('🔍 保存データ確認:', verify);
+
+      // IDをSQLiteのauto incrementされたIDに更新
+      newFoodItem.id = result.lastInsertRowId?.toString() || newFoodItem.id;
+
+      // 状態を更新
+      setFoodLog(prev => [...prev, newFoodItem]);
+    } catch (error) {
+      console.error('❌ 保存エラー:', error);
+      throw error;
+    }
   }, [selectedMeal]);
 
-  const updateFood = useCallback((updatedFood: FoodLogItem) => {
-    // グローバル状態を更新
-    globalFoodLog = globalFoodLog.map(food =>
-      food.id === updatedFood.id ? updatedFood : food
-    );
-    
-    // 全てのリスナーに通知
-    listeners.forEach(listener => listener());
-    setEditingFood(null);
+  const updateFood = useCallback(async (updatedFood: FoodLogItem) => {
+    try {
+      // SQLiteを更新
+      await DatabaseService.runAsync(
+        `UPDATE food_log SET 
+          food_name = ?, amount_g = ?, protein_g = ?, 
+          fat_g = ?, carb_g = ?, kcal = ?, meal_type = ?
+        WHERE id = ?`,
+        [
+          updatedFood.name,
+          updatedFood.amount,
+          updatedFood.protein,
+          updatedFood.fat,
+          updatedFood.carbs,
+          updatedFood.calories,
+          updatedFood.meal,
+          parseInt(updatedFood.id)
+        ]
+      );
+
+      // 状態を更新
+      setFoodLog(prev => prev.map(food =>
+        food.id === updatedFood.id ? updatedFood : food
+      ));
+      setEditingFood(null);
+    } catch (error) {
+      console.error('更新エラー:', error);
+      throw error;
+    }
   }, []);
 
-  const deleteFood = useCallback((foodId: string) => {
-    // グローバル状態を更新
-    globalFoodLog = globalFoodLog.filter(food => food.id !== foodId);
-    
-    // 全てのリスナーに通知
-    listeners.forEach(listener => listener());
+  const deleteFood = useCallback(async (foodId: string) => {
+    try {
+      // SQLiteから削除
+      await DatabaseService.runAsync(
+        'DELETE FROM food_log WHERE id = ?',
+        [parseInt(foodId)]
+      );
+
+      // 状態を更新
+      setFoodLog(prev => prev.filter(food => food.id !== foodId));
+    } catch (error) {
+      console.error('削除エラー:', error);
+      throw error;
+    }
   }, []);
 
-  const toggleFavorite = useCallback((foodId: string) => {
-    // グローバル状態を更新
-    globalFoodLog = globalFoodLog.map(food =>
-      food.id === foodId ? { ...food, isFavorite: !food.isFavorite } : food
-    );
-    
-    // 全てのリスナーに通知
-    listeners.forEach(listener => listener());
-  }, []);
+  const toggleFavorite = useCallback(async (foodId: string) => {
+    try {
+      // 現在のお気に入り状態を取得
+      const currentFood = foodLog.find(food => food.id === foodId);
+      if (!currentFood) return;
+      
+      const newFavoriteStatus = !currentFood.isFavorite;
+      
+      // food_dbテーブルにお気に入り情報を保存
+      if (currentFood.foodId) {
+        await DatabaseService.runAsync(
+          'UPDATE food_db SET is_favorite = ? WHERE food_id = ?',
+          [newFavoriteStatus ? 1 : 0, currentFood.foodId]
+        );
+      }
+      
+      // お気に入りテーブルを作成して管理
+      await DatabaseService.execAsync(`
+        CREATE TABLE IF NOT EXISTS food_favorites (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id TEXT,
+          food_name TEXT,
+          food_id TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(user_id, food_name)
+        );
+      `);
+      
+      if (newFavoriteStatus) {
+        // お気に入りに追加
+        await DatabaseService.runAsync(
+          `INSERT OR REPLACE INTO food_favorites (user_id, food_name, food_id) 
+           VALUES (?, ?, ?)`,
+          ['guest', currentFood.name, currentFood.foodId || null]
+        );
+      } else {
+        // お気に入りから削除
+        await DatabaseService.runAsync(
+          'DELETE FROM food_favorites WHERE user_id = ? AND food_name = ?',
+          ['guest', currentFood.name]
+        );
+      }
+      
+      // 状態を更新
+      setFoodLog(prev => prev.map(food =>
+        food.id === foodId ? { ...food, isFavorite: newFavoriteStatus } : food
+      ));
+    } catch (error) {
+      console.error('お気に入り更新エラー:', error);
+      throw error;
+    }
+  }, [foodLog]);
 
   return {
     foodLog,
     selectedMeal,
     editingFood,
+    isLoading,
     setSelectedMeal,
     setEditingFood,
     addFood,
