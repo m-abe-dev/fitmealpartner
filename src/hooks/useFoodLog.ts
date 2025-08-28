@@ -32,6 +32,27 @@ export const useFoodLog = (): UseFoodLogReturn => {
     try {
       await DatabaseService.initialize();
       const today = new Date().toISOString().split('T')[0];
+      
+      // お気に入りテーブルの作成を確認
+      await DatabaseService.execAsync(`
+        CREATE TABLE IF NOT EXISTS food_favorites (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id TEXT,
+          food_name TEXT,
+          food_id TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(user_id, food_name)
+        );
+      `);
+      
+      // お気に入り情報を取得
+      const favorites = await DatabaseService.getAllAsync<any>(
+        'SELECT food_name FROM food_favorites WHERE user_id = ?',
+        ['guest']
+      );
+      const favoriteNames = new Set(favorites.map(f => f.food_name));
+      
+      // 食事ログを取得
       const logs = await DatabaseService.getAllAsync<any>(
         'SELECT * FROM food_log WHERE date = ? ORDER BY logged_at',
         [today]
@@ -52,7 +73,7 @@ export const useFoodLog = (): UseFoodLogReturn => {
           hour: '2-digit', 
           minute: '2-digit' 
         }),
-        isFavorite: false
+        isFavorite: favoriteNames.has(log.food_name)
       }));
       
       setFoodLog(mappedLogs);
@@ -149,12 +170,58 @@ export const useFoodLog = (): UseFoodLogReturn => {
     }
   }, []);
 
-  const toggleFavorite = useCallback((foodId: string) => {
-    // 状態を更新
-    setFoodLog(prev => prev.map(food =>
-      food.id === foodId ? { ...food, isFavorite: !food.isFavorite } : food
-    ));
-  }, []);
+  const toggleFavorite = useCallback(async (foodId: string) => {
+    try {
+      // 現在のお気に入り状態を取得
+      const currentFood = foodLog.find(food => food.id === foodId);
+      if (!currentFood) return;
+      
+      const newFavoriteStatus = !currentFood.isFavorite;
+      
+      // food_dbテーブルにお気に入り情報を保存
+      if (currentFood.foodId) {
+        await DatabaseService.runAsync(
+          'UPDATE food_db SET is_favorite = ? WHERE food_id = ?',
+          [newFavoriteStatus ? 1 : 0, currentFood.foodId]
+        );
+      }
+      
+      // お気に入りテーブルを作成して管理
+      await DatabaseService.execAsync(`
+        CREATE TABLE IF NOT EXISTS food_favorites (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id TEXT,
+          food_name TEXT,
+          food_id TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(user_id, food_name)
+        );
+      `);
+      
+      if (newFavoriteStatus) {
+        // お気に入りに追加
+        await DatabaseService.runAsync(
+          `INSERT OR REPLACE INTO food_favorites (user_id, food_name, food_id) 
+           VALUES (?, ?, ?)`,
+          ['guest', currentFood.name, currentFood.foodId || null]
+        );
+      } else {
+        // お気に入りから削除
+        await DatabaseService.runAsync(
+          'DELETE FROM food_favorites WHERE user_id = ? AND food_name = ?',
+          ['guest', currentFood.name]
+        );
+      }
+      
+      // 状態を更新
+      setFoodLog(prev => prev.map(food =>
+        food.id === foodId ? { ...food, isFavorite: newFavoriteStatus } : food
+      ));
+    } catch (error) {
+      console.error('お気に入り更新エラー:', error);
+      throw error;
+    }
+  }, [foodLog]);
 
   return {
     foodLog,
