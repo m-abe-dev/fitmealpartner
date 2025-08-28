@@ -33,6 +33,7 @@ export const NutritionScreen: React.FC = () => {
     foodLog,
     selectedMeal,
     editingFood,
+    isLoading,
     setSelectedMeal,
     setEditingFood,
     addFood,
