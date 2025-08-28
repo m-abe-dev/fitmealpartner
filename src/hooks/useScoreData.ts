@@ -10,11 +10,11 @@ const calculateWorkoutScore = (exercises: Exercise[]): number => {
   if (!hasStrength && !hasCardio) return 0;
 
   // ヘルパー関数
-  const clamp = (n: number, min = 0, max = 1) => Math.max(min, Math.min(max, n));
-  const softSaturate = (x: number, k: number) => 1 - Math.exp(-x / Math.max(k, 1));
+  const softSaturate = (x: number, k: number) =>
+    1 - Math.exp(-x / Math.max(k, 1));
 
   const estimateSetWeightKg = (reps: number, rm?: number, avgRm?: number) => {
-    const baseRm = (rm && rm > 0) ? rm : (avgRm && avgRm > 0 ? avgRm : 1);
+    const baseRm = rm && rm > 0 ? rm : avgRm && avgRm > 0 ? avgRm : 1;
     const r = Math.max(1, reps || 1);
     return baseRm / (1 + r / 30);
   };
@@ -54,8 +54,10 @@ const calculateWorkoutScore = (exercises: Exercise[]): number => {
     });
 
     const HARD_TARGET = 10;
-    const targetVolume = (avgRm && avgRm > 0) ? HARD_TARGET * 8 * 0.7 * avgRm : 80;
-    const volumeScore = 50 * softSaturate(eqVolume / Math.max(targetVolume, 1), 1.2);
+    const targetVolume =
+      avgRm && avgRm > 0 ? HARD_TARGET * 8 * 0.7 * avgRm : 80;
+    const volumeScore =
+      50 * softSaturate(eqVolume / Math.max(targetVolume, 1), 1.2);
 
     // Variety Score (10点満点)
     const nExercises = strength.length;
@@ -78,7 +80,8 @@ const calculateWorkoutScore = (exercises: Exercise[]): number => {
   const cardioScoreFromExercises = () => {
     const cardio = exercises.filter(ex => ex.type === 'cardio');
     const totalTime = cardio.reduce(
-      (t, ex) => t + ex.sets.reduce((st, s) => st + (s.time || 0), 0), 0
+      (t, ex) => t + ex.sets.reduce((st, s) => st + (s.time || 0), 0),
+      0
     );
     if (totalTime === 0) return 0;
 
@@ -95,7 +98,7 @@ const calculateWorkoutScore = (exercises: Exercise[]): number => {
   const best = Math.max(sStrength, sCardio);
   const weaker = Math.min(sStrength, sCardio);
   const bonus = 0.25 * Math.max(0, weaker - 50);
-  
+
   return Math.min(100, Math.round(best + bonus));
 };
 
@@ -111,12 +114,15 @@ export interface ScoreData {
 }
 
 export const useScoreData = (
-  exercises: Exercise[] = [], 
-  foodLog: any[] = [], 
+  exercises: Exercise[] = [],
+  foodLog: any[] = [],
   nutritionTargets?: NutritionTargets
 ) => {
-  const { scores: nutritionScores } = useNutritionData(foodLog, nutritionTargets);
-  
+  const { scores: nutritionScores } = useNutritionData(
+    foodLog,
+    nutritionTargets
+  );
+
   // 初期データで初期化
   const [scoreData, setScoreData] = useState<ScoreData[]>([
     {
@@ -126,7 +132,7 @@ export const useScoreData = (
       training_score: 0,
       details: {
         nutrition: '栄養スコア',
-        training: 'トレーニングスコア',
+        training: '筋トレスコア',
       },
     },
     {
@@ -136,7 +142,7 @@ export const useScoreData = (
       training_score: 0,
       details: {
         nutrition: '週平均栄養スコア',
-        training: '週平均トレーニングスコア',
+        training: '週平均筋トレスコア',
       },
     },
     {
@@ -146,28 +152,28 @@ export const useScoreData = (
       training_score: 0,
       details: {
         nutrition: '月平均栄養スコア',
-        training: '月平均トレーニングスコア',
+        training: '月平均筋トレスコア',
       },
     },
   ]);
 
   // exercisesの長さをメモ化して、実際に変更された場合のみ再計算
   const exercisesLength = exercises.length;
-  const exercisesHash = useMemo(() => 
-    exercises.map(e => `${e.id}-${e.sets.length}`).join(','),
+  const exercisesHash = useMemo(
+    () => exercises.map(e => `${e.id}-${e.sets.length}`).join(','),
     [exercises]
   );
 
   // nutrition scoresの変化を検知するためのハッシュ
-  const nutritionScoresHash = useMemo(() => 
-    JSON.stringify(nutritionScores),
+  const nutritionScoresHash = useMemo(
+    () => JSON.stringify(nutritionScores),
     [nutritionScores]
   );
 
   useEffect(() => {
     const trainingScore = calculateWorkoutScore(exercises);
     const nutritionScore = nutritionScores.total;
-    
+
     // 総合スコアを計算（栄養50%、筋トレ50%）
     const totalScore = Math.round((nutritionScore + trainingScore) / 2);
 
@@ -179,7 +185,7 @@ export const useScoreData = (
         training_score: trainingScore,
         details: {
           nutrition: '栄養スコア',
-          training: 'トレーニングスコア',
+          training: '筋トレスコア',
         },
       },
       {
@@ -189,7 +195,7 @@ export const useScoreData = (
         training_score: Math.max(50, trainingScore - 7),
         details: {
           nutrition: '週平均栄養スコア',
-          training: '週平均トレーニングスコア',
+          training: '週平均筋トレスコア',
         },
       },
       {
@@ -199,7 +205,7 @@ export const useScoreData = (
         training_score: Math.max(45, trainingScore - 15),
         details: {
           nutrition: '月平均栄養スコア',
-          training: '月平均トレーニングスコア',
+          training: '月平均筋トレスコア',
         },
       },
     ];
