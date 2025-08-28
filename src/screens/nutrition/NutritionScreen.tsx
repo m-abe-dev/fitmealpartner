@@ -15,6 +15,7 @@ import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { NutritionScoreCard } from './components/NutritionScoreCard';
 import { MealLogCard } from './components/MealLogCard';
 import { AddFoodModal } from './components/AddFoodModal';
+import { DatabaseDebugger } from './components/DatabaseDebugger';
 import { useNutritionData } from '../../hooks/useNutritionData';
 import { useFoodLog } from '../../hooks/useFoodLog';
 import { useProfileData } from '../../hooks/useProfileData';
@@ -119,6 +120,9 @@ export const NutritionScreen: React.FC = () => {
           onToggleFavorite={toggleFavorite}
           onShare={handleShare}
         />
+        
+        {/* デバッグコンポーネント（開発時のみ） */}
+        {__DEV__ && <DatabaseDebugger />}
       </ScrollView>
 
       {/* 食品追加モーダル */}

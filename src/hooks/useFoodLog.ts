@@ -31,7 +31,15 @@ export const useFoodLog = (): UseFoodLogReturn => {
   const loadTodaysFoodLog = async () => {
     try {
       await DatabaseService.initialize();
-      const today = new Date().toISOString().split('T')[0];
+      
+      // ローカルタイムゾーンで今日の日付を取得
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const todayString = `${year}-${month}-${day}`;
+      
+      console.log('📅 検索日付:', todayString);
       
       // お気に入りテーブルの作成を確認
       await DatabaseService.execAsync(`
@@ -54,9 +62,12 @@ export const useFoodLog = (): UseFoodLogReturn => {
       
       // 食事ログを取得
       const logs = await DatabaseService.getAllAsync<any>(
-        'SELECT * FROM food_log WHERE date = ? ORDER BY logged_at',
-        [today]
+        'SELECT * FROM food_log WHERE date = ? ORDER BY logged_at DESC',
+        [todayString]
       );
+      
+      console.log(`📊 ${todayString}のログ数:`, logs.length);
+      console.log('取得データ:', logs);
       
       const mappedLogs: FoodLogItem[] = logs.map(log => ({
         id: log.id.toString(),
@@ -85,6 +96,8 @@ export const useFoodLog = (): UseFoodLogReturn => {
   };
 
   const addFood = useCallback(async (food: Omit<FoodLogItem, 'id' | 'meal' | 'time'>) => {
+    console.log('📝 addFood開始:', food);
+    
     const newFoodItem: FoodLogItem = {
       ...food,
       id: Date.now().toString(),
@@ -93,14 +106,19 @@ export const useFoodLog = (): UseFoodLogReturn => {
     };
 
     try {
+      // 日付を明示的に指定
+      const today = new Date();
+      const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      
       // SQLiteに保存
       const result = await DatabaseService.runAsync(
         `INSERT INTO food_log (
           user_id, date, meal_type, food_id, food_name, 
           amount_g, protein_g, fat_g, carb_g, kcal
-        ) VALUES (?, date('now', 'localtime'), ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           'guest',
+          dateString,
           selectedMeal,
           food.foodId || null,
           food.name,
@@ -112,13 +130,25 @@ export const useFoodLog = (): UseFoodLogReturn => {
         ]
       );
 
+      console.log('✅ SQLite保存成功:', {
+        id: result.lastInsertRowId,
+        rowsAffected: result.changes
+      });
+
+      // 保存後の確認
+      const verify = await DatabaseService.getFirstAsync(
+        'SELECT * FROM food_log WHERE id = ?',
+        [result.lastInsertRowId]
+      );
+      console.log('🔍 保存データ確認:', verify);
+
       // IDをSQLiteのauto incrementされたIDに更新
       newFoodItem.id = result.lastInsertRowId?.toString() || newFoodItem.id;
 
       // 状態を更新
       setFoodLog(prev => [...prev, newFoodItem]);
     } catch (error) {
-      console.error('食事の保存エラー:', error);
+      console.error('❌ 保存エラー:', error);
       throw error;
     }
   }, [selectedMeal]);
