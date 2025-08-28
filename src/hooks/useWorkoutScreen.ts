@@ -19,7 +19,6 @@ export const useWorkoutScreen = () => {
   // Shared workout data
   const { 
     exercises, 
-    subscribe, 
     addSet, 
     updateSet,
     deleteSet, 
@@ -33,11 +32,6 @@ export const useWorkoutScreen = () => {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedDayWorkout, setSelectedDayWorkout] = useState<WorkoutDay | null>(null);
 
-  // Subscribe to workout data changes
-  useEffect(() => {
-    const unsubscribe = subscribe();
-    return unsubscribe;
-  }, [subscribe]);
 
   // Calendar data
   const currentDate = new Date();
