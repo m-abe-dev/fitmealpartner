@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Exercise, WorkoutSet } from '../screens/workout/types/workout.types';
 import DatabaseService from '../services/database/DatabaseService';
+import { exerciseTemplates } from '../screens/workout/data/mockData';
 
 interface WorkoutState {
   exercises: Exercise[];
@@ -57,25 +58,36 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
         set({ currentSessionId: session.session_id });
       }
 
+      // 無効なworkout_setレコードを削除
+      await DatabaseService.runAsync(
+        'DELETE FROM workout_set WHERE exercise_id IS NULL',
+        []
+      );
+
       // 今日のワークアウトデータを読み込み
+      const sessionId = get().currentSessionId;
+      console.log('Loading workout data for session:', sessionId, 'date:', dateString);
+      
       const workoutData = await DatabaseService.getAllAsync<any>(
         `SELECT ws.*, es.exercise_id, es.name_ja as exercise_name, es.muscle_group
          FROM workout_set ws
          LEFT JOIN exercise_master es ON ws.exercise_id = es.exercise_id
-         WHERE ws.session_id = (
-           SELECT session_id FROM workout_session
-           WHERE date = ? AND user_id = ?
-           ORDER BY session_id DESC LIMIT 1
-         )
+         WHERE ws.session_id = ?
          ORDER BY ws.exercise_id, ws.set_number`,
-        [dateString, 'guest']
+        [sessionId]
       );
+
 
       // データをExercise[]形式に変換
       const exerciseMap = new Map<string, Exercise>();
 
-      workoutData.forEach(row => {
-        const exerciseId = row.exercise_id?.toString() || 'unknown';
+      workoutData.forEach((row, index) => {
+        // exercise_idが無効な場合はスキップ
+        if (!row.exercise_id || row.exercise_id === 0) {
+          return;
+        }
+
+        const exerciseId = row.exercise_id.toString();
         const exerciseName = row.exercise_name || `Exercise ${exerciseId}`;
 
         if (!exerciseMap.has(exerciseId)) {
@@ -118,22 +130,60 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
 
     try {
       // exercise_masterに種目を追加/取得
-      let exerciseId = parseInt(exercise.id);
-
-      const existingExercise = await DatabaseService.getFirstAsync<any>(
-        'SELECT * FROM exercise_master WHERE exercise_id = ?',
-        [exerciseId]
-      );
-
-      if (!existingExercise) {
-        await DatabaseService.runAsync(
-          'INSERT INTO exercise_master (exercise_id, name_ja, muscle_group) VALUES (?, ?, ?)',
-          [
-            exerciseId,
-            exercise.name,
-            exercise.type === 'cardio' ? 'cardio' : 'strength',
-          ]
+      // まずテンプレートから対応する種目を検索
+      const template = exerciseTemplates.find(t => t.id === exercise.id || t.name === exercise.name);
+      let exerciseId: number;
+      
+      if (template) {
+        // デフォルト種目の場合、既存のexercise_masterから対応するものを検索
+        // 英語名または日本語名でマッチング
+        const existingExercise = await DatabaseService.getFirstAsync<any>(
+          'SELECT * FROM exercise_master WHERE name_en = ? OR name_ja = ? OR (name_ja = ? AND muscle_group = ?)',
+          [template.name, template.name, exercise.name, template.category]
         );
+        
+        if (existingExercise) {
+          exerciseId = existingExercise.exercise_id;
+        } else {
+          // テンプレート種目だが、exercise_masterに存在しない場合は新規作成
+          const maxIdResult = await DatabaseService.getFirstAsync<any>(
+            'SELECT MAX(exercise_id) as max_id FROM exercise_master'
+          );
+          exerciseId = Math.max((maxIdResult?.max_id || 0) + 1, 1000);
+          
+          await DatabaseService.runAsync(
+            'INSERT INTO exercise_master (exercise_id, name_ja, muscle_group) VALUES (?, ?, ?)',
+            [
+              exerciseId,
+              exercise.name,
+              template.category,
+            ]
+          );
+        }
+      } else {
+        // 完全にカスタムな種目の場合
+        const existingExerciseByName = await DatabaseService.getFirstAsync<any>(
+          'SELECT * FROM exercise_master WHERE name_ja = ?',
+          [exercise.name]
+        );
+        
+        if (existingExerciseByName) {
+          exerciseId = existingExerciseByName.exercise_id;
+        } else {
+          const maxIdResult = await DatabaseService.getFirstAsync<any>(
+            'SELECT MAX(exercise_id) as max_id FROM exercise_master'
+          );
+          exerciseId = Math.max((maxIdResult?.max_id || 0) + 1, 1000);
+          
+          await DatabaseService.runAsync(
+            'INSERT INTO exercise_master (exercise_id, name_ja, muscle_group) VALUES (?, ?, ?)',
+            [
+              exerciseId,
+              exercise.name,
+              'その他',
+            ]
+          );
+        }
       }
 
       for (const [index, workoutSet] of exercise.sets.entries()) {

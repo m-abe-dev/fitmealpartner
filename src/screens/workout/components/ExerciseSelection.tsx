@@ -39,10 +39,31 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
     try {
       await DatabaseService.initialize();
 
-      // カスタム種目を読み込み（IDが1000以上をカスタムとする）
+      // 不正なデータをクリーンアップ
+      try {
+        // 'strength' muscle_groupエントリを削除
+        await DatabaseService.runAsync(
+          'DELETE FROM exercise_master WHERE muscle_group = ?',
+          ['strength']
+        );
+        
+        // 重複した種目を削除（デフォルト種目と同じ名前でIDが1000以上のもの）
+        await DatabaseService.runAsync(
+          `DELETE FROM exercise_master 
+           WHERE exercise_id >= 1000 AND (
+             name_ja IN ('Push up', 'Cable Crossover', 'Chest Fly', 'Incline Bench Press') OR
+             muscle_group = 'Chest'
+           )`,
+          []
+        );
+      } catch (error) {
+        console.log('Cleanup error:', error);
+      }
+
+      // カスタム種目を読み込み（IDが1000以上をカスタムとする、strengthは除外）
       const customExercisesData = await DatabaseService.getAllAsync<any>(
-        'SELECT * FROM exercise_master WHERE exercise_id >= 1000 ORDER BY name_ja',
-        []
+        'SELECT * FROM exercise_master WHERE exercise_id >= 1000 AND muscle_group != ? ORDER BY name_ja',
+        ['strength']
       );
 
 
@@ -52,9 +73,9 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
         category: ex.muscle_group
       }));
 
-      // カスタムカテゴリを抽出（既存カテゴリと重複しないもののみ）
+      // カスタムカテゴリを抽出（既存カテゴリと重複しないもの、strengthも除外）
       const allCustomCategories = [...new Set(loadedCustomExercises.map(ex => ex.category))];
-      const loadedCustomCategories = allCustomCategories.filter(cat => !categories.includes(cat));
+      const loadedCustomCategories = allCustomCategories.filter(cat => !categories.includes(cat) && cat !== 'strength');
 
 
       setCustomExercises(loadedCustomExercises);

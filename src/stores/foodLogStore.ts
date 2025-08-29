@@ -38,8 +38,6 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
       const day = String(today.getDate()).padStart(2, '0');
       const todayString = `${year}-${month}-${day}`;
 
-      console.log('📅 検索日付:', todayString);
-
       await DatabaseService.execAsync(`
         CREATE TABLE IF NOT EXISTS food_favorites (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,7 +78,6 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
         isFavorite: favoriteNames.has(log.food_name),
       }));
 
-      console.log('🍽️ Store - foodLog更新:', mappedLogs.length);
       set({ foodLog: mappedLogs, isLoading: false });
     } catch (error) {
       console.error('食事ログの読み込みエラー:', error);
