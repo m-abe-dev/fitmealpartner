@@ -253,11 +253,19 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack}>
+        <TouchableOpacity 
+          onPress={onBack}
+          style={styles.headerButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <ArrowLeft size={20} color={colors.primary.main} />
         </TouchableOpacity>
         <Text style={styles.title}>種目を選択</Text>
-        <TouchableOpacity onPress={() => setIsAddModalOpen(true)}>
+        <TouchableOpacity 
+          onPress={() => setIsAddModalOpen(true)}
+          style={styles.headerButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Plus size={20} color={colors.primary.main} />
         </TouchableOpacity>
       </View>
@@ -407,6 +415,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: colors.border.light,
+  },
+  headerButton: {
+    padding: spacing.sm,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
     fontSize: typography.fontSize.lg,
