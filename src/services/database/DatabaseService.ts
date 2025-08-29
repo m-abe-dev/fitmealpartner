@@ -234,35 +234,51 @@ class DatabaseService {
 
       // 初期種目データを投入
       const initialExercises = [
-        // 大胸筋
-        { exercise_id: 1, name_ja: 'ベンチプレス', name_en: 'Bench Press', muscle_group: '大胸筋', equipment: 'バーベル', is_compound: 1 },
-        { exercise_id: 2, name_ja: 'ダンベルプレス', name_en: 'Dumbbell Press', muscle_group: '大胸筋', equipment: 'ダンベル', is_compound: 1 },
-        { exercise_id: 3, name_ja: 'プッシュアップ', name_en: 'Push Up', muscle_group: '大胸筋', equipment: '自重', is_compound: 1 },
+        // Chest
+        { exercise_id: 1, name_ja: 'インクラインベンチプレス', name_en: 'Incline Bench Press', muscle_group: 'Chest', equipment: 'バーベル', is_compound: 1 },
+        { exercise_id: 2, name_ja: 'ベンチプレス', name_en: 'Bench Press', muscle_group: 'Chest', equipment: 'バーベル', is_compound: 1 },
+        { exercise_id: 3, name_ja: 'チェストフライ', name_en: 'Chest Fly', muscle_group: 'Chest', equipment: 'ダンベル', is_compound: 0 },
+        { exercise_id: 4, name_ja: 'ケーブルクロスオーバー', name_en: 'Cable Crossover', muscle_group: 'Chest', equipment: 'ケーブル', is_compound: 0 },
+        { exercise_id: 5, name_ja: 'プッシュアップ', name_en: 'Push up', muscle_group: 'Chest', equipment: '自重', is_compound: 1 },
+        { exercise_id: 6, name_ja: 'ダンベルプレス', name_en: 'Dumbbell Press', muscle_group: 'Chest', equipment: 'ダンベル', is_compound: 1 },
         
-        // 背中
-        { exercise_id: 4, name_ja: 'デッドリフト', name_en: 'Deadlift', muscle_group: '背中', equipment: 'バーベル', is_compound: 1 },
-        { exercise_id: 5, name_ja: 'ラットプルダウン', name_en: 'Lat Pulldown', muscle_group: '背中', equipment: 'マシン', is_compound: 1 },
-        { exercise_id: 6, name_ja: 'ベントオーバーロウ', name_en: 'Bent Over Row', muscle_group: '背中', equipment: 'バーベル', is_compound: 1 },
+        // Back
+        { exercise_id: 7, name_ja: 'プルアップ', name_en: 'Pull-ups', muscle_group: 'Back', equipment: '自重', is_compound: 1 },
+        { exercise_id: 8, name_ja: 'ラットプルダウン', name_en: 'Lat Pulldowns', muscle_group: 'Back', equipment: 'マシン', is_compound: 1 },
+        { exercise_id: 9, name_ja: 'ロウイング', name_en: 'Rows', muscle_group: 'Back', equipment: 'ケーブル', is_compound: 1 },
+        { exercise_id: 10, name_ja: 'Tバーロウ', name_en: 'T-bar Rows', muscle_group: 'Back', equipment: 'バーベル', is_compound: 1 },
+        { exercise_id: 11, name_ja: 'フェイスプル', name_en: 'Face Pulls', muscle_group: 'Back', equipment: 'ケーブル', is_compound: 0 },
         
-        // 脚
-        { exercise_id: 7, name_ja: 'スクワット', name_en: 'Squat', muscle_group: '脚', equipment: 'バーベル', is_compound: 1 },
-        { exercise_id: 8, name_ja: 'レッグプレス', name_en: 'Leg Press', muscle_group: '脚', equipment: 'マシン', is_compound: 1 },
-        { exercise_id: 9, name_ja: 'ランジ', name_en: 'Lunge', muscle_group: '脚', equipment: 'ダンベル', is_compound: 1 },
+        // Legs
+        { exercise_id: 12, name_ja: 'スクワット', name_en: 'Squat', muscle_group: 'Legs', equipment: 'バーベル', is_compound: 1 },
+        { exercise_id: 13, name_ja: 'デッドリフト', name_en: 'Deadlift', muscle_group: 'Legs', equipment: 'バーベル', is_compound: 1 },
+        { exercise_id: 14, name_ja: 'レッグプレス', name_en: 'Leg Press', muscle_group: 'Legs', equipment: 'マシン', is_compound: 1 },
+        { exercise_id: 15, name_ja: 'ランジ', name_en: 'Lunges', muscle_group: 'Legs', equipment: 'ダンベル', is_compound: 1 },
+        { exercise_id: 16, name_ja: 'レッグカール', name_en: 'Leg Curls', muscle_group: 'Legs', equipment: 'マシン', is_compound: 0 },
+        { exercise_id: 17, name_ja: 'カーフレイズ', name_en: 'Calf Raises', muscle_group: 'Legs', equipment: '自重', is_compound: 0 },
         
-        // 肩
-        { exercise_id: 10, name_ja: 'ショルダープレス', name_en: 'Shoulder Press', muscle_group: '肩', equipment: 'ダンベル', is_compound: 1 },
-        { exercise_id: 11, name_ja: 'サイドレイズ', name_en: 'Side Raise', muscle_group: '肩', equipment: 'ダンベル', is_compound: 0 },
-        { exercise_id: 12, name_ja: 'リアレイズ', name_en: 'Rear Raise', muscle_group: '肩', equipment: 'ダンベル', is_compound: 0 },
+        // Shoulders
+        { exercise_id: 18, name_ja: 'ショルダープレス', name_en: 'Shoulder Press', muscle_group: 'Shoulders', equipment: 'ダンベル', is_compound: 1 },
+        { exercise_id: 19, name_ja: 'ラテラルレイズ', name_en: 'Lateral Raises', muscle_group: 'Shoulders', equipment: 'ダンベル', is_compound: 0 },
+        { exercise_id: 20, name_ja: 'フロントレイズ', name_en: 'Front Raises', muscle_group: 'Shoulders', equipment: 'ダンベル', is_compound: 0 },
+        { exercise_id: 21, name_ja: 'リアデルトフライ', name_en: 'Rear Delt Fly', muscle_group: 'Shoulders', equipment: 'ダンベル', is_compound: 0 },
+        { exercise_id: 22, name_ja: 'アップライトロウ', name_en: 'Upright Rows', muscle_group: 'Shoulders', equipment: 'バーベル', is_compound: 0 },
         
-        // 腕
-        { exercise_id: 13, name_ja: 'バーベルカール', name_en: 'Barbell Curl', muscle_group: '上腕二頭筋', equipment: 'バーベル', is_compound: 0 },
-        { exercise_id: 14, name_ja: 'ダンベルカール', name_en: 'Dumbbell Curl', muscle_group: '上腕二頭筋', equipment: 'ダンベル', is_compound: 0 },
-        { exercise_id: 15, name_ja: 'トライセプスプレスダウン', name_en: 'Triceps Pressdown', muscle_group: '上腕三頭筋', equipment: 'ケーブル', is_compound: 0 },
+        // Arms
+        { exercise_id: 23, name_ja: 'バイセップカール', name_en: 'Bicep Curls', muscle_group: 'Arms', equipment: 'ダンベル', is_compound: 0 },
+        { exercise_id: 24, name_ja: 'トライセップディップ', name_en: 'Tricep Dips', muscle_group: 'Arms', equipment: '自重', is_compound: 0 },
+        { exercise_id: 25, name_ja: 'ハンマーカール', name_en: 'Hammer Curls', muscle_group: 'Arms', equipment: 'ダンベル', is_compound: 0 },
+        { exercise_id: 26, name_ja: 'トライセッププッシュダウン', name_en: 'Tricep Pushdowns', muscle_group: 'Arms', equipment: 'ケーブル', is_compound: 0 },
+        { exercise_id: 27, name_ja: 'プリーチャーカール', name_en: 'Preacher Curls', muscle_group: 'Arms', equipment: 'マシン', is_compound: 0 },
         
-        // 腹筋
-        { exercise_id: 16, name_ja: 'プランク', name_en: 'Plank', muscle_group: '腹筋', equipment: '自重', is_compound: 0 },
-        { exercise_id: 17, name_ja: 'クランチ', name_en: 'Crunch', muscle_group: '腹筋', equipment: '自重', is_compound: 0 },
-        { exercise_id: 18, name_ja: 'レッグレイズ', name_en: 'Leg Raise', muscle_group: '腹筋', equipment: '自重', is_compound: 0 }
+        
+        // Cardio
+        { exercise_id: 28, name_ja: 'トレッドミル', name_en: 'Treadmill Running', muscle_group: '有酸素', equipment: 'マシン', is_compound: 0 },
+        { exercise_id: 29, name_ja: 'サイクリング', name_en: 'Cycling', muscle_group: '有酸素', equipment: 'マシン', is_compound: 0 },
+        { exercise_id: 30, name_ja: 'ローイングマシン', name_en: 'Rowing Machine', muscle_group: '有酸素', equipment: 'マシン', is_compound: 0 },
+        { exercise_id: 31, name_ja: '縄跳び', name_en: 'Jump Rope', muscle_group: '有酸素', equipment: '自重', is_compound: 0 },
+        { exercise_id: 32, name_ja: '水泳', name_en: 'Swimming', muscle_group: '有酸素', equipment: 'その他', is_compound: 0 },
+        { exercise_id: 33, name_ja: 'ハイキング', name_en: 'Hiking', muscle_group: '有酸素', equipment: 'その他', is_compound: 0 }
       ];
 
       insertedCount = 0;

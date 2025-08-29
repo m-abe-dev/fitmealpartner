@@ -46,14 +46,10 @@ export const exerciseTemplates: ExerciseTemplate[] = [
   // Cardio exercises
   { id: 'treadmill-running', name: 'トレッドミル', category: '有酸素' },
   { id: 'cycling', name: 'サイクリング', category: '有酸素' },
-  { id: 'elliptical', name: 'エリプティカル', category: '有酸素' },
   { id: 'rowing-machine', name: 'ローイングマシン', category: '有酸素' },
-  { id: 'stair-climber', name: 'ステアクライマー', category: '有酸素' },
   { id: 'jump-rope', name: '縄跳び', category: '有酸素' },
   { id: 'swimming', name: '水泳', category: '有酸素' },
   { id: 'hiking', name: 'ハイキング', category: '有酸素' },
-  { id: 'dancing', name: 'ダンス', category: '有酸素' },
-  { id: 'boxing', name: 'ボクシング', category: '有酸素' },
 ];
 
 export const workoutHistory: WorkoutDay[] = [
@@ -129,10 +125,10 @@ export const mockLastRecord: LastRecordSet[] = [
 
 export const categories = [
   'Chest',
+  'Back',
   'Legs',
   'Shoulders',
   'Arms',
-  'Back',
   '有酸素',
 ];
 
