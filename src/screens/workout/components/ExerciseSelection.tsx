@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Plus, MoreVertical, Edit, Trash2 } from 'lucide-react-native';
@@ -6,6 +6,7 @@ import { colors, typography, spacing, radius, shadows } from '../../../design-sy
 import { ExerciseTemplate } from '../types/workout.types';
 import { exerciseTemplates, categories } from '../data/mockData';
 import { AddExerciseModal } from './AddExerciseModal';
+import DatabaseService from '../../../services/database/DatabaseService';
 
 interface ExerciseSelectionProps {
   selectedCategory: string;
@@ -23,14 +24,50 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [customExercises, setCustomExercises] = useState<ExerciseTemplate[]>([]);
   const [customCategories, setCustomCategories] = useState<string[]>([]);
-  const [hiddenExercises, setHiddenExercises] = useState<string[]>([]); // 非表示にするデフォルト種目のID
-  const [editedExercises, setEditedExercises] = useState<{[key: string]: ExerciseTemplate}>({}); // 編集されたデフォルト種目
+  const [hiddenExercises, setHiddenExercises] = useState<string[]>([]);
+  const [editedExercises, setEditedExercises] = useState<{[key: string]: ExerciseTemplate}>({});
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
   const [editingExerciseName, setEditingExerciseName] = useState('');
   const [showDropdown, setShowDropdown] = useState<string | null>(null);
 
+  // 起動時にSQLiteからカスタム種目を読み込み
+  useEffect(() => {
+    loadCustomExercises();
+  }, []);
+
+  const loadCustomExercises = async () => {
+    try {
+      await DatabaseService.initialize();
+
+      // カスタム種目を読み込み（IDが1000以上をカスタムとする）
+      const customExercisesData = await DatabaseService.getAllAsync<any>(
+        'SELECT * FROM exercise_master WHERE exercise_id >= 1000 ORDER BY name_ja',
+        []
+      );
+
+
+      const loadedCustomExercises: ExerciseTemplate[] = customExercisesData.map(ex => ({
+        id: ex.exercise_id.toString(),
+        name: ex.name_ja,
+        category: ex.muscle_group
+      }));
+
+      // カスタムカテゴリを抽出（既存カテゴリと重複しないもののみ）
+      const allCustomCategories = [...new Set(loadedCustomExercises.map(ex => ex.category))];
+      const loadedCustomCategories = allCustomCategories.filter(cat => !categories.includes(cat));
+
+
+      setCustomExercises(loadedCustomExercises);
+      setCustomCategories(loadedCustomCategories);
+    } catch (error) {
+      console.error('カスタム種目読み込みエラー:', error);
+    }
+  };
+
   const getAllCategories = () => {
-    return [...categories, ...customCategories];
+    // 重複を防ぐために、既存カテゴリに含まれていないカスタムカテゴリのみ追加
+    const uniqueCustomCategories = customCategories.filter(cat => !categories.includes(cat));
+    return [...categories, ...uniqueCustomCategories];
   };
 
   const getExercisesByCategory = (category: string) => {
@@ -38,32 +75,52 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
     const templateExercises = exerciseTemplates
       .filter((ex) => ex.category === category && !hiddenExercises.includes(ex.id))
       .map((ex) => editedExercises[ex.id] || ex); // 編集されたものがあればそれを使用
-    
+
     const customExercisesForCategory = customExercises.filter((ex) => ex.category === category);
     return [...templateExercises, ...customExercisesForCategory];
   };
 
-  const handleAddExercise = (category: string, exerciseName: string) => {
-    // Add custom category if it doesn't exist
-    if (!getAllCategories().includes(category)) {
-      setCustomCategories(prev => [...prev, category]);
+  const handleAddExercise = async (category: string, exerciseName: string) => {
+    try {
+
+      await DatabaseService.initialize();
+
+      // 新しいIDを生成（1000以上をカスタム種目とする）
+      const maxIdResult = await DatabaseService.getFirstAsync<any>(
+        'SELECT MAX(exercise_id) as max_id FROM exercise_master'
+      );
+      const newId = Math.max((maxIdResult?.max_id || 0) + 1, 1000);
+
+      // exercise_masterテーブルに保存
+      await DatabaseService.runAsync(
+        'INSERT INTO exercise_master (exercise_id, name_ja, muscle_group, equipment, is_compound) VALUES (?, ?, ?, ?, ?)',
+        [newId, exerciseName, category, 'custom', 0]
+      );
+
+
+      // カスタムカテゴリを追加（既存カテゴリに含まれず、まだカスタムカテゴリにも含まれていない場合のみ）
+      if (!categories.includes(category) && !customCategories.includes(category)) {
+        setCustomCategories(prev => [...prev, category]);
+      }
+
+      // 新しい種目を状態に追加
+      const newExercise: ExerciseTemplate = {
+        id: newId.toString(),
+        name: exerciseName,
+        category: category,
+      };
+
+      setCustomExercises(prev => [...prev, newExercise]);
+
+      // 新しく作成されたカテゴリに切り替え
+      if (!categories.includes(category)) {
+        onCategoryChange(category);
+      }
+
+      Alert.alert('成功', `${exerciseName}を${category}に追加しました`);
+    } catch (error) {
+      Alert.alert('エラー', '種目の保存に失敗しました');
     }
-
-    // Create new exercise
-    const newExercise: ExerciseTemplate = {
-      id: `custom-${Date.now()}`,
-      name: exerciseName,
-      category: category,
-    };
-
-    setCustomExercises(prev => [...prev, newExercise]);
-    
-    // Switch to the new category if it was just created
-    if (!categories.includes(category)) {
-      onCategoryChange(category);
-    }
-
-    Alert.alert('成功', `${exerciseName}を${category}に追加しました`);
   };
 
   const handleEditExercise = (exercise: ExerciseTemplate) => {
@@ -124,7 +181,7 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
     if (!exercise) {
       exercise = exerciseTemplates.find(ex => ex.id === exerciseId);
     }
-    
+
     if (!exercise) return;
 
     Alert.alert(
@@ -163,7 +220,7 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
@@ -196,8 +253,8 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
       {/* Exercise List */}
       <View style={styles.exerciseListSection}>
         <Text style={styles.exerciseListTitle}>種目を選択</Text>
-        <ScrollView 
-          style={styles.exerciseList} 
+        <ScrollView
+          style={styles.exerciseList}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.exerciseListContent}
           onScrollBeginDrag={() => setShowDropdown(null)}
@@ -243,13 +300,13 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
                   </TouchableOpacity>
 
                   <View style={styles.dropdownContainer}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.exerciseMoreButton}
                       onPress={() => setShowDropdown(showDropdown === exercise.id ? null : exercise.id)}
                     >
                       <MoreVertical size={20} color={colors.text.tertiary} />
                     </TouchableOpacity>
-                    
+
                     {showDropdown === exercise.id && (
                       <View style={[
                         styles.dropdown,

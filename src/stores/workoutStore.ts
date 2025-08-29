@@ -93,12 +93,13 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
           id: row.set_id?.toString() || `${Date.now()}-${exercise.sets.length}`,
           weight: row.weight_kg || 0,
           reps: row.reps || 0,
-          time: row.time_minutes,
-          distance: row.distance_km,
+          time: undefined, // workout_setテーブルにtime_minutesカラムがないため
+          distance: undefined, // workout_setテーブルにdistance_kmカラムがないため
           rm:
-            row.weight_kg && row.reps
+            row.rpe ||
+            (row.weight_kg && row.reps
               ? Math.round(row.weight_kg * (1 + row.reps / 30) * 100) / 100
-              : undefined,
+              : undefined),
         });
       });
 
@@ -111,7 +112,9 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
 
   addExercise: async exercise => {
     const { currentSessionId } = get();
-    if (!currentSessionId) return;
+    if (!currentSessionId) {
+      return;
+    }
 
     try {
       // exercise_masterに種目を追加/取得
@@ -133,20 +136,18 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
         );
       }
 
-      // 各セットをworkout_setに追加
       for (const [index, workoutSet] of exercise.sets.entries()) {
-        await DatabaseService.runAsync(
+        const result = await DatabaseService.runAsync(
           `INSERT INTO workout_set (
-            session_id, exercise_id, set_number, weight_kg, reps, time_minutes, distance_km
-          ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            session_id, exercise_id, set_number, weight_kg, reps, rpe
+          ) VALUES (?, ?, ?, ?, ?, ?)`,
           [
             currentSessionId,
             exerciseId,
             index + 1,
             workoutSet.weight || null,
             workoutSet.reps || null,
-            workoutSet.time || null,
-            workoutSet.distance || null,
+            workoutSet.rm || null,
           ]
         );
       }
@@ -214,9 +215,9 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     try {
       const result = await DatabaseService.runAsync(
         `INSERT INTO workout_set (
-          session_id, exercise_id, set_number, weight_kg, reps
-        ) VALUES (?, ?, ?, ?, ?)`,
-        [currentSessionId, parseInt(exerciseId), setNumber, 0, 0]
+          session_id, exercise_id, set_number, weight_kg, reps, rpe
+        ) VALUES (?, ?, ?, ?, ?, ?)`,
+        [currentSessionId, parseInt(exerciseId), setNumber, 0, 0, null]
       );
 
       newSet.id = result.lastInsertRowId?.toString() || newSet.id;
@@ -237,13 +238,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
 
     const numericValue = parseFloat(value) || 0;
     const dbField =
-      field === 'weight'
-        ? 'weight_kg'
-        : field === 'reps'
-        ? 'reps'
-        : field === 'time'
-        ? 'time_minutes'
-        : 'distance_km';
+      field === 'weight' ? 'weight_kg' : field === 'reps' ? 'reps' : 'rpe'; // time と distance は rpe にマッピング（実際のテーブル構造に合わせる）
 
     try {
       await DatabaseService.runAsync(
