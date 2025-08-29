@@ -129,40 +129,57 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
     setShowDropdown(null);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingExerciseName.trim()) {
       Alert.alert('エラー', '種目名を入力してください');
       return;
     }
 
-    if (editingExerciseId?.startsWith('custom-')) {
-      // カスタム種目の編集
-      setCustomExercises(prev =>
-        prev.map(ex =>
-          ex.id === editingExerciseId
-            ? { ...ex, name: editingExerciseName.trim() }
-            : ex
-        )
-      );
-    } else {
-      // デフォルト種目の編集 - editedExercisesに保存して元の位置に表示
-      const originalExercise = exerciseTemplates.find(ex => ex.id === editingExerciseId);
-      if (originalExercise && editingExerciseId) {
-        const editedExercise: ExerciseTemplate = {
-          id: editingExerciseId, // 元のIDを維持
-          name: editingExerciseName.trim(),
-          category: originalExercise.category,
-        };
-        setEditedExercises(prev => ({
-          ...prev,
-          [editingExerciseId]: editedExercise
-        }));
+    try {
+      const exerciseId = parseInt(editingExerciseId || '');
+      
+      if (exerciseId >= 1000) {
+        // カスタム種目の編集（SQLiteを更新）
+        console.log('✏️ カスタム種目編集:', { exerciseId, newName: editingExerciseName.trim() });
+        
+        await DatabaseService.runAsync(
+          'UPDATE exercise_master SET name_ja = ? WHERE exercise_id = ?',
+          [editingExerciseName.trim(), exerciseId]
+        );
+        
+        // ローカル状態も更新
+        setCustomExercises(prev =>
+          prev.map(ex =>
+            ex.id === editingExerciseId
+              ? { ...ex, name: editingExerciseName.trim() }
+              : ex
+          )
+        );
+        
+        console.log('✅ カスタム種目編集完了');
+      } else {
+        // デフォルト種目の編集 - editedExercisesに保存（SQLiteは更新しない）
+        const originalExercise = exerciseTemplates.find(ex => ex.id === editingExerciseId);
+        if (originalExercise && editingExerciseId) {
+          const editedExercise: ExerciseTemplate = {
+            id: editingExerciseId,
+            name: editingExerciseName.trim(),
+            category: originalExercise.category,
+          };
+          setEditedExercises(prev => ({
+            ...prev,
+            [editingExerciseId]: editedExercise
+          }));
+        }
       }
-    }
 
-    setEditingExerciseId(null);
-    setEditingExerciseName('');
-    Alert.alert('成功', '種目名を更新しました');
+      setEditingExerciseId(null);
+      setEditingExerciseName('');
+      Alert.alert('成功', '種目名を更新しました');
+    } catch (error) {
+      console.error('❌ 種目編集エラー:', error);
+      Alert.alert('エラー', '種目の更新に失敗しました');
+    }
   };
 
   const handleCancelEdit = () => {
@@ -192,15 +209,40 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
         {
           text: '削除',
           style: 'destructive',
-          onPress: () => {
-            if (exerciseId.startsWith('custom-')) {
-              // カスタム種目の削除
-              setCustomExercises(prev => prev.filter(ex => ex.id !== exerciseId));
-            } else {
-              // デフォルト種目の場合、非表示リストに追加
-              setHiddenExercises(prev => [...prev, exerciseId]);
+          onPress: async () => {
+            try {
+              const numericId = parseInt(exerciseId);
+              
+              if (numericId >= 1000) {
+                // カスタム種目の削除（SQLiteからも削除）
+                console.log('🗑️ カスタム種目削除:', { exerciseId, name: exercise.name });
+                
+                // 関連するワークアウトセットも削除
+                await DatabaseService.runAsync(
+                  'DELETE FROM workout_set WHERE exercise_id = ?',
+                  [numericId]
+                );
+                
+                // exercise_masterからも削除
+                await DatabaseService.runAsync(
+                  'DELETE FROM exercise_master WHERE exercise_id = ?',
+                  [numericId]
+                );
+                
+                // ローカル状態からも削除
+                setCustomExercises(prev => prev.filter(ex => ex.id !== exerciseId));
+                
+                console.log('✅ カスタム種目削除完了');
+                Alert.alert('成功', `${exercise.name}を削除しました`);
+              } else {
+                // デフォルト種目の場合、非表示リストに追加
+                setHiddenExercises(prev => [...prev, exerciseId]);
+              }
+              setShowDropdown(null);
+            } catch (error) {
+              console.error('❌ 種目削除エラー:', error);
+              Alert.alert('エラー', '種目の削除に失敗しました');
             }
-            setShowDropdown(null);
           }
         }
       ]
