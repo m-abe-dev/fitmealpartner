@@ -44,7 +44,7 @@ export const ExerciseDetailView: React.FC<ExerciseDetailViewProps> = ({
   onBack,
   onRecordWorkout
 }) => {
-  const isCardio = exercise?.category === '有酸素';
+  const isCardio = exercise?.category === 'Cardio';
 
   const [currentSets, setCurrentSets] = useState<SetInputs[]>([
     { id: 1, weight: "", reps: "", time: "", distance: "" },
@@ -65,13 +65,13 @@ export const ExerciseDetailView: React.FC<ExerciseDetailViewProps> = ({
 
     try {
       await DatabaseService.initialize();
-      
+
       const today = new Date();
       const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
       // 前回のワークアウト記録を取得（今日以外の最新）
       const lastRecordData = await DatabaseService.getAllAsync<any>(
-        `SELECT ws.*, session.date 
+        `SELECT ws.*, session.date
          FROM workout_set ws
          LEFT JOIN workout_session session ON ws.session_id = session.session_id
          WHERE ws.exercise_id = ? AND session.date != ?
@@ -87,7 +87,7 @@ export const ExerciseDetailView: React.FC<ExerciseDetailViewProps> = ({
           reps: row.reps || 0,
           date: row.date || '',
         }));
-        
+
         setLastRecord(records);
         setLastRecordDate(lastRecordData[0].date);
       } else {
@@ -110,7 +110,7 @@ export const ExerciseDetailView: React.FC<ExerciseDetailViewProps> = ({
 
       // 過去のワークアウト記録を取得（日付ごとにグループ化）
       const historyData = await DatabaseService.getAllAsync<any>(
-        `SELECT ws.*, session.date 
+        `SELECT ws.*, session.date
          FROM workout_set ws
          LEFT JOIN workout_session session ON ws.session_id = session.session_id
          WHERE ws.exercise_id = ?
@@ -135,8 +135,8 @@ export const ExerciseDetailView: React.FC<ExerciseDetailViewProps> = ({
           set: index + 1,
           weight: record.weight_kg || 0,
           reps: record.reps || 0,
-          rm: record.weight_kg && record.reps 
-            ? Math.round(record.weight_kg * (1 + record.reps / 30) * 100) / 100 
+          rm: record.weight_kg && record.reps
+            ? Math.round(record.weight_kg * (1 + record.reps / 30) * 100) / 100
             : 0
         }))
       }));
@@ -193,13 +193,13 @@ export const ExerciseDetailView: React.FC<ExerciseDetailViewProps> = ({
 
   const handleRecord = () => {
     let validSets;
-    
+
     if (isCardio) {
       validSets = currentSets.filter(set =>
         set.time && set.distance &&
         !isNaN(Number(set.time)) && !isNaN(Number(set.distance))
       );
-      
+
       if (validSets.length === 0) {
         Alert.alert('エラー', '少なくとも1セットの時間と距離を入力してください');
         return;
@@ -209,7 +209,7 @@ export const ExerciseDetailView: React.FC<ExerciseDetailViewProps> = ({
         set.weight && set.reps &&
         !isNaN(Number(set.weight)) && !isNaN(Number(set.reps))
       );
-      
+
       if (validSets.length === 0) {
         Alert.alert('エラー', '少なくとも1セットの重量と回数を入力してください');
         return;
@@ -220,8 +220,8 @@ export const ExerciseDetailView: React.FC<ExerciseDetailViewProps> = ({
       if (isCardio) {
         return {
           id: `${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
-          weight: 0, // 有酸素の場合は重量は0
-          reps: 0, // 有酸素の場合は回数は0
+          weight: 0, // Cardioの場合は重量は0
+          reps: 0, // Cardioの場合は回数は0
           time: Number(set.time),
           distance: Number(set.distance),
         };

@@ -44,12 +44,12 @@ export const exerciseTemplates: ExerciseTemplate[] = [
   { id: 'face-pulls', name: 'Face Pulls', category: 'Back' },
 
   // Cardio exercises
-  { id: 'treadmill-running', name: 'トレッドミル', category: '有酸素' },
-  { id: 'cycling', name: 'サイクリング', category: '有酸素' },
-  { id: 'rowing-machine', name: 'ローイングマシン', category: '有酸素' },
-  { id: 'jump-rope', name: '縄跳び', category: '有酸素' },
-  { id: 'swimming', name: '水泳', category: '有酸素' },
-  { id: 'hiking', name: 'ハイキング', category: '有酸素' },
+  { id: 'treadmill-running', name: 'トレッドミル', category: 'Cardio' },
+  { id: 'cycling', name: 'サイクリング', category: 'Cardio' },
+  { id: 'rowing-machine', name: 'ローイングマシン', category: 'Cardio' },
+  { id: 'jump-rope', name: '縄跳び', category: 'Cardio' },
+  { id: 'swimming', name: '水泳', category: 'Cardio' },
+  { id: 'hiking', name: 'ハイキング', category: 'Cardio' },
 ];
 
 export const workoutHistory: WorkoutDay[] = [
@@ -129,7 +129,7 @@ export const categories = [
   'Legs',
   'Shoulders',
   'Arms',
-  '有酸素',
+  'Cardio',
 ];
 
 export const monthNames = [

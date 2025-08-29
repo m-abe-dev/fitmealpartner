@@ -174,7 +174,7 @@ export const useWorkoutScreen = () => {
       name: exerciseName,
       sets: sets.map(set => ({ ...set })),
       isExpanded: true,
-      type: selectedExercise?.category === '有酸素' ? 'cardio' : 'strength',
+      type: selectedExercise?.category === 'Cardio' ? 'cardio' : 'strength',
     };
 
     addExercise(newExercise);

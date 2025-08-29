@@ -12,17 +12,17 @@ class DatabaseService {
 
     try {
       console.log('Initializing database...');
-      
+
       // Expo SDK 53の新しいAPI - openDatabaseAsync を使用
       this.db = await SQLite.openDatabaseAsync('fitmeal.db');
       console.log('Database opened successfully');
-      
+
       // テーブル作成
       await this.createTables();
-      
+
       // 初期データ投入
       await this.insertInitialData();
-      
+
       this.isInitialized = true;
       console.log('Database initialized successfully');
     } catch (error) {
@@ -36,10 +36,10 @@ class DatabaseService {
 
     try {
       console.log('Creating tables...');
-      
+
       // 外部キー制約を有効化
       await this.db.execAsync('PRAGMA foreign_keys = ON;');
-      
+
       // 1. 食品マスタテーブル
       await this.db.execAsync(`
         CREATE TABLE IF NOT EXISTS food_db (
@@ -57,7 +57,7 @@ class DatabaseService {
           is_favorite INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
-        
+
         CREATE INDEX IF NOT EXISTS idx_food_barcode ON food_db(barcode);
         CREATE INDEX IF NOT EXISTS idx_food_favorite ON food_db(is_favorite);
         CREATE INDEX IF NOT EXISTS idx_food_name_ja ON food_db(name_ja);
@@ -81,7 +81,7 @@ class DatabaseService {
           logged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           synced INTEGER DEFAULT 0
         );
-        
+
         CREATE INDEX IF NOT EXISTS idx_food_log_date ON food_log(date);
         CREATE INDEX IF NOT EXISTS idx_food_log_user ON food_log(user_id);
       `);
@@ -99,7 +99,7 @@ class DatabaseService {
           total_volume_kg REAL DEFAULT 0,
           synced INTEGER DEFAULT 0
         );
-        
+
         CREATE INDEX IF NOT EXISTS idx_workout_session_date ON workout_session(date);
         CREATE INDEX IF NOT EXISTS idx_workout_session_user ON workout_session(user_id);
       `);
@@ -118,7 +118,7 @@ class DatabaseService {
           rest_seconds INTEGER,
           FOREIGN KEY (session_id) REFERENCES workout_session(session_id)
         );
-        
+
         CREATE INDEX IF NOT EXISTS idx_workout_set_session ON workout_set(session_id);
       `);
       console.log('workout_set table created');
@@ -133,7 +133,7 @@ class DatabaseService {
           equipment TEXT,
           is_compound INTEGER DEFAULT 0
         );
-        
+
         CREATE INDEX IF NOT EXISTS idx_exercise_muscle_group ON exercise_master(muscle_group);
       `);
       console.log('exercise_master table created');
@@ -168,11 +168,11 @@ class DatabaseService {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           synced INTEGER DEFAULT 0
         );
-        
+
         CREATE INDEX IF NOT EXISTS idx_sync_queue_synced ON sync_queue(synced);
       `);
       console.log('sync_queue table created');
-      
+
       console.log('All tables created successfully');
     } catch (error) {
       console.error('Error creating tables:', error);
@@ -185,33 +185,168 @@ class DatabaseService {
 
     try {
       console.log('Inserting initial data...');
-      
+
       // 初期食品データを投入（日本の一般的な食品）
       const initialFoods = [
         // 主食
-        { food_id: 'rice_cooked', name_ja: '白米（炊飯済み）', name_en: 'Cooked White Rice', category: '主食', p100: 2.5, f100: 0.3, c100: 37.1, kcal100: 156 },
-        { food_id: 'bread_shokupan', name_ja: '食パン', name_en: 'White Bread', category: '主食', p100: 9.3, f100: 4.4, c100: 46.7, kcal100: 264 },
-        { food_id: 'pasta_cooked', name_ja: 'パスタ（茹で）', name_en: 'Cooked Pasta', category: '主食', p100: 5.2, f100: 0.9, c100: 26.9, kcal100: 149 },
-        
+        {
+          food_id: 'rice_cooked',
+          name_ja: '白米（炊飯済み）',
+          name_en: 'Cooked White Rice',
+          category: '主食',
+          p100: 2.5,
+          f100: 0.3,
+          c100: 37.1,
+          kcal100: 156,
+        },
+        {
+          food_id: 'bread_shokupan',
+          name_ja: '食パン',
+          name_en: 'White Bread',
+          category: '主食',
+          p100: 9.3,
+          f100: 4.4,
+          c100: 46.7,
+          kcal100: 264,
+        },
+        {
+          food_id: 'pasta_cooked',
+          name_ja: 'パスタ（茹で）',
+          name_en: 'Cooked Pasta',
+          category: '主食',
+          p100: 5.2,
+          f100: 0.9,
+          c100: 26.9,
+          kcal100: 149,
+        },
+
         // タンパク質源
-        { food_id: 'chicken_breast', name_ja: '鶏胸肉（皮なし）', name_en: 'Chicken Breast Skinless', category: 'タンパク質', p100: 22.3, f100: 1.5, c100: 0, kcal100: 108 },
-        { food_id: 'beef_lean', name_ja: '牛もも肉（赤身）', name_en: 'Lean Beef', category: 'タンパク質', p100: 21.2, f100: 9.6, c100: 0.2, kcal100: 165 },
-        { food_id: 'salmon', name_ja: '鮭', name_en: 'Salmon', category: 'タンパク質', p100: 22.3, f100: 4.1, c100: 0.1, kcal100: 133 },
-        { food_id: 'egg', name_ja: '鶏卵', name_en: 'Chicken Egg', category: 'タンパク質', p100: 12.3, f100: 10.3, c100: 0.3, kcal100: 151 },
-        { food_id: 'tofu_silken', name_ja: '絹豆腐', name_en: 'Silken Tofu', category: 'タンパク質', p100: 4.9, f100: 3.0, c100: 1.7, kcal100: 56 },
-        
+        {
+          food_id: 'chicken_breast',
+          name_ja: '鶏胸肉（皮なし）',
+          name_en: 'Chicken Breast Skinless',
+          category: 'タンパク質',
+          p100: 22.3,
+          f100: 1.5,
+          c100: 0,
+          kcal100: 108,
+        },
+        {
+          food_id: 'beef_lean',
+          name_ja: '牛もも肉（赤身）',
+          name_en: 'Lean Beef',
+          category: 'タンパク質',
+          p100: 21.2,
+          f100: 9.6,
+          c100: 0.2,
+          kcal100: 165,
+        },
+        {
+          food_id: 'salmon',
+          name_ja: '鮭',
+          name_en: 'Salmon',
+          category: 'タンパク質',
+          p100: 22.3,
+          f100: 4.1,
+          c100: 0.1,
+          kcal100: 133,
+        },
+        {
+          food_id: 'egg',
+          name_ja: '鶏卵',
+          name_en: 'Chicken Egg',
+          category: 'タンパク質',
+          p100: 12.3,
+          f100: 10.3,
+          c100: 0.3,
+          kcal100: 151,
+        },
+        {
+          food_id: 'tofu_silken',
+          name_ja: '絹豆腐',
+          name_en: 'Silken Tofu',
+          category: 'タンパク質',
+          p100: 4.9,
+          f100: 3.0,
+          c100: 1.7,
+          kcal100: 56,
+        },
+
         // 野菜
-        { food_id: 'broccoli', name_ja: 'ブロッコリー', name_en: 'Broccoli', category: '野菜', p100: 4.3, f100: 0.5, c100: 5.2, kcal100: 33 },
-        { food_id: 'spinach', name_ja: 'ほうれん草', name_en: 'Spinach', category: '野菜', p100: 2.2, f100: 0.4, c100: 3.1, kcal100: 20 },
-        { food_id: 'tomato', name_ja: 'トマト', name_en: 'Tomato', category: '野菜', p100: 0.7, f100: 0.1, c100: 4.7, kcal100: 19 },
-        
+        {
+          food_id: 'broccoli',
+          name_ja: 'ブロッコリー',
+          name_en: 'Broccoli',
+          category: '野菜',
+          p100: 4.3,
+          f100: 0.5,
+          c100: 5.2,
+          kcal100: 33,
+        },
+        {
+          food_id: 'spinach',
+          name_ja: 'ほうれん草',
+          name_en: 'Spinach',
+          category: '野菜',
+          p100: 2.2,
+          f100: 0.4,
+          c100: 3.1,
+          kcal100: 20,
+        },
+        {
+          food_id: 'tomato',
+          name_ja: 'トマト',
+          name_en: 'Tomato',
+          category: '野菜',
+          p100: 0.7,
+          f100: 0.1,
+          c100: 4.7,
+          kcal100: 19,
+        },
+
         // 果物
-        { food_id: 'banana', name_ja: 'バナナ', name_en: 'Banana', category: '果物', p100: 1.1, f100: 0.2, c100: 22.5, kcal100: 86 },
-        { food_id: 'apple', name_ja: 'りんご', name_en: 'Apple', category: '果物', p100: 0.2, f100: 0.1, c100: 14.6, kcal100: 54 },
-        
+        {
+          food_id: 'banana',
+          name_ja: 'バナナ',
+          name_en: 'Banana',
+          category: '果物',
+          p100: 1.1,
+          f100: 0.2,
+          c100: 22.5,
+          kcal100: 86,
+        },
+        {
+          food_id: 'apple',
+          name_ja: 'りんご',
+          name_en: 'Apple',
+          category: '果物',
+          p100: 0.2,
+          f100: 0.1,
+          c100: 14.6,
+          kcal100: 54,
+        },
+
         // サプリメント・プロテイン
-        { food_id: 'whey_protein', name_ja: 'ホエイプロテイン', name_en: 'Whey Protein', category: 'サプリ', p100: 80.0, f100: 5.0, c100: 5.0, kcal100: 390 },
-        { food_id: 'protein_bar', name_ja: 'プロテインバー', name_en: 'Protein Bar', category: 'サプリ', p100: 20.0, f100: 8.0, c100: 25.0, kcal100: 240 }
+        {
+          food_id: 'whey_protein',
+          name_ja: 'ホエイプロテイン',
+          name_en: 'Whey Protein',
+          category: 'サプリ',
+          p100: 80.0,
+          f100: 5.0,
+          c100: 5.0,
+          kcal100: 390,
+        },
+        {
+          food_id: 'protein_bar',
+          name_ja: 'プロテインバー',
+          name_en: 'Protein Bar',
+          category: 'サプリ',
+          p100: 20.0,
+          f100: 8.0,
+          c100: 25.0,
+          kcal100: 240,
+        },
       ];
 
       let insertedCount = 0;
@@ -225,7 +360,17 @@ class DatabaseService {
         if (!existing) {
           await this.db.runAsync(
             'INSERT INTO food_db (food_id, name_ja, name_en, category, p100, f100, c100, kcal100, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [food.food_id, food.name_ja, food.name_en, food.category, food.p100, food.f100, food.c100, food.kcal100, 'initial']
+            [
+              food.food_id,
+              food.name_ja,
+              food.name_en,
+              food.category,
+              food.p100,
+              food.f100,
+              food.c100,
+              food.kcal100,
+              'initial',
+            ]
           );
           insertedCount++;
         }
@@ -235,50 +380,280 @@ class DatabaseService {
       // 初期種目データを投入
       const initialExercises = [
         // Chest
-        { exercise_id: 1, name_ja: 'インクラインベンチプレス', name_en: 'Incline Bench Press', muscle_group: 'Chest', equipment: 'バーベル', is_compound: 1 },
-        { exercise_id: 2, name_ja: 'ベンチプレス', name_en: 'Bench Press', muscle_group: 'Chest', equipment: 'バーベル', is_compound: 1 },
-        { exercise_id: 3, name_ja: 'チェストフライ', name_en: 'Chest Fly', muscle_group: 'Chest', equipment: 'ダンベル', is_compound: 0 },
-        { exercise_id: 4, name_ja: 'ケーブルクロスオーバー', name_en: 'Cable Crossover', muscle_group: 'Chest', equipment: 'ケーブル', is_compound: 0 },
-        { exercise_id: 5, name_ja: 'プッシュアップ', name_en: 'Push up', muscle_group: 'Chest', equipment: '自重', is_compound: 1 },
-        { exercise_id: 6, name_ja: 'ダンベルプレス', name_en: 'Dumbbell Press', muscle_group: 'Chest', equipment: 'ダンベル', is_compound: 1 },
-        
+        {
+          exercise_id: 1,
+          name_ja: 'インクラインベンチプレス',
+          name_en: 'Incline Bench Press',
+          muscle_group: 'Chest',
+          equipment: 'バーベル',
+          is_compound: 1,
+        },
+        {
+          exercise_id: 2,
+          name_ja: 'ベンチプレス',
+          name_en: 'Bench Press',
+          muscle_group: 'Chest',
+          equipment: 'バーベル',
+          is_compound: 1,
+        },
+        {
+          exercise_id: 3,
+          name_ja: 'チェストフライ',
+          name_en: 'Chest Fly',
+          muscle_group: 'Chest',
+          equipment: 'ダンベル',
+          is_compound: 0,
+        },
+        {
+          exercise_id: 4,
+          name_ja: 'ケーブルクロスオーバー',
+          name_en: 'Cable Crossover',
+          muscle_group: 'Chest',
+          equipment: 'ケーブル',
+          is_compound: 0,
+        },
+        {
+          exercise_id: 5,
+          name_ja: 'プッシュアップ',
+          name_en: 'Push up',
+          muscle_group: 'Chest',
+          equipment: '自重',
+          is_compound: 1,
+        },
+        {
+          exercise_id: 6,
+          name_ja: 'ダンベルプレス',
+          name_en: 'Dumbbell Press',
+          muscle_group: 'Chest',
+          equipment: 'ダンベル',
+          is_compound: 1,
+        },
+
         // Back
-        { exercise_id: 7, name_ja: 'プルアップ', name_en: 'Pull-ups', muscle_group: 'Back', equipment: '自重', is_compound: 1 },
-        { exercise_id: 8, name_ja: 'ラットプルダウン', name_en: 'Lat Pulldowns', muscle_group: 'Back', equipment: 'マシン', is_compound: 1 },
-        { exercise_id: 9, name_ja: 'ロウイング', name_en: 'Rows', muscle_group: 'Back', equipment: 'ケーブル', is_compound: 1 },
-        { exercise_id: 10, name_ja: 'Tバーロウ', name_en: 'T-bar Rows', muscle_group: 'Back', equipment: 'バーベル', is_compound: 1 },
-        { exercise_id: 11, name_ja: 'フェイスプル', name_en: 'Face Pulls', muscle_group: 'Back', equipment: 'ケーブル', is_compound: 0 },
-        
+        {
+          exercise_id: 7,
+          name_ja: 'プルアップ',
+          name_en: 'Pull-ups',
+          muscle_group: 'Back',
+          equipment: '自重',
+          is_compound: 1,
+        },
+        {
+          exercise_id: 8,
+          name_ja: 'ラットプルダウン',
+          name_en: 'Lat Pulldowns',
+          muscle_group: 'Back',
+          equipment: 'マシン',
+          is_compound: 1,
+        },
+        {
+          exercise_id: 9,
+          name_ja: 'ロウイング',
+          name_en: 'Rows',
+          muscle_group: 'Back',
+          equipment: 'ケーブル',
+          is_compound: 1,
+        },
+        {
+          exercise_id: 10,
+          name_ja: 'Tバーロウ',
+          name_en: 'T-bar Rows',
+          muscle_group: 'Back',
+          equipment: 'バーベル',
+          is_compound: 1,
+        },
+        {
+          exercise_id: 11,
+          name_ja: 'フェイスプル',
+          name_en: 'Face Pulls',
+          muscle_group: 'Back',
+          equipment: 'ケーブル',
+          is_compound: 0,
+        },
+
         // Legs
-        { exercise_id: 12, name_ja: 'スクワット', name_en: 'Squat', muscle_group: 'Legs', equipment: 'バーベル', is_compound: 1 },
-        { exercise_id: 13, name_ja: 'デッドリフト', name_en: 'Deadlift', muscle_group: 'Legs', equipment: 'バーベル', is_compound: 1 },
-        { exercise_id: 14, name_ja: 'レッグプレス', name_en: 'Leg Press', muscle_group: 'Legs', equipment: 'マシン', is_compound: 1 },
-        { exercise_id: 15, name_ja: 'ランジ', name_en: 'Lunges', muscle_group: 'Legs', equipment: 'ダンベル', is_compound: 1 },
-        { exercise_id: 16, name_ja: 'レッグカール', name_en: 'Leg Curls', muscle_group: 'Legs', equipment: 'マシン', is_compound: 0 },
-        { exercise_id: 17, name_ja: 'カーフレイズ', name_en: 'Calf Raises', muscle_group: 'Legs', equipment: '自重', is_compound: 0 },
-        
+        {
+          exercise_id: 12,
+          name_ja: 'スクワット',
+          name_en: 'Squat',
+          muscle_group: 'Legs',
+          equipment: 'バーベル',
+          is_compound: 1,
+        },
+        {
+          exercise_id: 13,
+          name_ja: 'デッドリフト',
+          name_en: 'Deadlift',
+          muscle_group: 'Legs',
+          equipment: 'バーベル',
+          is_compound: 1,
+        },
+        {
+          exercise_id: 14,
+          name_ja: 'レッグプレス',
+          name_en: 'Leg Press',
+          muscle_group: 'Legs',
+          equipment: 'マシン',
+          is_compound: 1,
+        },
+        {
+          exercise_id: 15,
+          name_ja: 'ランジ',
+          name_en: 'Lunges',
+          muscle_group: 'Legs',
+          equipment: 'ダンベル',
+          is_compound: 1,
+        },
+        {
+          exercise_id: 16,
+          name_ja: 'レッグカール',
+          name_en: 'Leg Curls',
+          muscle_group: 'Legs',
+          equipment: 'マシン',
+          is_compound: 0,
+        },
+        {
+          exercise_id: 17,
+          name_ja: 'カーフレイズ',
+          name_en: 'Calf Raises',
+          muscle_group: 'Legs',
+          equipment: '自重',
+          is_compound: 0,
+        },
+
         // Shoulders
-        { exercise_id: 18, name_ja: 'ショルダープレス', name_en: 'Shoulder Press', muscle_group: 'Shoulders', equipment: 'ダンベル', is_compound: 1 },
-        { exercise_id: 19, name_ja: 'ラテラルレイズ', name_en: 'Lateral Raises', muscle_group: 'Shoulders', equipment: 'ダンベル', is_compound: 0 },
-        { exercise_id: 20, name_ja: 'フロントレイズ', name_en: 'Front Raises', muscle_group: 'Shoulders', equipment: 'ダンベル', is_compound: 0 },
-        { exercise_id: 21, name_ja: 'リアデルトフライ', name_en: 'Rear Delt Fly', muscle_group: 'Shoulders', equipment: 'ダンベル', is_compound: 0 },
-        { exercise_id: 22, name_ja: 'アップライトロウ', name_en: 'Upright Rows', muscle_group: 'Shoulders', equipment: 'バーベル', is_compound: 0 },
-        
+        {
+          exercise_id: 18,
+          name_ja: 'ショルダープレス',
+          name_en: 'Shoulder Press',
+          muscle_group: 'Shoulders',
+          equipment: 'ダンベル',
+          is_compound: 1,
+        },
+        {
+          exercise_id: 19,
+          name_ja: 'ラテラルレイズ',
+          name_en: 'Lateral Raises',
+          muscle_group: 'Shoulders',
+          equipment: 'ダンベル',
+          is_compound: 0,
+        },
+        {
+          exercise_id: 20,
+          name_ja: 'フロントレイズ',
+          name_en: 'Front Raises',
+          muscle_group: 'Shoulders',
+          equipment: 'ダンベル',
+          is_compound: 0,
+        },
+        {
+          exercise_id: 21,
+          name_ja: 'リアデルトフライ',
+          name_en: 'Rear Delt Fly',
+          muscle_group: 'Shoulders',
+          equipment: 'ダンベル',
+          is_compound: 0,
+        },
+        {
+          exercise_id: 22,
+          name_ja: 'アップライトロウ',
+          name_en: 'Upright Rows',
+          muscle_group: 'Shoulders',
+          equipment: 'バーベル',
+          is_compound: 0,
+        },
+
         // Arms
-        { exercise_id: 23, name_ja: 'バイセップカール', name_en: 'Bicep Curls', muscle_group: 'Arms', equipment: 'ダンベル', is_compound: 0 },
-        { exercise_id: 24, name_ja: 'トライセップディップ', name_en: 'Tricep Dips', muscle_group: 'Arms', equipment: '自重', is_compound: 0 },
-        { exercise_id: 25, name_ja: 'ハンマーカール', name_en: 'Hammer Curls', muscle_group: 'Arms', equipment: 'ダンベル', is_compound: 0 },
-        { exercise_id: 26, name_ja: 'トライセッププッシュダウン', name_en: 'Tricep Pushdowns', muscle_group: 'Arms', equipment: 'ケーブル', is_compound: 0 },
-        { exercise_id: 27, name_ja: 'プリーチャーカール', name_en: 'Preacher Curls', muscle_group: 'Arms', equipment: 'マシン', is_compound: 0 },
-        
-        
+        {
+          exercise_id: 23,
+          name_ja: 'バイセップカール',
+          name_en: 'Bicep Curls',
+          muscle_group: 'Arms',
+          equipment: 'ダンベル',
+          is_compound: 0,
+        },
+        {
+          exercise_id: 24,
+          name_ja: 'トライセップディップ',
+          name_en: 'Tricep Dips',
+          muscle_group: 'Arms',
+          equipment: '自重',
+          is_compound: 0,
+        },
+        {
+          exercise_id: 25,
+          name_ja: 'ハンマーカール',
+          name_en: 'Hammer Curls',
+          muscle_group: 'Arms',
+          equipment: 'ダンベル',
+          is_compound: 0,
+        },
+        {
+          exercise_id: 26,
+          name_ja: 'トライセッププッシュダウン',
+          name_en: 'Tricep Pushdowns',
+          muscle_group: 'Arms',
+          equipment: 'ケーブル',
+          is_compound: 0,
+        },
+        {
+          exercise_id: 27,
+          name_ja: 'プリーチャーカール',
+          name_en: 'Preacher Curls',
+          muscle_group: 'Arms',
+          equipment: 'マシン',
+          is_compound: 0,
+        },
+
         // Cardio
-        { exercise_id: 28, name_ja: 'トレッドミル', name_en: 'Treadmill Running', muscle_group: '有酸素', equipment: 'マシン', is_compound: 0 },
-        { exercise_id: 29, name_ja: 'サイクリング', name_en: 'Cycling', muscle_group: '有酸素', equipment: 'マシン', is_compound: 0 },
-        { exercise_id: 30, name_ja: 'ローイングマシン', name_en: 'Rowing Machine', muscle_group: '有酸素', equipment: 'マシン', is_compound: 0 },
-        { exercise_id: 31, name_ja: '縄跳び', name_en: 'Jump Rope', muscle_group: '有酸素', equipment: '自重', is_compound: 0 },
-        { exercise_id: 32, name_ja: '水泳', name_en: 'Swimming', muscle_group: '有酸素', equipment: 'その他', is_compound: 0 },
-        { exercise_id: 33, name_ja: 'ハイキング', name_en: 'Hiking', muscle_group: '有酸素', equipment: 'その他', is_compound: 0 }
+        {
+          exercise_id: 28,
+          name_ja: 'トレッドミル',
+          name_en: 'Treadmill Running',
+          muscle_group: 'Cardio',
+          equipment: 'マシン',
+          is_compound: 0,
+        },
+        {
+          exercise_id: 29,
+          name_ja: 'サイクリング',
+          name_en: 'Cycling',
+          muscle_group: 'Cardio',
+          equipment: 'マシン',
+          is_compound: 0,
+        },
+        {
+          exercise_id: 30,
+          name_ja: 'ローイングマシン',
+          name_en: 'Rowing Machine',
+          muscle_group: 'Cardio',
+          equipment: 'マシン',
+          is_compound: 0,
+        },
+        {
+          exercise_id: 31,
+          name_ja: '縄跳び',
+          name_en: 'Jump Rope',
+          muscle_group: 'Cardio',
+          equipment: '自重',
+          is_compound: 0,
+        },
+        {
+          exercise_id: 32,
+          name_ja: '水泳',
+          name_en: 'Swimming',
+          muscle_group: 'Cardio',
+          equipment: 'その他',
+          is_compound: 0,
+        },
+        {
+          exercise_id: 33,
+          name_ja: 'ハイキング',
+          name_en: 'Hiking',
+          muscle_group: 'Cardio',
+          equipment: 'その他',
+          is_compound: 0,
+        },
       ];
 
       insertedCount = 0;
@@ -292,7 +667,14 @@ class DatabaseService {
         if (!existing) {
           await this.db.runAsync(
             'INSERT INTO exercise_master (exercise_id, name_ja, name_en, muscle_group, equipment, is_compound) VALUES (?, ?, ?, ?, ?, ?)',
-            [exercise.exercise_id, exercise.name_ja, exercise.name_en, exercise.muscle_group, exercise.equipment, exercise.is_compound]
+            [
+              exercise.exercise_id,
+              exercise.name_ja,
+              exercise.name_en,
+              exercise.muscle_group,
+              exercise.equipment,
+              exercise.is_compound,
+            ]
           );
           insertedCount++;
         }
@@ -322,9 +704,11 @@ class DatabaseService {
   }
 
   // トランザクション実行のヘルパーメソッド
-  async runTransaction(callback: (db: SQLite.SQLiteDatabase) => Promise<void>): Promise<void> {
+  async runTransaction(
+    callback: (db: SQLite.SQLiteDatabase) => Promise<void>
+  ): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
-    
+
     return await this.db.withTransactionAsync(async () => {
       return await callback(this.db!);
     });
@@ -338,12 +722,12 @@ class DatabaseService {
   // データ操作のヘルパーメソッド
   async getAllAsync<T>(sql: string, params?: any[]): Promise<T[]> {
     if (!this.db) throw new Error('Database not initialized');
-    return await this.db.getAllAsync(sql, params || []) as T[];
+    return (await this.db.getAllAsync(sql, params || [])) as T[];
   }
 
   async getFirstAsync<T>(sql: string, params?: any[]): Promise<T | null> {
     if (!this.db) throw new Error('Database not initialized');
-    return await this.db.getFirstAsync(sql, params || []) as T | null;
+    return (await this.db.getFirstAsync(sql, params || [])) as T | null;
   }
 
   async runAsync(sql: string, params?: any[]): Promise<SQLite.SQLiteRunResult> {
@@ -359,15 +743,19 @@ class DatabaseService {
   // エクスポート用メソッド
   async exportToJSON(): Promise<string> {
     const data: any = {};
-    
+
     // 全テーブルのデータを取得
     data.food_db = await this.getAllAsync('SELECT * FROM food_db');
     data.food_log = await this.getAllAsync('SELECT * FROM food_log');
-    data.workout_session = await this.getAllAsync('SELECT * FROM workout_session');
+    data.workout_session = await this.getAllAsync(
+      'SELECT * FROM workout_session'
+    );
     data.workout_set = await this.getAllAsync('SELECT * FROM workout_set');
-    data.exercise_master = await this.getAllAsync('SELECT * FROM exercise_master');
+    data.exercise_master = await this.getAllAsync(
+      'SELECT * FROM exercise_master'
+    );
     data.user_settings = await this.getAllAsync('SELECT * FROM user_settings');
-    
+
     return JSON.stringify(data, null, 2);
   }
 
@@ -375,9 +763,9 @@ class DatabaseService {
   async importFromJSON(jsonString: string): Promise<void> {
     try {
       const data = JSON.parse(jsonString);
-      
+
       // トランザクション内で全データをインポート
-      await this.runTransaction(async (db) => {
+      await this.runTransaction(async db => {
         // データをインポート
         if (data.food_db) {
           for (const item of data.food_db) {
@@ -387,7 +775,7 @@ class DatabaseService {
             );
           }
         }
-        
+
         if (data.exercise_master) {
           for (const item of data.exercise_master) {
             await db.runAsync(
@@ -399,7 +787,7 @@ class DatabaseService {
 
         // 他のテーブルも同様に処理
       });
-      
+
       console.log('Data imported successfully');
     } catch (error) {
       console.error('Import error:', error);
