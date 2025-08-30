@@ -168,18 +168,31 @@ export const useWorkoutScreen = () => {
     setCurrentView('exercise-selection');
   };
 
-  const handleRecordWorkout = async (exerciseName: string, sets: WorkoutSet[]) => {
-    console.log('🚀 handleRecordWorkout called:', { exerciseName, sets, selectedExercise });
-    
+  const handleRecordWorkout = async (
+    exerciseName: string,
+    sets: WorkoutSet[]
+  ) => {
+    console.log('🚀 handleRecordWorkout called:', {
+      exerciseName,
+      sets,
+      selectedExercise,
+    });
+
+    if (!selectedExercise) {
+      console.error('❌ No selected exercise');
+      return;
+    }
+
     const newExercise: Exercise = {
-      id: selectedExercise?.id || `recorded-${Date.now()}`,
+      id: selectedExercise.id,
       name: exerciseName,
-      sets: sets.map(set => ({ ...set })),
+      category: selectedExercise.category,
+      sets: sets,
       isExpanded: true,
-      type: selectedExercise?.category === 'Cardio' ? 'cardio' : 'strength',
+      type: selectedExercise.category === '有酸素' ? 'cardio' : 'strength',
     };
 
-    console.log('📝 Created exercise object:', newExercise);
+    console.log('🔧 Creating exercise with category:', selectedExercise.category, 'type:', newExercise.type);
 
     try {
       await addExercise(newExercise);
@@ -187,6 +200,7 @@ export const useWorkoutScreen = () => {
       setCurrentView('main');
     } catch (error) {
       console.error('❌ Failed to record exercise:', error);
+      Alert.alert('エラー', 'ワークアウトの記録に失敗しました');
     }
   };
 

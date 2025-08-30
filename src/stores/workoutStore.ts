@@ -82,9 +82,10 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
           exerciseMap.set(exerciseId, {
             id: exerciseId,
             name: exerciseName,
+            category: row.muscle_group,
             sets: [],
             isExpanded: true,
-            type: row.muscle_group === 'cardio' ? 'cardio' : 'strength',
+            type: row.muscle_group === '有酸素' ? 'cardio' : 'strength',
           });
         }
 
@@ -103,6 +104,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       });
 
       const exercises = Array.from(exerciseMap.values());
+      console.log('📊 Loaded exercises with types:', exercises.map(ex => ({ name: ex.name, category: ex.category, type: ex.type })));
       set({ exercises, isLoading: false });
     } catch (error) {
       set({ isLoading: false });
@@ -128,25 +130,36 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
         [exerciseId]
       );
 
+      // categoryベースでtypeを正しく判定
+      const correctType = exercise.category === '有酸素' ? 'cardio' : 'strength';
+      
       if (!existingExercise) {
         await DatabaseService.runAsync(
           'INSERT INTO exercise_master (exercise_id, name_ja, muscle_group) VALUES (?, ?, ?)',
           [
             exerciseId,
             exercise.name,
-            exercise.type === 'cardio' ? 'cardio' : 'strength',
+            exercise.category || (correctType === 'cardio' ? '有酸素' : 'その他'),
           ]
         );
       }
 
+      // 正しいtypeでexerciseオブジェクトを作成
+      const exerciseWithCorrectType = {
+        ...exercise,
+        type: correctType
+      };
+
+      console.log('🔧 Exercise type corrected:', { category: exercise.category, type: correctType });
+
       // 各セットをworkout_setに追加
       for (const [index, workoutSet] of exercise.sets.entries()) {
-        if (exercise.type === 'cardio') {
+        if (correctType === 'cardio') {
           // 有酸素運動の場合
           await DatabaseService.runAsync(
             `INSERT INTO workout_set (
-              session_id, exercise_id, set_number, time_minutes, distance_km
-            ) VALUES (?, ?, ?, ?, ?)`,
+              session_id, exercise_id, set_number, time_minutes, distance_km, weight_kg, reps
+            ) VALUES (?, ?, ?, ?, ?, 0, 0)`,
             [
               currentSessionId,
               exerciseId,
@@ -159,8 +172,8 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
           // 筋力トレーニングの場合
           await DatabaseService.runAsync(
             `INSERT INTO workout_set (
-              session_id, exercise_id, set_number, weight_kg, reps
-            ) VALUES (?, ?, ?, ?, ?)`,
+              session_id, exercise_id, set_number, weight_kg, reps, time_minutes, distance_km
+            ) VALUES (?, ?, ?, ?, ?, NULL, NULL)`,
             [
               currentSessionId,
               exerciseId,
@@ -173,8 +186,8 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       }
 
       set(state => {
-        const updated = [...state.exercises, exercise];
-        console.log('✅ Exercise added to state. Total exercises:', updated.length);
+        const updated = [...state.exercises, exerciseWithCorrectType];
+        console.log('✅ Exercise added with type:', correctType, 'Total exercises:', updated.length);
         return { exercises: updated };
       });
     } catch (error) {

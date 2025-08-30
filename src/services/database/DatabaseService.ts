@@ -715,6 +715,15 @@ class DatabaseService {
           equipment: 'その他',
           is_compound: 0,
         },
+        // その他
+        {
+          exercise_id: 34,
+          name_ja: '腹筋',
+          name_en: 'Sit-ups',
+          muscle_group: 'その他',
+          equipment: 'その他',
+          is_compound: 0,
+        },
       ];
 
       insertedCount = 0;
