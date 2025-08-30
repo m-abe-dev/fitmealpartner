@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Plus, MoreVertical, Edit, Trash2 } from 'lucide-react-native';
 import { colors, typography, spacing, radius, shadows } from '../../../design-system';
 import { ExerciseTemplate } from '../types/workout.types';
-import { exerciseTemplates, categories } from '../data/mockData';
+import { DEFAULT_CATEGORIES } from '../../../constants/categories';
 import { AddExerciseModal } from './AddExerciseModal';
 import DatabaseService from '../../../services/database/DatabaseService';
 
@@ -22,63 +22,55 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
   onBack
 }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [customExercises, setCustomExercises] = useState<ExerciseTemplate[]>([]);
+  const [allExercises, setAllExercises] = useState<ExerciseTemplate[]>([]);
   const [customCategories, setCustomCategories] = useState<string[]>([]);
-  const [hiddenExercises, setHiddenExercises] = useState<string[]>([]);
-  const [editedExercises, setEditedExercises] = useState<{[key: string]: ExerciseTemplate}>({});
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
   const [editingExerciseName, setEditingExerciseName] = useState('');
   const [showDropdown, setShowDropdown] = useState<string | null>(null);
 
-  // 起動時にSQLiteからカスタム種目を読み込み
+  console.log('allExercises:', allExercises);
+  console.log('customCategories', customCategories);
+
+  // 起動時にSQLiteから全種目を読み込み
   useEffect(() => {
-    loadCustomExercises();
+    loadAllExercises();
   }, []);
 
-  const loadCustomExercises = async () => {
+  const loadAllExercises = async () => {
     try {
       await DatabaseService.initialize();
 
-      // 不正なデータをクリーンアップ
-      try {
-        // 'strength' muscle_groupエントリを削除
-        await DatabaseService.runAsync(
-          'DELETE FROM exercise_master WHERE muscle_group = ?',
-          ['strength']
-        );
-        
-        // 重複した種目を削除（デフォルト種目と同じ名前でIDが1000以上のもの）
-        await DatabaseService.runAsync(
-          `DELETE FROM exercise_master 
-           WHERE exercise_id >= 1000 AND (
-             name_ja IN ('Push up', 'Cable Crossover', 'Chest Fly', 'Incline Bench Press') OR
-             muscle_group = 'Chest'
-           )`,
-          []
-        );
-      } catch (error) {
-        console.log('Cleanup error:', error);
-      }
 
-      // カスタム種目を読み込み（IDが1000以上をカスタムとする、strengthは除外）
-      const customExercisesData = await DatabaseService.getAllAsync<any>(
-        'SELECT * FROM exercise_master WHERE exercise_id >= 1000 AND muscle_group != ? ORDER BY name_ja',
-        ['strength']
+      // 全種目を読み込み（デフォルト + カスタム）
+      const allExercisesData = await DatabaseService.getAllAsync<any>(
+        'SELECT * FROM exercise_master ORDER BY muscle_group, exercise_id'
       );
 
+      console.log('📋 exercise_masterテーブルの全データ:', allExercisesData);
 
-      const loadedCustomExercises: ExerciseTemplate[] = customExercisesData.map(ex => ({
+      // workout_setテーブルの履歴も確認
+      const workoutSetsData = await DatabaseService.getAllAsync<any>(
+        'SELECT * FROM workout_set ORDER BY session_id, exercise_id, set_number'
+      );
+      console.log('📋 workout_setテーブルの履歴データ:', workoutSetsData);
+
+      // workout_sessionテーブルも確認
+      const workoutSessionsData = await DatabaseService.getAllAsync<any>(
+        'SELECT * FROM workout_session ORDER BY date DESC'
+      );
+      console.log('📋 workout_sessionテーブルのデータ:', workoutSessionsData);
+
+      const loadedExercises: ExerciseTemplate[] = allExercisesData.map(ex => ({
         id: ex.exercise_id.toString(),
         name: ex.name_ja,
         category: ex.muscle_group
       }));
 
-      // カスタムカテゴリを抽出（既存カテゴリと重複しないもの、strengthも除外）
-      const allCustomCategories = [...new Set(loadedCustomExercises.map(ex => ex.category))];
-      const loadedCustomCategories = allCustomCategories.filter(cat => !categories.includes(cat) && cat !== 'strength');
+      // カスタムカテゴリを抽出（既定カテゴリと重複しないもの）
+      const allCategoriesFromDB = [...new Set(loadedExercises.map(ex => ex.category))];
+      const loadedCustomCategories = allCategoriesFromDB.filter(cat => !(DEFAULT_CATEGORIES.ja as readonly string[]).includes(cat));
 
-
-      setCustomExercises(loadedCustomExercises);
+      setAllExercises(loadedExercises);
       setCustomCategories(loadedCustomCategories);
     } catch (error) {
       console.error('カスタム種目読み込みエラー:', error);
@@ -87,18 +79,12 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
 
   const getAllCategories = () => {
     // 重複を防ぐために、既存カテゴリに含まれていないカスタムカテゴリのみ追加
-    const uniqueCustomCategories = customCategories.filter(cat => !categories.includes(cat));
-    return [...categories, ...uniqueCustomCategories];
+    const uniqueCustomCategories = customCategories.filter(cat => !(DEFAULT_CATEGORIES.ja as readonly string[]).includes(cat));
+    return [...DEFAULT_CATEGORIES.ja, ...uniqueCustomCategories];
   };
 
   const getExercisesByCategory = (category: string) => {
-    // デフォルト種目を取得し、編集されたものは編集版を使用
-    const templateExercises = exerciseTemplates
-      .filter((ex) => ex.category === category && !hiddenExercises.includes(ex.id))
-      .map((ex) => editedExercises[ex.id] || ex); // 編集されたものがあればそれを使用
-
-    const customExercisesForCategory = customExercises.filter((ex) => ex.category === category);
-    return [...templateExercises, ...customExercisesForCategory];
+    return allExercises.filter((ex) => ex.category === category);
   };
 
   const handleAddExercise = async (category: string, exerciseName: string) => {
@@ -120,7 +106,7 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
 
 
       // カスタムカテゴリを追加（既存カテゴリに含まれず、まだカスタムカテゴリにも含まれていない場合のみ）
-      if (!categories.includes(category) && !customCategories.includes(category)) {
+      if (!(DEFAULT_CATEGORIES.ja as readonly string[]).includes(category) && !customCategories.includes(category)) {
         setCustomCategories(prev => [...prev, category]);
       }
 
@@ -131,10 +117,10 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
         category: category,
       };
 
-      setCustomExercises(prev => [...prev, newExercise]);
+      setAllExercises(prev => [...prev, newExercise]);
 
       // 新しく作成されたカテゴリに切り替え
-      if (!categories.includes(category)) {
+      if (!(DEFAULT_CATEGORIES.ja as readonly string[]).includes(category)) {
         onCategoryChange(category);
       }
 
@@ -158,40 +144,35 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
 
     try {
       const exerciseId = parseInt(editingExerciseId || '');
-      
+
       if (exerciseId >= 1000) {
         // カスタム種目の編集（SQLiteを更新）
         console.log('✏️ カスタム種目編集:', { exerciseId, newName: editingExerciseName.trim() });
-        
+
         await DatabaseService.runAsync(
           'UPDATE exercise_master SET name_ja = ? WHERE exercise_id = ?',
           [editingExerciseName.trim(), exerciseId]
         );
-        
+
         // ローカル状態も更新
-        setCustomExercises(prev =>
+        setAllExercises(prev =>
           prev.map(ex =>
             ex.id === editingExerciseId
               ? { ...ex, name: editingExerciseName.trim() }
               : ex
           )
         );
-        
+
         console.log('✅ カスタム種目編集完了');
       } else {
-        // デフォルト種目の編集 - editedExercisesに保存（SQLiteは更新しない）
-        const originalExercise = exerciseTemplates.find(ex => ex.id === editingExerciseId);
-        if (originalExercise && editingExerciseId) {
-          const editedExercise: ExerciseTemplate = {
-            id: editingExerciseId,
-            name: editingExerciseName.trim(),
-            category: originalExercise.category,
-          };
-          setEditedExercises(prev => ({
-            ...prev,
-            [editingExerciseId]: editedExercise
-          }));
-        }
+        // デフォルト種目の編集 - ローカル状態のみ更新（SQLiteは更新しない）
+        setAllExercises(prev =>
+          prev.map(ex =>
+            ex.id === editingExerciseId
+              ? { ...ex, name: editingExerciseName.trim() }
+              : ex
+          )
+        );
       }
 
       setEditingExerciseId(null);
@@ -209,17 +190,7 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
   };
 
   const handleDeleteExercise = (exerciseId: string) => {
-    // カスタム種目から検索
-    let exercise = customExercises.find(ex => ex.id === exerciseId);
-    // 編集されたデフォルト種目から検索
-    if (!exercise) {
-      exercise = editedExercises[exerciseId];
-    }
-    // デフォルト種目からも検索
-    if (!exercise) {
-      exercise = exerciseTemplates.find(ex => ex.id === exerciseId);
-    }
-
+    const exercise = allExercises.find(ex => ex.id === exerciseId);
     if (!exercise) return;
 
     Alert.alert(
@@ -233,31 +204,46 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
           onPress: async () => {
             try {
               const numericId = parseInt(exerciseId);
-              
+
               if (numericId >= 1000) {
                 // カスタム種目の削除（SQLiteからも削除）
                 console.log('🗑️ カスタム種目削除:', { exerciseId, name: exercise.name });
-                
+
                 // 関連するワークアウトセットも削除
                 await DatabaseService.runAsync(
                   'DELETE FROM workout_set WHERE exercise_id = ?',
                   [numericId]
                 );
-                
+
                 // exercise_masterからも削除
                 await DatabaseService.runAsync(
                   'DELETE FROM exercise_master WHERE exercise_id = ?',
                   [numericId]
                 );
-                
+
                 // ローカル状態からも削除
-                setCustomExercises(prev => prev.filter(ex => ex.id !== exerciseId));
-                
+                setAllExercises(prev => {
+                  const updatedExercises = prev.filter(ex => ex.id !== exerciseId);
+
+                  // 削除した種目のカテゴリに他の種目がないかチェック
+                  const deletedExerciseCategory = exercise.category;
+                  const remainingExercisesInCategory = updatedExercises.filter(ex => ex.category === deletedExerciseCategory);
+
+                  // そのカテゴリに種目がなくなり、かつカスタムカテゴリの場合、customCategoriesからも削除
+                  if (remainingExercisesInCategory.length === 0 && !(DEFAULT_CATEGORIES.ja as readonly string[]).includes(deletedExerciseCategory)) {
+                    setCustomCategories(prevCategories =>
+                      prevCategories.filter(cat => cat !== deletedExerciseCategory)
+                    );
+                  }
+
+                  return updatedExercises;
+                });
+
                 console.log('✅ カスタム種目削除完了');
                 Alert.alert('成功', `${exercise.name}を削除しました`);
               } else {
-                // デフォルト種目の場合、非表示リストに追加
-                setHiddenExercises(prev => [...prev, exerciseId]);
+                // デフォルト種目の場合、ローカル状態から削除（非表示）
+                setAllExercises(prev => prev.filter(ex => ex.id !== exerciseId));
               }
               setShowDropdown(null);
             } catch (error) {
@@ -274,7 +260,7 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={onBack}
           style={styles.headerButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -282,7 +268,7 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
           <ArrowLeft size={20} color={colors.primary.main} />
         </TouchableOpacity>
         <Text style={styles.title}>種目を選択</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => setIsAddModalOpen(true)}
           style={styles.headerButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
