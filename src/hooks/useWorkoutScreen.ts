@@ -15,7 +15,7 @@ export const useWorkoutScreen = () => {
 
   // View state
   const [currentView, setCurrentView] = useState<WorkoutView>('main');
-  const [selectedCategory, setSelectedCategory] = useState<string>('Chest');
+  const [selectedCategory, setSelectedCategory] = useState<string>('胸');
   const [selectedExercise, setSelectedExercise] =
     useState<ExerciseTemplate | null>(null);
 
