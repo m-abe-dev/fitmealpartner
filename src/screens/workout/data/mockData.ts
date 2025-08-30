@@ -92,29 +92,6 @@ export const workoutHistory: WorkoutDay[] = [
   },
 ];
 
-export const initialExercises: Exercise[] = [
-  {
-    id: '1',
-    name: 'Incline Bench Press',
-    isExpanded: true,
-    sets: [
-      { id: '1-1', weight: 65.0, reps: 3, rm: 69.88 },
-      { id: '1-2', weight: 65.0, reps: 3, rm: 69.88 },
-      { id: '1-3', weight: 60.0, reps: 7, rm: 70.5 },
-    ],
-  },
-  {
-    id: '2',
-    name: 'Smith Machine Incline',
-    isExpanded: true,
-    sets: [
-      { id: '2-1', weight: 40.0, reps: 10, rm: 50.0 },
-      { id: '2-2', weight: 45.0, reps: 5, rm: 50.63 },
-      { id: '2-3', weight: 45.0, reps: 4, rm: 50.63 },
-    ],
-  },
-];
-
 export const mockLastRecord: LastRecordSet[] = [
   { set: 1, weight: 15.0, reps: 10 },
   { set: 2, weight: 25.0, reps: 12 },
