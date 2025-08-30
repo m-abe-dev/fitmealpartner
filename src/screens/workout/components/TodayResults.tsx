@@ -15,6 +15,12 @@ export const TodayResults: React.FC<TodayResultsProps> = ({
   isExpanded,
   onToggle
 }) => {
+  // Debug: check for duplicate exercise IDs
+  const exerciseIds = exercises.map(ex => ex.id);
+  const uniqueIds = [...new Set(exerciseIds)];
+  if (exerciseIds.length !== uniqueIds.length) {
+    console.warn('⚠️ Duplicate exercise IDs detected:', exerciseIds);
+  }
   const getStrengthExercises = () => exercises.filter(ex => ex.type !== 'cardio').length;
 
   const getStrengthSets = () => {

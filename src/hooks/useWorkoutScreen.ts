@@ -7,7 +7,6 @@ import {
   WorkoutSet,
   WorkoutDay,
 } from '../screens/workout/types/workout.types';
-import { workoutHistory } from '../screens/workout/data/mockData';
 import { useWorkoutData } from './useWorkoutData';
 
 export const useWorkoutScreen = () => {
@@ -37,17 +36,17 @@ export const useWorkoutScreen = () => {
 
   // Calendar state
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [selectedDayWorkout, setSelectedDayWorkout] =
-    useState<WorkoutDay | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   // Calendar data
   const currentDate = new Date();
   const currentMonth = currentDate.getMonth();
 
-  // Helper functions
-  const getWorkoutForDay = (day: number): WorkoutDay | null => {
-    return workoutHistory.find(workout => workout.date === day) || null;
-  };
+  // Helper functions - no longer needed with SQLite data
+  // const getWorkoutForDay = (day: number): WorkoutDay | null => {
+  //   return workoutHistory.find(workout => workout.date === day) || null;
+  // };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -86,17 +85,14 @@ export const useWorkoutScreen = () => {
   };
 
   // Calendar and preview handlers
-  const handleDayClick = (day: number) => {
-    const workoutData = getWorkoutForDay(day);
-    if (workoutData) {
-      setSelectedDay(day);
-      setSelectedDayWorkout(workoutData);
-    }
+  const handleDayClick = (day: number, month: number, year: number) => {
+    setSelectedDay(day);
+    setSelectedMonth(month);
+    setSelectedYear(year);
   };
 
   const handleClosePreview = () => {
     setSelectedDay(null);
-    setSelectedDayWorkout(null);
   };
 
   // Share functionality
@@ -216,7 +212,8 @@ export const useWorkoutScreen = () => {
     isTodayResultsExpanded,
     exercises,
     selectedDay,
-    selectedDayWorkout,
+    selectedMonth,
+    selectedYear,
     currentMonth,
 
     // State setters

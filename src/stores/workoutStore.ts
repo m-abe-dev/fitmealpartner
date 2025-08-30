@@ -186,8 +186,24 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       }
 
       set(state => {
-        const updated = [...state.exercises, exerciseWithCorrectType];
-        console.log('✅ Exercise added with type:', correctType, 'Total exercises:', updated.length);
+        // Check if exercise with same ID already exists
+        const existingIndex = state.exercises.findIndex(ex => ex.id === exerciseWithCorrectType.id);
+        let updated;
+        
+        if (existingIndex !== -1) {
+          // Update existing exercise instead of adding duplicate
+          updated = state.exercises.map((ex, index) => 
+            index === existingIndex 
+              ? { ...ex, sets: [...ex.sets, ...exerciseWithCorrectType.sets] }
+              : ex
+          );
+          console.log('✅ Exercise updated (merged sets) with type:', correctType);
+        } else {
+          // Add new exercise
+          updated = [...state.exercises, exerciseWithCorrectType];
+          console.log('✅ Exercise added with type:', correctType, 'Total exercises:', updated.length);
+        }
+        
         return { exercises: updated };
       });
     } catch (error) {

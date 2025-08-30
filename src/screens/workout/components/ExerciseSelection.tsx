@@ -144,38 +144,26 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
     try {
       const exerciseId = parseInt(editingExerciseId || '');
 
-      if (exerciseId >= 1000) {
-        // カスタム種目の編集（SQLiteを更新）
-        console.log('✏️ カスタム種目編集:', { exerciseId, newName: editingExerciseName.trim() });
+      // すべての種目をSQLiteに保存
+      console.log('✏️ 種目編集:', { exerciseId, newName: editingExerciseName.trim() });
 
-        await DatabaseService.runAsync(
-          'UPDATE exercise_master SET name_ja = ? WHERE exercise_id = ?',
-          [editingExerciseName.trim(), exerciseId]
-        );
+      await DatabaseService.runAsync(
+        'UPDATE exercise_master SET name_ja = ? WHERE exercise_id = ?',
+        [editingExerciseName.trim(), exerciseId]
+      );
 
-        // ローカル状態も更新
-        setAllExercises(prev =>
-          prev.map(ex =>
-            ex.id === editingExerciseId
-              ? { ...ex, name: editingExerciseName.trim() }
-              : ex
-          )
-        );
-
-        console.log('✅ カスタム種目編集完了');
-      } else {
-        // デフォルト種目の編集 - ローカル状態のみ更新（SQLiteは更新しない）
-        setAllExercises(prev =>
-          prev.map(ex =>
-            ex.id === editingExerciseId
-              ? { ...ex, name: editingExerciseName.trim() }
-              : ex
-          )
-        );
-      }
+      // ローカル状態も更新
+      setAllExercises(prev =>
+        prev.map(ex =>
+          ex.id === editingExerciseId
+            ? { ...ex, name: editingExerciseName.trim() }
+            : ex
+        )
+      );
 
       setEditingExerciseId(null);
       setEditingExerciseName('');
+      console.log('✅ 種目編集完了');
       Alert.alert('成功', '種目名を更新しました');
     } catch (error) {
       console.error('❌ 種目編集エラー:', error);
@@ -194,7 +182,7 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
 
     Alert.alert(
       '確認',
-      `${exercise.name}を削除しますか？`,
+      `${exercise.name}を削除しますか？ 履歴もすべて削除されます。`,
       [
         { text: 'キャンセル', style: 'cancel' },
         {
@@ -369,12 +357,7 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
 
                     {showDropdown === exercise.id && (
                       <Pressable
-                        style={[
-                          styles.dropdown,
-                          // より正確な位置判定：複数項目があり、かつ最後から2番目以降の場合のみ上向き
-                          (index >= getExercisesByCategory(selectedCategory).length - 2 &&
-                           getExercisesByCategory(selectedCategory).length > 1) && styles.dropdownUp
-                        ]}
+                        style={styles.dropdown}
                         onPress={(e) => e.stopPropagation()}
                       >
                         <TouchableOpacity
@@ -579,19 +562,13 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     position: 'absolute',
-    top: '100%',
+    top: '80%',
     right: 0,
     backgroundColor: 'white',
     borderRadius: radius.md,
-    paddingVertical: spacing.xs,
     minWidth: 120,
     ...shadows.md,
     zIndex: 1000,
-  },
-  dropdownUp: {
-    top: undefined,
-    bottom: '100%',
-    marginBottom: spacing.xs,
   },
   dropdownItem: {
     flexDirection: 'row',

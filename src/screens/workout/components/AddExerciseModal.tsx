@@ -15,7 +15,7 @@ import {
 import { X, Plus, ChevronDown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, radius, shadows } from '../../../design-system';
-import { categories } from '../data/mockData';
+import { DEFAULT_CATEGORIES } from '../../../constants/categories';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -92,13 +92,13 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
             新しく追加する
           </Text>
         </TouchableOpacity>
-        {categories.map((category, index) => (
+        {DEFAULT_CATEGORIES.ja.map((category, index) => (
           <TouchableOpacity
             key={category}
             style={[
               styles.dropdownOption,
               selectedCategoryOption === category && styles.dropdownOptionSelected,
-              index === categories.length - 1 && styles.lastDropdownOption
+              index === DEFAULT_CATEGORIES.ja.length - 1 && styles.lastDropdownOption
             ]}
             onPress={() => {
               setSelectedCategoryOption(category);

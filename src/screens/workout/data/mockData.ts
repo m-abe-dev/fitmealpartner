@@ -44,20 +44,3 @@ export const workoutHistory: WorkoutDay[] = [
     score: 92,
   },
 ];
-
-export const categories = ['胸', '背中', '脚', '肩', '腕', '有酸素'];
-
-export const monthNames = [
-  '1月',
-  '2月',
-  '3月',
-  '4月',
-  '5月',
-  '6月',
-  '7月',
-  '8月',
-  '9月',
-  '10月',
-  '11月',
-  '12月',
-];

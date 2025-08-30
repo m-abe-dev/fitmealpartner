@@ -1,26 +1,115 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Modal, TouchableOpacity, ScrollView, StyleSheet, Dimensions } from 'react-native';
 import { X } from 'lucide-react-native';
 import { colors, typography, spacing, radius, shadows } from '../../../design-system';
 import { WorkoutDay } from '../types/workout.types';
+import DatabaseService from '../../../services/database/DatabaseService';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 interface WorkoutPreviewModalProps {
   isVisible: boolean;
   selectedDay: number | null;
-  selectedDayWorkout: WorkoutDay | null;
-  currentMonth: number;
+  selectedMonth: number;
+  selectedYear: number;
   onClose: () => void;
 }
 
 export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
   isVisible,
   selectedDay,
-  selectedDayWorkout,
-  currentMonth,
+  selectedMonth,
+  selectedYear,
   onClose
 }) => {
+  const [workoutData, setWorkoutData] = useState<WorkoutDay | null>(null);
+  
+  useEffect(() => {
+    if (isVisible && selectedDay) {
+      loadWorkoutData();
+    }
+  }, [isVisible, selectedDay, selectedMonth, selectedYear]);
+
+  const loadWorkoutData = async () => {
+    if (!selectedDay) return;
+    
+    try {
+      await DatabaseService.initialize();
+      
+      const dateString = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
+      
+      // セッション情報を取得
+      const session = await DatabaseService.getFirstAsync<any>(
+        'SELECT * FROM workout_session WHERE date = ?',
+        [dateString]
+      );
+      
+      if (!session) {
+        setWorkoutData(null);
+        return;
+      }
+      
+      // ワークアウトデータを取得
+      const workoutSets = await DatabaseService.getAllAsync<any>(
+        `SELECT ws.*, em.name_ja as exercise_name, em.muscle_group
+         FROM workout_set ws
+         LEFT JOIN exercise_master em ON ws.exercise_id = em.exercise_id
+         WHERE ws.session_id = ?
+         ORDER BY ws.exercise_id, ws.set_number`,
+        [session.session_id]
+      );
+      
+      // データを整形
+      const exerciseMap = new Map();
+      let totalSets = 0;
+      let totalVolume = 0;
+      
+      workoutSets.forEach(set => {
+        const exerciseId = set.exercise_id;
+        if (!exerciseMap.has(exerciseId)) {
+          exerciseMap.set(exerciseId, {
+            name: set.exercise_name || `Exercise ${exerciseId}`,
+            sets: [],
+            totalSets: 0,
+            totalReps: 0,
+            maxWeight: 0
+          });
+        }
+        
+        const exercise = exerciseMap.get(exerciseId);
+        exercise.sets.push({
+          setNumber: set.set_number,
+          weight: set.weight_kg || 0,
+          reps: set.reps || 0,
+          time: set.time_minutes,
+          distance: set.distance_km
+        });
+        
+        exercise.totalSets++;
+        exercise.totalReps += set.reps || 0;
+        exercise.maxWeight = Math.max(exercise.maxWeight, set.weight_kg || 0);
+        
+        totalSets++;
+        totalVolume += (set.weight_kg || 0) * (set.reps || 0);
+      });
+      
+      const exercises = Array.from(exerciseMap.values());
+      const score = Math.round(totalVolume / 100);
+      
+      setWorkoutData({
+        date: selectedDay,
+        exercises,
+        totalSets,
+        score
+      });
+    } catch (error) {
+      console.error('Failed to load workout data:', error);
+      setWorkoutData(null);
+    }
+  };
+
+  if (!workoutData) return null;
+
   return (
     <Modal
       visible={isVisible}
@@ -33,10 +122,10 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
           <View style={styles.modalHeader}>
             <View>
               <Text style={styles.modalTitle}>
-                {currentMonth + 1}月{selectedDay}日のワークアウト
+                {selectedMonth + 1}月{selectedDay}日のワークアウト
               </Text>
               <Text style={styles.modalSubtitle}>
-                スコア: {selectedDayWorkout?.score} • {selectedDayWorkout?.totalSets}セット
+                スコア: {workoutData?.score} • {workoutData?.totalSets}セット
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
@@ -45,7 +134,7 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
           </View>
 
           <ScrollView style={styles.modalBody}>
-            {selectedDayWorkout?.exercises.map((exercise, index) => (
+            {workoutData?.exercises.map((exercise, index) => (
               <View key={index} style={styles.modalExercise}>
                 <View style={styles.modalExerciseHeader}>
                   <Text style={styles.modalExerciseName}>{exercise.name}</Text>
@@ -61,7 +150,10 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
                         <Text style={styles.modalSetNumberText}>{set.setNumber}</Text>
                       </View>
                       <Text style={styles.modalSetText}>
-                        {set.weight > 0 ? `${set.weight}kg` : '体重'} × {set.reps}回
+                        {set.time ? 
+                          `${set.time}分${set.distance ? ` • ${set.distance}km` : ''}` :
+                          `${set.weight > 0 ? `${set.weight}kg` : '体重'} × ${set.reps}回`
+                        }
                       </Text>
                     </View>
                   ))}

@@ -160,7 +160,11 @@ export const useScoreData = (
   // exercisesの長さをメモ化して、実際に変更された場合のみ再計算
   const exercisesLength = exercises.length;
   const exercisesHash = useMemo(
-    () => exercises.map(e => `${e.id}-${e.sets.length}`).join(','),
+    () => exercises.map(e => 
+      `${e.id}-${e.sets.length}-${e.sets.map(s => 
+        `${s.weight}-${s.reps}-${s.time || 0}-${s.distance || 0}`
+      ).join(',')}`
+    ).join(','),
     [exercises]
   );
 
