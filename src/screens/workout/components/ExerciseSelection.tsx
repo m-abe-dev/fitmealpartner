@@ -276,7 +276,7 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
         </TouchableOpacity>
       </View>
 
-      <Pressable 
+      <Pressable
         style={styles.pressableContainer}
         onPress={() => setShowDropdown(null)}
       >
@@ -371,8 +371,9 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
                       <Pressable
                         style={[
                           styles.dropdown,
-                          // 最後から2番目以降のアイテムは上向きにメニューを表示
-                          index >= getExercisesByCategory(selectedCategory).length - 2 && styles.dropdownUp
+                          // より正確な位置判定：複数項目があり、かつ最後から2番目以降の場合のみ上向き
+                          (index >= getExercisesByCategory(selectedCategory).length - 2 &&
+                           getExercisesByCategory(selectedCategory).length > 1) && styles.dropdownUp
                         ]}
                         onPress={(e) => e.stopPropagation()}
                       >
@@ -507,7 +508,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     overflow: 'hidden',
     ...shadows.sm,
-    paddingBottom: spacing.xl * 2, // ドロップダウンメニュー用に十分なスペースを確保
+    paddingBottom: spacing.xl * 5, // ドロップダウンメニュー用に十分なスペースを確保
   },
   exerciseItem: {
     flexDirection: 'row',
