@@ -131,7 +131,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       );
 
       // categoryベースでtypeを正しく判定
-      const correctType = exercise.category === '有酸素' ? 'cardio' : 'strength';
+      const correctType: 'cardio' | 'strength' = exercise.category === '有酸素' ? 'cardio' : 'strength';
       
       if (!existingExercise) {
         await DatabaseService.runAsync(
@@ -145,7 +145,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       }
 
       // 正しいtypeでexerciseオブジェクトを作成
-      const exerciseWithCorrectType = {
+      const exerciseWithCorrectType: Exercise = {
         ...exercise,
         type: correctType
       };
