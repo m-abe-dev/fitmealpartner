@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, TextInput, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Plus, MoreVertical, Edit, Trash2 } from 'lucide-react-native';
 import { colors, typography, spacing, radius, shadows } from '../../../design-system';
@@ -133,7 +133,6 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
   const handleEditExercise = (exercise: ExerciseTemplate) => {
     setEditingExerciseId(exercise.id);
     setEditingExerciseName(exercise.name);
-    setShowDropdown(null);
   };
 
   const handleSaveEdit = async () => {
@@ -277,11 +276,15 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      <Pressable 
+        style={styles.pressableContainer}
+        onPress={() => setShowDropdown(null)}
       >
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoidingView}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
 
       {/* Category Selection */}
       <View style={styles.categorySection}>
@@ -365,26 +368,35 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
                     </TouchableOpacity>
 
                     {showDropdown === exercise.id && (
-                      <View style={[
-                        styles.dropdown,
-                        // 最後から2番目以降のアイテムは上向きにメニューを表示
-                        index >= getExercisesByCategory(selectedCategory).length - 2 && styles.dropdownUp
-                      ]}>
+                      <Pressable
+                        style={[
+                          styles.dropdown,
+                          // 最後から2番目以降のアイテムは上向きにメニューを表示
+                          index >= getExercisesByCategory(selectedCategory).length - 2 && styles.dropdownUp
+                        ]}
+                        onPress={(e) => e.stopPropagation()}
+                      >
                         <TouchableOpacity
                           style={styles.dropdownItem}
-                          onPress={() => handleEditExercise(exercise)}
+                          onPress={() => {
+                            handleEditExercise(exercise);
+                            setShowDropdown(null);
+                          }}
                         >
                           <Edit size={16} color={colors.text.secondary} />
                           <Text style={styles.dropdownText}>編集</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={[styles.dropdownItem, styles.deleteItem]}
-                          onPress={() => handleDeleteExercise(exercise.id)}
+                          onPress={() => {
+                            handleDeleteExercise(exercise.id);
+                            setShowDropdown(null);
+                          }}
                         >
                           <Trash2 size={16} color={colors.status.error} />
                           <Text style={styles.deleteText}>削除</Text>
                         </TouchableOpacity>
-                      </View>
+                      </Pressable>
                     )}
                   </View>
                 </>
@@ -393,7 +405,8 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
           ))}
         </ScrollView>
       </View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </Pressable>
 
       {/* Add Exercise Modal */}
       <AddExerciseModal
@@ -409,6 +422,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.gray[50],
+  },
+  pressableContainer: {
+    flex: 1,
   },
   keyboardAvoidingView: {
     flex: 1,
