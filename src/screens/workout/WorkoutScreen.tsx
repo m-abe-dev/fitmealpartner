@@ -30,7 +30,8 @@ export const WorkoutScreen: React.FC = () => {
     isTodayResultsExpanded,
     exercises,
     selectedDay,
-    selectedDayWorkout,
+    selectedMonth,
+    selectedYear,
     currentMonth,
     setSelectedCategory,
     setIsTodayResultsExpanded,
@@ -119,10 +120,10 @@ export const WorkoutScreen: React.FC = () => {
 
         {/* Workout Preview Modal */}
         <WorkoutPreviewModal
-          isVisible={selectedDay !== null && selectedDayWorkout !== null}
+          isVisible={selectedDay !== null}
           selectedDay={selectedDay}
-          selectedDayWorkout={selectedDayWorkout}
-          currentMonth={currentMonth}
+          selectedMonth={selectedMonth}
+          selectedYear={selectedYear}
           onClose={handleClosePreview}
         />
       </ScrollView>

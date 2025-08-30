@@ -34,7 +34,13 @@ export interface WorkoutDay {
   date: number;
   exercises: {
     name: string;
-    sets: { setNumber: number; weight: number; reps: number }[];
+    sets: { 
+      setNumber: number; 
+      weight: number; 
+      reps: number;
+      time?: number;
+      distance?: number;
+    }[];
     totalSets: number;
     totalReps: number;
     maxWeight: number;
