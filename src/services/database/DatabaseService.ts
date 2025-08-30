@@ -219,17 +219,12 @@ class DatabaseService {
       // カテゴリ名を日本語に統一
       const categoryMappings = [
         ['Chest', '胸'],
-        ['Back', '背中'], 
-        ['Legs', '脚'],
-        ['Shoulders', '肩'],
-        ['Arms', '腕'],
+        ['Back', '背中'],
+        ['Leg', '脚'],
+        ['Shoulder', '肩'],
+        ['Arm', '腕'],
         ['Cardio', '有酸素'],
-        ['cardio', '有酸素'],
-        ['大胸筋', '胸'],
-        ['上腕二頭筋', '腕'],
-        ['上腕三頭筋', '腕'],
-        ['腹筋', '腹筋'],
-        ['未分類', 'その他']
+        ['Other', 'その他'],
       ];
 
       for (const [oldName, newName] of categoryMappings) {

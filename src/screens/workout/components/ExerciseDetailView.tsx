@@ -44,7 +44,7 @@ export const ExerciseDetailView: React.FC<ExerciseDetailViewProps> = ({
   onBack,
   onRecordWorkout
 }) => {
-  const isCardio = exercise?.category === 'Cardio';
+  const isCardio = exercise?.category === '有酸素';
 
   const [currentSets, setCurrentSets] = useState<SetInputs[]>([
     { id: 1, weight: "", reps: "", time: "", distance: "" },
