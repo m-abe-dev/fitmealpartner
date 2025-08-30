@@ -168,7 +168,9 @@ export const useWorkoutScreen = () => {
     setCurrentView('exercise-selection');
   };
 
-  const handleRecordWorkout = (exerciseName: string, sets: WorkoutSet[]) => {
+  const handleRecordWorkout = async (exerciseName: string, sets: WorkoutSet[]) => {
+    console.log('🚀 handleRecordWorkout called:', { exerciseName, sets, selectedExercise });
+    
     const newExercise: Exercise = {
       id: selectedExercise?.id || `recorded-${Date.now()}`,
       name: exerciseName,
@@ -177,8 +179,15 @@ export const useWorkoutScreen = () => {
       type: selectedExercise?.category === 'Cardio' ? 'cardio' : 'strength',
     };
 
-    addExercise(newExercise);
-    setCurrentView('main');
+    console.log('📝 Created exercise object:', newExercise);
+
+    try {
+      await addExercise(newExercise);
+      console.log('✅ Exercise recorded successfully');
+      setCurrentView('main');
+    } catch (error) {
+      console.error('❌ Failed to record exercise:', error);
+    }
   };
 
   return {

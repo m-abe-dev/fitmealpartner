@@ -189,6 +189,27 @@ class DatabaseService {
     try {
       console.log('Running data migration...');
 
+      // workout_setテーブルに有酸素運動用カラムを追加
+      try {
+        await this.db.execAsync(`
+          ALTER TABLE workout_set ADD COLUMN time_minutes REAL;
+        `);
+        console.log('Added time_minutes column to workout_set');
+      } catch (error) {
+        // カラムが既に存在する場合はエラーを無視
+        console.log('time_minutes column already exists or error:', error);
+      }
+
+      try {
+        await this.db.execAsync(`
+          ALTER TABLE workout_set ADD COLUMN distance_km REAL;
+        `);
+        console.log('Added distance_km column to workout_set');
+      } catch (error) {
+        // カラムが既に存在する場合はエラーを無視
+        console.log('distance_km column already exists or error:', error);
+      }
+
       // ID 19-33の不要データを削除
       await this.db.runAsync(
         'DELETE FROM exercise_master WHERE exercise_id BETWEEN 19 AND 33',

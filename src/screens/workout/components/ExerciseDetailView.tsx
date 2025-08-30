@@ -19,7 +19,7 @@ import DatabaseService from '../../../services/database/DatabaseService';
 interface ExerciseDetailViewProps {
   exercise: ExerciseTemplate | null;
   onBack: () => void;
-  onRecordWorkout: (exerciseName: string, sets: WorkoutSet[]) => void;
+  onRecordWorkout: (exerciseName: string, sets: WorkoutSet[]) => Promise<void>;
 }
 
 interface LastRecord {
@@ -190,7 +190,7 @@ export const ExerciseDetailView: React.FC<ExerciseDetailViewProps> = ({
     Alert.alert('成功', `${lastRecord.length}セットの履歴をコピーしました`);
   };
 
-  const handleRecord = () => {
+  const handleRecord = async () => {
     let validSets;
 
     if (isCardio) {
@@ -236,9 +236,15 @@ export const ExerciseDetailView: React.FC<ExerciseDetailViewProps> = ({
       }
     });
 
-    onRecordWorkout(exercise?.name || "Unknown Exercise", exerciseSets);
-    Alert.alert('成功', `${exercise?.name}を記録しました`);
-    onBack();
+    console.log('📤 Calling onRecordWorkout with:', exercise?.name, exerciseSets);
+    try {
+      await onRecordWorkout(exercise?.name || "Unknown Exercise", exerciseSets);
+      Alert.alert('成功', `${exercise?.name}を記録しました`);
+      onBack();
+    } catch (error) {
+      console.error('❌ Record workout failed:', error);
+      Alert.alert('エラー', 'ワークアウトの記録に失敗しました');
+    }
   };
 
   const addSet = () => {

@@ -93,8 +93,8 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
           id: row.set_id?.toString() || `${Date.now()}-${exercise.sets.length}`,
           weight: row.weight_kg || 0,
           reps: row.reps || 0,
-          time: row.time_minutes,
-          distance: row.distance_km,
+          time: row.time_minutes || undefined,
+          distance: row.distance_km || undefined,
           rm:
             row.weight_kg && row.reps
               ? Math.round(row.weight_kg * (1 + row.reps / 30) * 100) / 100
@@ -110,8 +110,14 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   },
 
   addExercise: async exercise => {
+    console.log('🎯 addExercise called with:', exercise);
     const { currentSessionId } = get();
-    if (!currentSessionId) return;
+    
+    if (!currentSessionId) {
+      console.error('❌ No current session ID');
+      return;
+    }
+    console.log('✅ Current session ID:', currentSessionId);
 
     try {
       // exercise_masterに種目を追加/取得
@@ -135,27 +141,44 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
 
       // 各セットをworkout_setに追加
       for (const [index, workoutSet] of exercise.sets.entries()) {
-        await DatabaseService.runAsync(
-          `INSERT INTO workout_set (
-            session_id, exercise_id, set_number, weight_kg, reps, time_minutes, distance_km
-          ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [
-            currentSessionId,
-            exerciseId,
-            index + 1,
-            workoutSet.weight || null,
-            workoutSet.reps || null,
-            workoutSet.time || null,
-            workoutSet.distance || null,
-          ]
-        );
+        if (exercise.type === 'cardio') {
+          // 有酸素運動の場合
+          await DatabaseService.runAsync(
+            `INSERT INTO workout_set (
+              session_id, exercise_id, set_number, time_minutes, distance_km
+            ) VALUES (?, ?, ?, ?, ?)`,
+            [
+              currentSessionId,
+              exerciseId,
+              index + 1,
+              workoutSet.time || 0,
+              workoutSet.distance || 0,
+            ]
+          );
+        } else {
+          // 筋力トレーニングの場合
+          await DatabaseService.runAsync(
+            `INSERT INTO workout_set (
+              session_id, exercise_id, set_number, weight_kg, reps
+            ) VALUES (?, ?, ?, ?, ?)`,
+            [
+              currentSessionId,
+              exerciseId,
+              index + 1,
+              workoutSet.weight || 0,
+              workoutSet.reps || 0,
+            ]
+          );
+        }
       }
 
       set(state => {
         const updated = [...state.exercises, exercise];
+        console.log('✅ Exercise added to state. Total exercises:', updated.length);
         return { exercises: updated };
       });
     } catch (error) {
+      console.error('❌ addExercise error:', error);
       throw error;
     }
   },
