@@ -50,7 +50,6 @@ export const ExerciseDetailView: React.FC<ExerciseDetailViewProps> = ({
     { id: 1, weight: "", reps: "", time: "", distance: "" },
     { id: 2, weight: "", reps: "", time: "", distance: "" },
     { id: 3, weight: "", reps: "", time: "", distance: "" },
-    { id: 4, weight: "", reps: "", time: "", distance: "" },
   ]);
 
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lbs'>('kg');
