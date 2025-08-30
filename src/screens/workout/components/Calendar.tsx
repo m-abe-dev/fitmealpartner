@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-nati
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { colors, typography, spacing, radius, shadows } from '../../../design-system';
 import { WorkoutDay } from '../types/workout.types';
-import { workoutHistory, monthNames } from '../data/mockData';
+import { workoutHistory } from '../data/mockData';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -15,13 +15,28 @@ export const Calendar: React.FC<CalendarProps> = ({ onDayClick }) => {
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
-  
+
   const today = currentDate.getDate();
   const todayMonth = currentDate.getMonth();
   const todayYear = currentDate.getFullYear();
 
   const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
   const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1).getDay();
+
+ const monthNames = [
+  '1月',
+  '2月',
+  '3月',
+  '4月',
+  '5月',
+  '6月',
+  '7月',
+  '8月',
+  '9月',
+  '10月',
+  '11月',
+  '12月',
+];
 
   // Create calendar days
   const calendarDays = [];
@@ -66,12 +81,12 @@ export const Calendar: React.FC<CalendarProps> = ({ onDayClick }) => {
         <TouchableOpacity onPress={goToPreviousMonth} style={styles.navButton}>
           <ChevronLeft size={20} color={colors.text.secondary} />
         </TouchableOpacity>
-        
+
         <View style={styles.monthYearContainer}>
           <Text style={styles.monthText}>{monthNames[selectedMonth]}</Text>
           <Text style={styles.yearText}>{selectedYear}</Text>
         </View>
-        
+
         <TouchableOpacity onPress={goToNextMonth} style={styles.navButton}>
           <ChevronRight size={20} color={colors.text.secondary} />
         </TouchableOpacity>
