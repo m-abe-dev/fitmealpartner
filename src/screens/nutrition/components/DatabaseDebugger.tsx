@@ -11,29 +11,29 @@ export const DatabaseDebugger = () => {
       // ローカルタイムゾーンで今日の日付を取得
       const today = new Date();
       const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      
+
       const foodLogs = await DatabaseService.getAllAsync(
         'SELECT * FROM food_log WHERE date = ?',
         [todayString]
       );
-      
+
       const allLogs = await DatabaseService.getAllAsync(
         'SELECT * FROM food_log'
       );
-      
+
       // 日付別ログ数を確認
       const logsByDate = await DatabaseService.getAllAsync(
         'SELECT date, COUNT(*) as count FROM food_log GROUP BY date ORDER BY date DESC'
       );
-      
+
       const foodDb = await DatabaseService.getAllAsync(
         'SELECT * FROM food_db'
       );
-      
+
       const favorites = await DatabaseService.getAllAsync(
         'SELECT * FROM food_favorites'
       );
-      
+
       setDbInfo({
         todayLogs: foodLogs.length,
         totalLogs: allLogs.length,
@@ -43,13 +43,7 @@ export const DatabaseDebugger = () => {
         timestamp: new Date().toLocaleTimeString(),
         searchDate: todayString
       });
-      
-      console.log('=== データベース状態 ===');
-      console.log('検索日付:', todayString);
-      console.log('今日のログ:', foodLogs);
-      console.log('日付別ログ数:', logsByDate);
-      console.log('全ログ数:', allLogs.length);
-      console.log('==================');
+
     } catch (error) {
       console.error('DB確認エラー:', error);
     }
@@ -68,19 +62,19 @@ export const DatabaseDebugger = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>🗄️ DB Debug</Text>
-      
+
       <TouchableOpacity style={styles.button} onPress={checkDatabase}>
         <Text style={styles.buttonText}>データベース確認</Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity style={[styles.button, styles.dangerButton]} onPress={clearTodayData}>
         <Text style={styles.buttonText}>今日のデータを削除</Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity style={styles.button} onPress={() => console.log('現在のdbInfo:', dbInfo)}>
         <Text style={styles.buttonText}>ログ出力</Text>
       </TouchableOpacity>
-      
+
       <View style={styles.info}>
         <Text style={styles.infoText}>検索日付: {dbInfo.searchDate}</Text>
         <Text style={styles.infoText}>今日: {dbInfo.todayLogs || 0}件</Text>

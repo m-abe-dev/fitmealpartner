@@ -1,43 +1,44 @@
 import { useState, useRef, useEffect } from 'react';
 import { ScrollView, Alert } from 'react-native';
-import { WorkoutView, Exercise, ExerciseTemplate, WorkoutSet, WorkoutDay } from '../screens/workout/types/workout.types';
+import {
+  WorkoutView,
+  Exercise,
+  ExerciseTemplate,
+  WorkoutSet,
+  WorkoutDay,
+} from '../screens/workout/types/workout.types';
 import { workoutHistory } from '../screens/workout/data/mockData';
 import { useWorkoutData } from './useWorkoutData';
 
 export const useWorkoutScreen = () => {
   const scrollViewRef = useRef<ScrollView>(null);
-  
+
   // View state
-  const [currentView, setCurrentView] = useState<WorkoutView>("main");
-  const [selectedCategory, setSelectedCategory] = useState<string>("Chest");
-  const [selectedExercise, setSelectedExercise] = useState<ExerciseTemplate | null>(null);
-  
+  const [currentView, setCurrentView] = useState<WorkoutView>('main');
+  const [selectedCategory, setSelectedCategory] = useState<string>('胸');
+  const [selectedExercise, setSelectedExercise] =
+    useState<ExerciseTemplate | null>(null);
+
   // UI state
   const [refreshing, setRefreshing] = useState(false);
   const [isTodayResultsExpanded, setIsTodayResultsExpanded] = useState(false);
-  
+
   // Shared workout data
-  const { 
-    exercises, 
-    subscribe, 
-    addSet, 
+  const {
+    exercises,
+    addSet,
     updateSet,
-    deleteSet, 
+    deleteSet,
     deleteExercise,
     updateExercise,
     addExercise,
-    toggleExerciseExpansion: toggleExerciseExpansionData
+    toggleExerciseExpansion: toggleExerciseExpansionData,
   } = useWorkoutData();
-  
+
   // Calendar state
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [selectedDayWorkout, setSelectedDayWorkout] = useState<WorkoutDay | null>(null);
-
-  // Subscribe to workout data changes
-  useEffect(() => {
-    const unsubscribe = subscribe();
-    return unsubscribe;
-  }, [subscribe]);
+  const [selectedDayWorkout, setSelectedDayWorkout] =
+    useState<WorkoutDay | null>(null);
 
   // Calendar data
   const currentDate = new Date();
@@ -69,7 +70,12 @@ export const useWorkoutScreen = () => {
     deleteExercise(exerciseId);
   };
 
-  const handleUpdateSet = (exerciseId: string, setId: string, field: 'weight' | 'reps' | 'time' | 'distance', value: string) => {
+  const handleUpdateSet = (
+    exerciseId: string,
+    setId: string,
+    field: 'weight' | 'reps' | 'time' | 'distance',
+    value: string
+  ) => {
     updateSet(exerciseId, setId, field, value);
   };
 
@@ -95,30 +101,47 @@ export const useWorkoutScreen = () => {
 
   // Share functionality
   const handleShareWorkout = () => {
-    const today_date = new Date().toLocaleDateString("ja-JP", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
+    const today_date = new Date().toLocaleDateString('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
     });
 
-    const exercisesList = exercises.map(exercise => {
-      const setsInfo = exercise.sets.map((set, index) =>
-        `  ${index + 1}. ${set.weight}kg × ${set.reps}回${set.rm ? ` (RM: ${set.rm})` : ''}`
-      ).join('\n');
-      return `🏋️ ${exercise.name}\n${setsInfo}`;
-    }).join('\n\n');
+    const exercisesList = exercises
+      .map(exercise => {
+        const setsInfo = exercise.sets
+          .map(
+            (set, index) =>
+              `  ${index + 1}. ${set.weight}kg × ${set.reps}回${
+                set.rm ? ` (RM: ${set.rm})` : ''
+              }`
+          )
+          .join('\n');
+        return `🏋️ ${exercise.name}\n${setsInfo}`;
+      })
+      .join('\n\n');
 
     const stats = {
       exercises: exercises.length,
-      sets: exercises.reduce((total, exercise) => total + exercise.sets.length, 0),
-      reps: exercises.reduce((total, exercise) => total + exercise.sets.reduce((setTotal, set) => setTotal + set.reps, 0), 0),
+      sets: exercises.reduce(
+        (total, exercise) => total + exercise.sets.length,
+        0
+      ),
+      reps: exercises.reduce(
+        (total, exercise) =>
+          total +
+          exercise.sets.reduce((setTotal, set) => setTotal + set.reps, 0),
+        0
+      ),
       averageRM: (() => {
         const allSets = exercises.flatMap(ex => ex.sets);
-        const rmsWithValues = allSets.map(set => set.rm).filter((rm): rm is number => rm !== undefined && rm > 0);
+        const rmsWithValues = allSets
+          .map(set => set.rm)
+          .filter((rm): rm is number => rm !== undefined && rm > 0);
         if (rmsWithValues.length === 0) return 0;
         const sum = rmsWithValues.reduce((acc, rm) => acc + rm, 0);
         return Math.round(sum / rmsWithValues.length);
-      })()
+      })(),
     };
 
     const score = stats.sets + stats.reps + stats.averageRM;
@@ -129,39 +152,62 @@ export const useWorkoutScreen = () => {
 
   // Navigation handlers
   const handleLogWorkout = () => {
-    setCurrentView("exercise-selection");
+    setCurrentView('exercise-selection');
   };
 
   const handleSelectExercise = (exercise: ExerciseTemplate) => {
     setSelectedExercise(exercise);
-    setCurrentView("exercise-detail");
+    setCurrentView('exercise-detail');
   };
 
   const handleBackToMain = () => {
-    setCurrentView("main");
+    setCurrentView('main');
   };
 
   const handleBackToSelection = () => {
-    setCurrentView("exercise-selection");
+    setCurrentView('exercise-selection');
   };
 
-  const handleRecordWorkout = (exerciseName: string, sets: WorkoutSet[]) => {
+  const handleRecordWorkout = async (
+    exerciseName: string,
+    sets: WorkoutSet[]
+  ) => {
+    console.log('🚀 handleRecordWorkout called:', {
+      exerciseName,
+      sets,
+      selectedExercise,
+    });
+
+    if (!selectedExercise) {
+      console.error('❌ No selected exercise');
+      return;
+    }
+
     const newExercise: Exercise = {
-      id: `recorded-${Date.now()}`,
+      id: selectedExercise.id,
       name: exerciseName,
-      sets: sets.map(set => ({ ...set })),
+      category: selectedExercise.category,
+      sets: sets,
       isExpanded: true,
-      type: selectedExercise?.category === '有酸素' ? 'cardio' : 'strength',
+      type: selectedExercise.category === '有酸素' ? 'cardio' : 'strength',
     };
 
-    addExercise(newExercise);
-    setCurrentView("main");
+    console.log('🔧 Creating exercise with category:', selectedExercise.category, 'type:', newExercise.type);
+
+    try {
+      await addExercise(newExercise);
+      console.log('✅ Exercise recorded successfully');
+      setCurrentView('main');
+    } catch (error) {
+      console.error('❌ Failed to record exercise:', error);
+      Alert.alert('エラー', 'ワークアウトの記録に失敗しました');
+    }
   };
 
   return {
     // Refs
     scrollViewRef,
-    
+
     // State
     currentView,
     selectedCategory,
@@ -172,12 +218,12 @@ export const useWorkoutScreen = () => {
     selectedDay,
     selectedDayWorkout,
     currentMonth,
-    
+
     // State setters
     setCurrentView,
     setSelectedCategory,
     setIsTodayResultsExpanded,
-    
+
     // Handlers
     handleRefresh,
     toggleExerciseExpansion,

@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, TextInput, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Plus, MoreVertical, Edit, Trash2 } from 'lucide-react-native';
 import { colors, typography, spacing, radius, shadows } from '../../../design-system';
 import { ExerciseTemplate } from '../types/workout.types';
-import { exerciseTemplates, categories } from '../data/mockData';
+import { DEFAULT_CATEGORIES } from '../../../constants/categories';
 import { AddExerciseModal } from './AddExerciseModal';
+import DatabaseService from '../../../services/database/DatabaseService';
 
 interface ExerciseSelectionProps {
   selectedCategory: string;
@@ -21,91 +22,165 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
   onBack
 }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [customExercises, setCustomExercises] = useState<ExerciseTemplate[]>([]);
+  const [allExercises, setAllExercises] = useState<ExerciseTemplate[]>([]);
   const [customCategories, setCustomCategories] = useState<string[]>([]);
-  const [hiddenExercises, setHiddenExercises] = useState<string[]>([]); // 非表示にするデフォルト種目のID
-  const [editedExercises, setEditedExercises] = useState<{[key: string]: ExerciseTemplate}>({}); // 編集されたデフォルト種目
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
   const [editingExerciseName, setEditingExerciseName] = useState('');
   const [showDropdown, setShowDropdown] = useState<string | null>(null);
 
+  console.log('allExercises:', allExercises);
+  console.log('customCategories', customCategories);
+
+  // 起動時にSQLiteから全種目を読み込み
+  useEffect(() => {
+    loadAllExercises();
+  }, []);
+
+  const loadAllExercises = async () => {
+    try {
+      await DatabaseService.initialize();
+
+
+      // 全種目を読み込み（デフォルト + カスタム）
+      const allExercisesData = await DatabaseService.getAllAsync<any>(
+        'SELECT * FROM exercise_master ORDER BY muscle_group, exercise_id'
+      );
+
+      console.log('📋 exercise_masterテーブルの全データ:', allExercisesData);
+
+      // workout_setテーブルの履歴も確認
+      const workoutSetsData = await DatabaseService.getAllAsync<any>(
+        'SELECT * FROM workout_set ORDER BY session_id, exercise_id, set_number'
+      );
+      console.log('📋 workout_setテーブルの履歴データ:', workoutSetsData);
+
+      // workout_sessionテーブルも確認
+      const workoutSessionsData = await DatabaseService.getAllAsync<any>(
+        'SELECT * FROM workout_session ORDER BY date DESC'
+      );
+      console.log('📋 workout_sessionテーブルのデータ:', workoutSessionsData);
+
+      const loadedExercises: ExerciseTemplate[] = allExercisesData.map(ex => ({
+        id: ex.exercise_id.toString(),
+        name: ex.name_ja,
+        category: ex.muscle_group
+      }));
+
+      // カスタムカテゴリを抽出（既定カテゴリと重複しないもの）
+      const allCategoriesFromDB = [...new Set(loadedExercises.map(ex => ex.category))];
+      const loadedCustomCategories = allCategoriesFromDB.filter(cat => !(DEFAULT_CATEGORIES.ja as readonly string[]).includes(cat));
+
+      setAllExercises(loadedExercises);
+      setCustomCategories(loadedCustomCategories);
+    } catch (error) {
+      console.error('カスタム種目読み込みエラー:', error);
+    }
+  };
+
   const getAllCategories = () => {
-    return [...categories, ...customCategories];
+    // 重複を防ぐために、既存カテゴリに含まれていないカスタムカテゴリのみ追加
+    const uniqueCustomCategories = customCategories.filter(cat => !(DEFAULT_CATEGORIES.ja as readonly string[]).includes(cat));
+    return [...DEFAULT_CATEGORIES.ja, ...uniqueCustomCategories];
   };
 
   const getExercisesByCategory = (category: string) => {
-    // デフォルト種目を取得し、編集されたものは編集版を使用
-    const templateExercises = exerciseTemplates
-      .filter((ex) => ex.category === category && !hiddenExercises.includes(ex.id))
-      .map((ex) => editedExercises[ex.id] || ex); // 編集されたものがあればそれを使用
-    
-    const customExercisesForCategory = customExercises.filter((ex) => ex.category === category);
-    return [...templateExercises, ...customExercisesForCategory];
+    return allExercises.filter((ex) => ex.category === category);
   };
 
-  const handleAddExercise = (category: string, exerciseName: string) => {
-    // Add custom category if it doesn't exist
-    if (!getAllCategories().includes(category)) {
-      setCustomCategories(prev => [...prev, category]);
+  const handleAddExercise = async (category: string, exerciseName: string) => {
+    try {
+
+      await DatabaseService.initialize();
+
+      // 新しいIDを生成（1000以上をカスタム種目とする）
+      const maxIdResult = await DatabaseService.getFirstAsync<any>(
+        'SELECT MAX(exercise_id) as max_id FROM exercise_master'
+      );
+      const newId = Math.max((maxIdResult?.max_id || 0) + 1, 1000);
+
+      // exercise_masterテーブルに保存
+      await DatabaseService.runAsync(
+        'INSERT INTO exercise_master (exercise_id, name_ja, muscle_group, equipment, is_compound) VALUES (?, ?, ?, ?, ?)',
+        [newId, exerciseName, category, 'custom', 0]
+      );
+
+
+      // カスタムカテゴリを追加（既存カテゴリに含まれず、まだカスタムカテゴリにも含まれていない場合のみ）
+      if (!(DEFAULT_CATEGORIES.ja as readonly string[]).includes(category) && !customCategories.includes(category)) {
+        setCustomCategories(prev => [...prev, category]);
+      }
+
+      // 新しい種目を状態に追加
+      const newExercise: ExerciseTemplate = {
+        id: newId.toString(),
+        name: exerciseName,
+        category: category,
+      };
+
+      setAllExercises(prev => [...prev, newExercise]);
+
+      // 新しく作成されたカテゴリに切り替え
+      if (!(DEFAULT_CATEGORIES.ja as readonly string[]).includes(category)) {
+        onCategoryChange(category);
+      }
+
+      Alert.alert('成功', `${exerciseName}を${category}に追加しました`);
+    } catch (error) {
+      Alert.alert('エラー', '種目の保存に失敗しました');
     }
-
-    // Create new exercise
-    const newExercise: ExerciseTemplate = {
-      id: `custom-${Date.now()}`,
-      name: exerciseName,
-      category: category,
-    };
-
-    setCustomExercises(prev => [...prev, newExercise]);
-    
-    // Switch to the new category if it was just created
-    if (!categories.includes(category)) {
-      onCategoryChange(category);
-    }
-
-    Alert.alert('成功', `${exerciseName}を${category}に追加しました`);
   };
 
   const handleEditExercise = (exercise: ExerciseTemplate) => {
     setEditingExerciseId(exercise.id);
     setEditingExerciseName(exercise.name);
-    setShowDropdown(null);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingExerciseName.trim()) {
       Alert.alert('エラー', '種目名を入力してください');
       return;
     }
 
-    if (editingExerciseId?.startsWith('custom-')) {
-      // カスタム種目の編集
-      setCustomExercises(prev =>
-        prev.map(ex =>
-          ex.id === editingExerciseId
-            ? { ...ex, name: editingExerciseName.trim() }
-            : ex
-        )
-      );
-    } else {
-      // デフォルト種目の編集 - editedExercisesに保存して元の位置に表示
-      const originalExercise = exerciseTemplates.find(ex => ex.id === editingExerciseId);
-      if (originalExercise && editingExerciseId) {
-        const editedExercise: ExerciseTemplate = {
-          id: editingExerciseId, // 元のIDを維持
-          name: editingExerciseName.trim(),
-          category: originalExercise.category,
-        };
-        setEditedExercises(prev => ({
-          ...prev,
-          [editingExerciseId]: editedExercise
-        }));
-      }
-    }
+    try {
+      const exerciseId = parseInt(editingExerciseId || '');
 
-    setEditingExerciseId(null);
-    setEditingExerciseName('');
-    Alert.alert('成功', '種目名を更新しました');
+      if (exerciseId >= 1000) {
+        // カスタム種目の編集（SQLiteを更新）
+        console.log('✏️ カスタム種目編集:', { exerciseId, newName: editingExerciseName.trim() });
+
+        await DatabaseService.runAsync(
+          'UPDATE exercise_master SET name_ja = ? WHERE exercise_id = ?',
+          [editingExerciseName.trim(), exerciseId]
+        );
+
+        // ローカル状態も更新
+        setAllExercises(prev =>
+          prev.map(ex =>
+            ex.id === editingExerciseId
+              ? { ...ex, name: editingExerciseName.trim() }
+              : ex
+          )
+        );
+
+        console.log('✅ カスタム種目編集完了');
+      } else {
+        // デフォルト種目の編集 - ローカル状態のみ更新（SQLiteは更新しない）
+        setAllExercises(prev =>
+          prev.map(ex =>
+            ex.id === editingExerciseId
+              ? { ...ex, name: editingExerciseName.trim() }
+              : ex
+          )
+        );
+      }
+
+      setEditingExerciseId(null);
+      setEditingExerciseName('');
+      Alert.alert('成功', '種目名を更新しました');
+    } catch (error) {
+      console.error('❌ 種目編集エラー:', error);
+      Alert.alert('エラー', '種目の更新に失敗しました');
+    }
   };
 
   const handleCancelEdit = () => {
@@ -114,17 +189,7 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
   };
 
   const handleDeleteExercise = (exerciseId: string) => {
-    // カスタム種目から検索
-    let exercise = customExercises.find(ex => ex.id === exerciseId);
-    // 編集されたデフォルト種目から検索
-    if (!exercise) {
-      exercise = editedExercises[exerciseId];
-    }
-    // デフォルト種目からも検索
-    if (!exercise) {
-      exercise = exerciseTemplates.find(ex => ex.id === exerciseId);
-    }
-    
+    const exercise = allExercises.find(ex => ex.id === exerciseId);
     if (!exercise) return;
 
     Alert.alert(
@@ -135,15 +200,55 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
         {
           text: '削除',
           style: 'destructive',
-          onPress: () => {
-            if (exerciseId.startsWith('custom-')) {
-              // カスタム種目の削除
-              setCustomExercises(prev => prev.filter(ex => ex.id !== exerciseId));
-            } else {
-              // デフォルト種目の場合、非表示リストに追加
-              setHiddenExercises(prev => [...prev, exerciseId]);
+          onPress: async () => {
+            try {
+              const numericId = parseInt(exerciseId);
+
+              if (numericId >= 1000) {
+                // カスタム種目の削除（SQLiteからも削除）
+                console.log('🗑️ カスタム種目削除:', { exerciseId, name: exercise.name });
+
+                // 関連するワークアウトセットも削除
+                await DatabaseService.runAsync(
+                  'DELETE FROM workout_set WHERE exercise_id = ?',
+                  [numericId]
+                );
+
+                // exercise_masterからも削除
+                await DatabaseService.runAsync(
+                  'DELETE FROM exercise_master WHERE exercise_id = ?',
+                  [numericId]
+                );
+
+                // ローカル状態からも削除
+                setAllExercises(prev => {
+                  const updatedExercises = prev.filter(ex => ex.id !== exerciseId);
+
+                  // 削除した種目のカテゴリに他の種目がないかチェック
+                  const deletedExerciseCategory = exercise.category;
+                  const remainingExercisesInCategory = updatedExercises.filter(ex => ex.category === deletedExerciseCategory);
+
+                  // そのカテゴリに種目がなくなり、かつカスタムカテゴリの場合、customCategoriesからも削除
+                  if (remainingExercisesInCategory.length === 0 && !(DEFAULT_CATEGORIES.ja as readonly string[]).includes(deletedExerciseCategory)) {
+                    setCustomCategories(prevCategories =>
+                      prevCategories.filter(cat => cat !== deletedExerciseCategory)
+                    );
+                  }
+
+                  return updatedExercises;
+                });
+
+                console.log('✅ カスタム種目削除完了');
+                Alert.alert('成功', `${exercise.name}を削除しました`);
+              } else {
+                // デフォルト種目の場合、ローカル状態から削除（非表示）
+                setAllExercises(prev => prev.filter(ex => ex.id !== exerciseId));
+              }
+              setShowDropdown(null);
+            } catch (error) {
+              console.error('❌ 種目削除エラー:', error);
+              Alert.alert('エラー', '種目の削除に失敗しました');
             }
-            setShowDropdown(null);
           }
         }
       ]
@@ -154,20 +259,32 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack}>
+        <TouchableOpacity
+          onPress={onBack}
+          style={styles.headerButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <ArrowLeft size={20} color={colors.primary.main} />
         </TouchableOpacity>
         <Text style={styles.title}>種目を選択</Text>
-        <TouchableOpacity onPress={() => setIsAddModalOpen(true)}>
+        <TouchableOpacity
+          onPress={() => setIsAddModalOpen(true)}
+          style={styles.headerButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Plus size={20} color={colors.primary.main} />
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView 
-        style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      <Pressable
+        style={styles.pressableContainer}
+        onPress={() => setShowDropdown(null)}
       >
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoidingView}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
 
       {/* Category Selection */}
       <View style={styles.categorySection}>
@@ -196,8 +313,8 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
       {/* Exercise List */}
       <View style={styles.exerciseListSection}>
         <Text style={styles.exerciseListTitle}>種目を選択</Text>
-        <ScrollView 
-          style={styles.exerciseList} 
+        <ScrollView
+          style={styles.exerciseList}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.exerciseListContent}
           onScrollBeginDrag={() => setShowDropdown(null)}
@@ -243,34 +360,44 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
                   </TouchableOpacity>
 
                   <View style={styles.dropdownContainer}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.exerciseMoreButton}
                       onPress={() => setShowDropdown(showDropdown === exercise.id ? null : exercise.id)}
                     >
                       <MoreVertical size={20} color={colors.text.tertiary} />
                     </TouchableOpacity>
-                    
+
                     {showDropdown === exercise.id && (
-                      <View style={[
-                        styles.dropdown,
-                        // 最後から2番目以降のアイテムは上向きにメニューを表示
-                        index >= getExercisesByCategory(selectedCategory).length - 2 && styles.dropdownUp
-                      ]}>
+                      <Pressable
+                        style={[
+                          styles.dropdown,
+                          // より正確な位置判定：複数項目があり、かつ最後から2番目以降の場合のみ上向き
+                          (index >= getExercisesByCategory(selectedCategory).length - 2 &&
+                           getExercisesByCategory(selectedCategory).length > 1) && styles.dropdownUp
+                        ]}
+                        onPress={(e) => e.stopPropagation()}
+                      >
                         <TouchableOpacity
                           style={styles.dropdownItem}
-                          onPress={() => handleEditExercise(exercise)}
+                          onPress={() => {
+                            handleEditExercise(exercise);
+                            setShowDropdown(null);
+                          }}
                         >
                           <Edit size={16} color={colors.text.secondary} />
                           <Text style={styles.dropdownText}>編集</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={[styles.dropdownItem, styles.deleteItem]}
-                          onPress={() => handleDeleteExercise(exercise.id)}
+                          onPress={() => {
+                            handleDeleteExercise(exercise.id);
+                            setShowDropdown(null);
+                          }}
                         >
                           <Trash2 size={16} color={colors.status.error} />
                           <Text style={styles.deleteText}>削除</Text>
                         </TouchableOpacity>
-                      </View>
+                      </Pressable>
                     )}
                   </View>
                 </>
@@ -279,7 +406,8 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
           ))}
         </ScrollView>
       </View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </Pressable>
 
       {/* Add Exercise Modal */}
       <AddExerciseModal
@@ -296,6 +424,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.gray[50],
   },
+  pressableContainer: {
+    flex: 1,
+  },
   keyboardAvoidingView: {
     flex: 1,
   },
@@ -308,6 +439,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: colors.border.light,
+  },
+  headerButton: {
+    padding: spacing.sm,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
     fontSize: typography.fontSize.lg,
@@ -370,7 +508,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     overflow: 'hidden',
     ...shadows.sm,
-    paddingBottom: spacing.xl * 2, // ドロップダウンメニュー用に十分なスペースを確保
+    paddingBottom: spacing.xl * 5, // ドロップダウンメニュー用に十分なスペースを確保
   },
   exerciseItem: {
     flexDirection: 'row',

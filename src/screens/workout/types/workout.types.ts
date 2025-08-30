@@ -10,12 +10,13 @@ export interface WorkoutSet {
 export interface Exercise {
   id: string;
   name: string;
+  category?: string; // muscle_group from database
   sets: WorkoutSet[];
   isExpanded: boolean;
   type?: 'strength' | 'cardio'; // Exercise type
 }
 
-export type WorkoutView = "main" | "exercise-selection" | "exercise-detail";
+export type WorkoutView = 'main' | 'exercise-selection' | 'exercise-detail';
 
 export interface ExerciseTemplate {
   id: string;
@@ -33,7 +34,7 @@ export interface WorkoutDay {
   date: number;
   exercises: {
     name: string;
-    sets: { setNumber: number; weight: number; reps: number; }[];
+    sets: { setNumber: number; weight: number; reps: number }[];
     totalSets: number;
     totalReps: number;
     maxWeight: number;

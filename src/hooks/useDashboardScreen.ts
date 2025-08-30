@@ -17,7 +17,7 @@ export const useDashboardScreen = () => {
   const { nutritionTargets } = useProfileData();
 
   // 実際のワークアウトデータを取得
-  const { exercises, subscribe } = useWorkoutData();
+  const { exercises } = useWorkoutData();
   
   // 実際の食事データを取得
   const { foodLog } = useFoodLog();
@@ -25,11 +25,6 @@ export const useDashboardScreen = () => {
   // 実際のスコアデータを取得（食事ログと動的な目標値を含む）
   const { scoreData } = useScoreData(exercises, foodLog, nutritionTargets);
   
-  // Subscribe to workout data changes
-  useEffect(() => {
-    const unsubscribe = subscribe();
-    return unsubscribe;
-  }, [subscribe]);
 
   const onRefresh = async () => {
     setRefreshing(true);

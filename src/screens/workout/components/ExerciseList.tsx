@@ -30,13 +30,22 @@ export const ExerciseList: React.FC<ExerciseListProps> = ({
   onUpdateSet,
 }) => {
 
+  console.log('📋 adsfasdfRendering ExerciseList with exercises:', exercises);
+
   const handleAddSet = (exerciseId: string) => {
     onAddSet(exerciseId);
   };
 
   return (
     <View style={styles.exercisesSection}>
-        {exercises.map((exercise) => (
+      {exercises.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyStateText}>
+            ここに種目とセットが表示されます。
+          </Text>
+        </View>
+      ) : (
+        exercises.map((exercise) => (
           <View key={exercise.id} style={styles.exerciseCard}>
             <TouchableOpacity
               style={styles.exerciseHeader}
@@ -146,7 +155,8 @@ export const ExerciseList: React.FC<ExerciseListProps> = ({
               </View>
             )}
           </View>
-        ))}
+        ))
+      )}
     </View>
   );
 };
@@ -297,5 +307,17 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.primary.main,
     fontFamily: typography.fontFamily.medium,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.md,
+  },
+  emptyStateText: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.secondary,
+    fontFamily: typography.fontFamily.regular,
+    textAlign: 'center',
   },
 });
