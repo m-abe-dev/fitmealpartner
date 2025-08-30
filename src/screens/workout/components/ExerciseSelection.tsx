@@ -357,12 +357,7 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
 
                     {showDropdown === exercise.id && (
                       <Pressable
-                        style={[
-                          styles.dropdown,
-                          // より正確な位置判定：複数項目があり、かつ最後から2番目以降の場合のみ上向き
-                          (index >= getExercisesByCategory(selectedCategory).length - 2 &&
-                           getExercisesByCategory(selectedCategory).length > 1) && styles.dropdownUp
-                        ]}
+                        style={styles.dropdown}
                         onPress={(e) => e.stopPropagation()}
                       >
                         <TouchableOpacity
@@ -567,19 +562,13 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     position: 'absolute',
-    top: '100%',
+    top: '80%',
     right: 0,
     backgroundColor: 'white',
     borderRadius: radius.md,
-    paddingVertical: spacing.xs,
     minWidth: 120,
     ...shadows.md,
     zIndex: 1000,
-  },
-  dropdownUp: {
-    top: undefined,
-    bottom: '100%',
-    marginBottom: spacing.xs,
   },
   dropdownItem: {
     flexDirection: 'row',
