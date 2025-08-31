@@ -23,7 +23,7 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
   onClose
 }) => {
   const [workoutData, setWorkoutData] = useState<WorkoutDay | null>(null);
-  
+
   useEffect(() => {
     if (isVisible && selectedDay) {
       loadWorkoutData();
@@ -32,23 +32,23 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
 
   const loadWorkoutData = async () => {
     if (!selectedDay) return;
-    
+
     try {
       await DatabaseService.initialize();
-      
+
       const dateString = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
-      
+
       // セッション情報を取得
       const session = await DatabaseService.getFirstAsync<any>(
         'SELECT * FROM workout_session WHERE date = ?',
         [dateString]
       );
-      
+
       if (!session) {
         setWorkoutData(null);
         return;
       }
-      
+
       // ワークアウトデータを取得
       const workoutSets = await DatabaseService.getAllAsync<any>(
         `SELECT ws.*, em.name_ja as exercise_name, em.muscle_group
@@ -58,12 +58,12 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
          ORDER BY ws.exercise_id, ws.set_number`,
         [session.session_id]
       );
-      
+
       // データを整形
       const exerciseMap = new Map();
       let totalSets = 0;
       let totalVolume = 0;
-      
+
       workoutSets.forEach(set => {
         const exerciseId = set.exercise_id;
         if (!exerciseMap.has(exerciseId)) {
@@ -75,7 +75,7 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
             maxWeight: 0
           });
         }
-        
+
         const exercise = exerciseMap.get(exerciseId);
         exercise.sets.push({
           setNumber: set.set_number,
@@ -84,18 +84,18 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
           time: set.time_minutes,
           distance: set.distance_km
         });
-        
+
         exercise.totalSets++;
         exercise.totalReps += set.reps || 0;
         exercise.maxWeight = Math.max(exercise.maxWeight, set.weight_kg || 0);
-        
+
         totalSets++;
         totalVolume += (set.weight_kg || 0) * (set.reps || 0);
       });
-      
+
       const exercises = Array.from(exerciseMap.values());
       const score = Math.round(totalVolume / 100);
-      
+
       setWorkoutData({
         date: selectedDay,
         exercises,
@@ -117,8 +117,14 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <TouchableOpacity style={styles.modalOverlay} onPress={onClose}>
-        <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+      <View style={styles.modalOverlay}>
+        <TouchableOpacity 
+          style={styles.overlayTouchable}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        
+        <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <View>
               <Text style={styles.modalTitle}>
@@ -133,7 +139,12 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalBody}>
+          <ScrollView
+            style={styles.modalBody}
+            showsVerticalScrollIndicator={true}
+            bounces={true}
+            contentContainerStyle={styles.scrollContent}
+          >
             {workoutData?.exercises.map((exercise, index) => (
               <View key={index} style={styles.modalExercise}>
                 <View style={styles.modalExerciseHeader}>
@@ -147,10 +158,10 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
                   {exercise.sets.map((set, setIndex) => (
                     <View key={setIndex} style={styles.modalSet}>
                       <View style={styles.modalSetNumber}>
-                        <Text style={styles.modalSetNumberText}>{set.setNumber}</Text>
+                        <Text style={styles.modalSetNumberText}>{setIndex + 1}</Text>
                       </View>
                       <Text style={styles.modalSetText}>
-                        {set.time ? 
+                        {set.time ?
                           `${set.time}分${set.distance ? ` • ${set.distance}km` : ''}` :
                           `${set.weight > 0 ? `${set.weight}kg` : '体重'} × ${set.reps}回`
                         }
@@ -162,7 +173,7 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
             ))}
           </ScrollView>
         </View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 };
@@ -173,14 +184,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.md,
+  },
+  overlayTouchable: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   modalContent: {
     backgroundColor: 'white',
     borderRadius: radius.xl,
-    maxWidth: screenWidth * 0.9,
-    width: '100%',
-    maxHeight: '80%',
+    width: screenWidth * 0.9,
+    maxWidth: 400,
+    height: '80%',
     overflow: 'hidden',
     ...shadows.xl,
   },
@@ -211,8 +228,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalBody: {
+    flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
+    paddingBottom: spacing.xl,
   },
   modalExercise: {
     backgroundColor: 'white',
