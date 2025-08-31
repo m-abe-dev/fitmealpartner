@@ -79,21 +79,6 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     return new Date().toISOString().split('T')[0];
   };
 
-  // Get marked dates for calendar
-  const getMarkedDates = () => {
-    const markedDates: { [key: string]: any } = {};
-
-    if (profile.targetDate) {
-      markedDates[profile.targetDate] = {
-        selected: true,
-        selectedColor: colors.primary.main,
-        selectedTextColor: colors.text.inverse,
-      };
-    }
-
-    return markedDates;
-  };
-
   const [profile, setProfile] = useState<ProfileData>({
     ...profileData,
     targetWeight: profileData.targetWeight || profileData.weight || 70,
@@ -151,7 +136,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     const targetDate = new Date(profile.targetDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     if (targetDate < today) {
       Alert.alert('入力エラー', '目標達成日は今日以降の日付を選択してください');
       return;
