@@ -77,8 +77,8 @@ export const ProfileScreen: React.FC = () => {
         />
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>FitMeal Partner v1.0.0</Text>
-          <Text style={styles.footerText}>© 2024 FitMeal Partner</Text>
+          <Text style={styles.footerText}>FitMealPartner v1.0.0</Text>
+          <Text style={styles.footerText}>© 2024 FitMealPartner</Text>
         </View>
       </ScrollView>
 

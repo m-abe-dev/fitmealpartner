@@ -134,9 +134,18 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({
     return colors.status.error;
   };
 
+  const formatScore = (score: number, period: string): string => {
+    if (period === '今日') {
+      return Math.round(score).toString();
+    }
+    return score.toFixed(1);
+  };
+
   const getCurrentScoreData = (): ScoreData => {
     return scoreData[currentScoreTab] || scoreData[0];
   };
+
+  console.log('ScoreData:', scoreData);
 
   return (
     <View style={styles.container}>
@@ -207,7 +216,7 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({
                 {/* メインスコア部分 */}
                 <View style={styles.scoreMainContainer}>
                   <Animated.View style={[styles.scoreDisplayContainer, { transform: [{ scale: pulseAnim }] }]}>
-                    <Text style={styles.totalScore}>{getCurrentScoreData().total_score}</Text>
+                    <Text style={styles.totalScore}>{formatScore(getCurrentScoreData().total_score, getCurrentScoreData().period)}</Text>
                     <Text style={styles.scoreUnit}>/ 100</Text>
                   </Animated.View>
 
@@ -249,7 +258,7 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({
                           ]}
                         />
                       </View>
-                      <Text style={styles.scoreDetailValue}>{getCurrentScoreData().nutrition_score}</Text>
+                      <Text style={styles.scoreDetailValue}>{formatScore(getCurrentScoreData().nutrition_score, getCurrentScoreData().period)}</Text>
                     </View>
                   </View>
 
@@ -272,7 +281,7 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({
                           ]}
                         />
                       </View>
-                      <Text style={styles.scoreDetailValue}>{getCurrentScoreData().training_score}</Text>
+                      <Text style={styles.scoreDetailValue}>{formatScore(getCurrentScoreData().training_score, getCurrentScoreData().period)}</Text>
                     </View>
                   </View>
                 </View>
