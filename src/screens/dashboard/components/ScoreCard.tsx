@@ -145,8 +145,6 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({
     return scoreData[currentScoreTab] || scoreData[0];
   };
 
-  console.log('ScoreData:', scoreData);
-
   return (
     <View style={styles.container}>
       {/* セクションヘッダー */}

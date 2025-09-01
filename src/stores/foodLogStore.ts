@@ -124,14 +124,8 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
         ]
       );
 
-      console.log('✅ SQLite保存成功:', {
-        id: result.lastInsertRowId,
-        rowsAffected: result.changes,
-      });
-
       newFoodItem.id = result.lastInsertRowId?.toString() || newFoodItem.id;
 
-      console.log('🔄 Store - foodLog状態更新実行');
       set(state => {
         const updated = [...state.foodLog, newFoodItem];
         console.log('🔄 Store - foodLog状態更新完了:', updated.length);
