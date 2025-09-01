@@ -23,8 +23,10 @@ import {
 import { colors, typography, spacing, radius, shadows } from '../../../design-system';
 import { Button } from '../../../components/common/Button';
 import { Badge } from '../../../components/common/Badge';
+import { BarcodeScanner } from '../../../components/common/BarcodeScanner';
 import { Food, NewFood, FoodLogItem } from '../types/nutrition.types';
 import { mockFoodDatabase, mockFoodHistory, mockFavoritesFoods } from '../data/mockData';
+import FoodDatabaseService from '../../../services/FoodDatabaseService';
 
 interface AddFoodModalProps {
   isVisible: boolean;
@@ -53,6 +55,7 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
   const [internalSearchQuery, setInternalSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [preventBlur, setPreventBlur] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   
   // 外部から渡されたsearchQueryを使用するか、内部状態を使用するかを決定
   const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : internalSearchQuery;
@@ -196,6 +199,7 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
     setSearchQuery('');
     setIsSearchFocused(false);
     setActiveTab('manual');
+    setShowScanner(false);
     onClose();
   };
 
@@ -465,22 +469,53 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
               {/* Scan Tab */}
               {activeTab === 'scan' && (
                 <View style={styles.scanSection}>
-                  <View style={styles.emptyState}>
-                    <QrCode size={48} color={colors.text.tertiary} />
-                    <Text style={styles.emptyStateTitle}>バーコードスキャン機能は開発中です</Text>
-                    <Text style={styles.emptyStateSubtext}>
-                      商品のバーコードをスキャンして栄養情報を取得できるようになります
+                  <TouchableOpacity 
+                    style={styles.scanButton}
+                    onPress={() => setShowScanner(true)}
+                  >
+                    <QrCode size={32} color={colors.primary.main} />
+                    <Text style={styles.scanButtonText}>バーコードをスキャン</Text>
+                    <Text style={styles.scanButtonSubtext}>
+                      商品のバーコードをカメラで読み取ります
                     </Text>
-                  </View>
+                  </TouchableOpacity>
 
                   <View style={styles.featurePreview}>
-                    <Text style={styles.featureTitle}>予定機能:</Text>
+                    <Text style={styles.featureTitle}>利用可能な機能:</Text>
                     <Text style={styles.featureItem}>• カメラでバーコードスキャン</Text>
                     <Text style={styles.featureItem}>• 商品データベースから栄養情報取得</Text>
+                    <Text style={styles.featureItem}>• 日本の食品データベース対応</Text>
                     <Text style={styles.featureItem}>• 分量調整機能</Text>
-                    <Text style={styles.featureItem}>• よく使う商品の保存</Text>
                   </View>
                 </View>
+              )}
+
+              {/* Barcode Scanner Modal */}
+              {showScanner && (
+                <Modal
+                  visible={showScanner}
+                  animationType="slide"
+                  presentationStyle="fullScreen"
+                >
+                  <BarcodeScanner
+                    onScan={async (barcode) => {
+                      setShowScanner(false);
+                      const foodData = await FoodDatabaseService.searchByBarcode(barcode);
+                      
+                      if (foodData) {
+                        await onAddFood(foodData);
+                        onClose();
+                      } else {
+                        Alert.alert(
+                          '商品が見つかりません',
+                          'この商品は登録されていません。手動で入力してください。',
+                          [{ text: 'OK', onPress: () => setActiveTab('manual') }]
+                        );
+                      }
+                    }}
+                    onClose={() => setShowScanner(false)}
+                  />
+                </Modal>
               )}
 
               {/* History Section (only show when not favorites or scan tab) */}
@@ -772,6 +807,26 @@ const styles = StyleSheet.create({
   },
   scanSection: {
     gap: spacing.lg,
+  },
+  scanButton: {
+    backgroundColor: colors.background.secondary,
+    borderWidth: 2,
+    borderColor: colors.primary.main,
+    borderStyle: 'dashed',
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  scanButtonText: {
+    fontSize: typography.fontSize.base,
+    fontFamily: typography.fontFamily.bold,
+    color: colors.primary.main,
+  },
+  scanButtonSubtext: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    textAlign: 'center',
   },
   featurePreview: {
     backgroundColor: colors.background.secondary,
