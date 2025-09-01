@@ -1,16 +1,14 @@
-import foodCompositionData from '../data/japanese-food-composition.json';
+import foodCompositionData from '../data/japanese-food-composition-2023.json';
 
 interface JapaneseFoodItem {
   food_code: string;
   name_ja: string;
-  name_kana: string;
   category: string;
   energy_kcal: number;
   protein_g: number;
   fat_g: number;
   carbohydrate_g: number;
-  dietary_fiber_g?: number;
-  sodium_mg?: number;
+  water_g?: number;
 }
 
 class JapaneseFoodCompositionService {
@@ -27,8 +25,7 @@ class JapaneseFoodCompositionService {
     const results: JapaneseFoodItem[] = [];
     
     for (const food of this.foodDatabase.values()) {
-      if (food.name_ja.includes(query) || 
-          food.name_kana?.toLowerCase().includes(normalizedQuery)) {
+      if (food.name_ja.includes(query)) {
         results.push(food);
       }
     }
