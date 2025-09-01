@@ -12,7 +12,11 @@ interface FoodLogState {
   setSelectedMeal: (meal: 'breakfast' | 'lunch' | 'dinner' | 'snack') => void;
   setEditingFood: (food: FoodLogItem | null) => void;
   loadTodaysFoodLog: () => Promise<void>;
-  addFood: (food: Omit<FoodLogItem, 'id' | 'meal' | 'time' | 'foodId'> & { foodId?: string }) => Promise<void>;
+  addFood: (
+    food: Omit<FoodLogItem, 'id' | 'meal' | 'time' | 'foodId'> & {
+      foodId?: string;
+    }
+  ) => Promise<void>;
   updateFood: (updatedFood: FoodLogItem) => Promise<void>;
   deleteFood: (foodId: string) => Promise<void>;
   toggleFavorite: (foodId: string) => Promise<void>;
@@ -80,13 +84,11 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
 
       set({ foodLog: mappedLogs, isLoading: false });
     } catch (error) {
-      console.error('食事ログの読み込みエラー:', error);
       set({ isLoading: false });
     }
   },
 
   addFood: async food => {
-    console.log('📝 Store addFood開始:', food);
     const { selectedMeal } = get();
 
     // foodIdが設定されていない場合は手動入力として一意のIDを生成
@@ -96,8 +98,8 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
     if (!food.foodId || foodId.startsWith('manual_')) {
       try {
         await DatabaseService.runAsync(
-          `INSERT OR REPLACE INTO food_db 
-           (food_id, name_ja, name_en, category, p100, f100, c100, kcal100, source, is_favorite) 
+          `INSERT OR REPLACE INTO food_db
+           (food_id, name_ja, name_en, category, p100, f100, c100, kcal100, source, is_favorite)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             foodId,
@@ -109,12 +111,11 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
             food.carbs,
             food.calories,
             'manual',
-            0
+            0,
           ]
         );
-        console.log('手動入力食品をfood_dbに登録:', foodId);
       } catch (error) {
-        console.error('food_db登録エラー:', error);
+        // Ignore errors
       }
     }
 
@@ -156,15 +157,12 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
       );
 
       newFoodItem.id = result.lastInsertRowId?.toString() || newFoodItem.id;
-      console.log('📝 DB保存完了 - food_id:', foodId);
 
       set(state => {
         const updated = [...state.foodLog, newFoodItem];
-        console.log('🔄 Store - foodLog状態更新完了:', updated.length);
         return { foodLog: updated };
       });
     } catch (error) {
-      console.error('❌ 保存エラー:', error);
       throw error;
     }
   },
@@ -195,7 +193,6 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
         editingFood: null,
       }));
     } catch (error) {
-      console.error('更新エラー:', error);
       throw error;
     }
   },
@@ -206,14 +203,11 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
         parseInt(foodId),
       ]);
 
-      console.log('🗑️ Store - foodLog状態削除実行:', foodId);
       set(state => {
         const updated = state.foodLog.filter(food => food.id !== foodId);
-        console.log('🗑️ Store - foodLog状態削除完了:', updated.length);
         return { foodLog: updated };
       });
     } catch (error) {
-      console.error('削除エラー:', error);
       throw error;
     }
   },
@@ -227,7 +221,6 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
       const newFavoriteStatus = !currentFood.isFavorite;
       const actualFoodId = currentFood.foodId;
 
-      console.log(`お気に入り切り替え: ID=${actualFoodId}, 新状態=${newFavoriteStatus}`);
 
       // food_dbテーブルのお気に入り状態を更新
       if (actualFoodId) {
@@ -235,7 +228,6 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
           'UPDATE food_db SET is_favorite = ? WHERE food_id = ?',
           [newFavoriteStatus ? 1 : 0, actualFoodId]
         );
-        console.log(`お気に入り状態更新完了: 変更行数=${updateResult.changes}`);
       }
 
       set(state => ({
@@ -244,7 +236,6 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
         ),
       }));
     } catch (error) {
-      console.error('お気に入り切り替えエラー:', error);
       throw error;
     }
   },

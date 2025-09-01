@@ -59,6 +59,12 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
         [session.session_id]
       );
 
+      // ワークアウトセットが存在しない場合はnullを設定
+      if (!workoutSets || workoutSets.length === 0) {
+        setWorkoutData(null);
+        return;
+      }
+
       // データを整形
       const exerciseMap = new Map();
       let totalSets = 0;

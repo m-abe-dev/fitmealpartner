@@ -94,7 +94,6 @@ export const ExerciseDetailView: React.FC<ExerciseDetailViewProps> = ({
         setLastRecordDate(null);
       }
     } catch (error) {
-      console.error('Failed to load last record:', error);
       setLastRecord([]);
       setLastRecordDate(null);
     }
@@ -142,7 +141,6 @@ export const ExerciseDetailView: React.FC<ExerciseDetailViewProps> = ({
 
       setHistoryRecords(history);
     } catch (error) {
-      console.error('Failed to load exercise history:', error);
       setHistoryRecords([]);
     }
   };
@@ -236,13 +234,11 @@ export const ExerciseDetailView: React.FC<ExerciseDetailViewProps> = ({
       }
     });
 
-    console.log('📤 Calling onRecordWorkout with:', exercise?.name, exerciseSets);
     try {
       await onRecordWorkout(exercise?.name || "Unknown Exercise", exerciseSets);
       Alert.alert('成功', `${exercise?.name}を記録しました`);
       onBack();
     } catch (error) {
-      console.error('❌ Record workout failed:', error);
       Alert.alert('エラー', 'ワークアウトの記録に失敗しました');
     }
   };

@@ -24,7 +24,6 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose 
     if (scanned) return;
     
     setScanned(true);
-    console.log(`Barcode scanned: ${scanningResult.data} (type: ${scanningResult.type})`);
     onScan(scanningResult.data);
   };
 

@@ -28,8 +28,6 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
   const [editingExerciseName, setEditingExerciseName] = useState('');
   const [showDropdown, setShowDropdown] = useState<string | null>(null);
 
-  console.log('allExercises:', allExercises);
-  console.log('customCategories', customCategories);
 
   // 起動時にSQLiteから全種目を読み込み
   useEffect(() => {
@@ -46,19 +44,6 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
         'SELECT * FROM exercise_master ORDER BY muscle_group, exercise_id'
       );
 
-      console.log('📋 exercise_masterテーブルの全データ:', allExercisesData);
-
-      // workout_setテーブルの履歴も確認
-      const workoutSetsData = await DatabaseService.getAllAsync<any>(
-        'SELECT * FROM workout_set ORDER BY session_id, exercise_id, set_number'
-      );
-      console.log('📋 workout_setテーブルの履歴データ:', workoutSetsData);
-
-      // workout_sessionテーブルも確認
-      const workoutSessionsData = await DatabaseService.getAllAsync<any>(
-        'SELECT * FROM workout_session ORDER BY date DESC'
-      );
-      console.log('📋 workout_sessionテーブルのデータ:', workoutSessionsData);
 
       const loadedExercises: ExerciseTemplate[] = allExercisesData.map(ex => ({
         id: ex.exercise_id.toString(),
@@ -73,7 +58,7 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
       setAllExercises(loadedExercises);
       setCustomCategories(loadedCustomCategories);
     } catch (error) {
-      console.error('カスタム種目読み込みエラー:', error);
+      // Ignore errors
     }
   };
 
@@ -144,8 +129,6 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
     try {
       const exerciseId = parseInt(editingExerciseId || '');
 
-      // すべての種目をSQLiteに保存
-      console.log('✏️ 種目編集:', { exerciseId, newName: editingExerciseName.trim() });
 
       await DatabaseService.runAsync(
         'UPDATE exercise_master SET name_ja = ? WHERE exercise_id = ?',
@@ -163,10 +146,8 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
 
       setEditingExerciseId(null);
       setEditingExerciseName('');
-      console.log('✅ 種目編集完了');
       Alert.alert('成功', '種目名を更新しました');
     } catch (error) {
-      console.error('❌ 種目編集エラー:', error);
       Alert.alert('エラー', '種目の更新に失敗しました');
     }
   };
@@ -194,7 +175,6 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
 
               if (numericId >= 1000) {
                 // カスタム種目の削除（SQLiteからも削除）
-                console.log('🗑️ カスタム種目削除:', { exerciseId, name: exercise.name });
 
                 // 関連するワークアウトセットも削除
                 await DatabaseService.runAsync(
@@ -226,7 +206,6 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
                   return updatedExercises;
                 });
 
-                console.log('✅ カスタム種目削除完了');
                 Alert.alert('成功', `${exercise.name}を削除しました`);
               } else {
                 // デフォルト種目の場合、ローカル状態から削除（非表示）
@@ -234,7 +213,6 @@ export const ExerciseSelection: React.FC<ExerciseSelectionProps> = ({
               }
               setShowDropdown(null);
             } catch (error) {
-              console.error('❌ 種目削除エラー:', error);
               Alert.alert('エラー', '種目の削除に失敗しました');
             }
           }

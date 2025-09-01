@@ -45,7 +45,7 @@ export const DatabaseDebugger = () => {
       });
 
     } catch (error) {
-      console.error('DB確認エラー:', error);
+      // Ignore errors
     }
   };
 
@@ -71,7 +71,7 @@ export const DatabaseDebugger = () => {
         <Text style={styles.buttonText}>今日のデータを削除</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button} onPress={() => console.log('現在のdbInfo:', dbInfo)}>
+      <TouchableOpacity style={styles.button} onPress={() => {/* Log functionality disabled */}}>
         <Text style={styles.buttonText}>ログ出力</Text>
       </TouchableOpacity>
 

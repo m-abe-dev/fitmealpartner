@@ -6,16 +6,12 @@ class DatabaseService {
 
   async initialize(): Promise<void> {
     if (this.isInitialized && this.db) {
-      console.log('Database already initialized');
       return;
     }
 
     try {
-      console.log('Initializing database...');
-
       // Expo SDK 53の新しいAPI - openDatabaseAsync を使用
       this.db = await SQLite.openDatabaseAsync('fitmeal.db');
-      console.log('Database opened successfully');
 
       // テーブル作成
       await this.createTables();
@@ -27,9 +23,7 @@ class DatabaseService {
       await this.insertInitialData();
 
       this.isInitialized = true;
-      console.log('Database initialized successfully');
     } catch (error) {
-      console.error('Database initialization error:', error);
       throw error;
     }
   }
@@ -38,8 +32,6 @@ class DatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     try {
-      console.log('Creating tables...');
-
       // 外部キー制約を有効化
       await this.db.execAsync('PRAGMA foreign_keys = ON;');
 
@@ -65,7 +57,6 @@ class DatabaseService {
         CREATE INDEX IF NOT EXISTS idx_food_favorite ON food_db(is_favorite);
         CREATE INDEX IF NOT EXISTS idx_food_name_ja ON food_db(name_ja);
       `);
-      console.log('food_db table created');
 
       // 2. 食事ログテーブル
       await this.db.execAsync(`
@@ -88,7 +79,6 @@ class DatabaseService {
         CREATE INDEX IF NOT EXISTS idx_food_log_date ON food_log(date);
         CREATE INDEX IF NOT EXISTS idx_food_log_user ON food_log(user_id);
       `);
-      console.log('food_log table created');
 
       // 3. ワークアウトセッションテーブル
       await this.db.execAsync(`
@@ -106,7 +96,6 @@ class DatabaseService {
         CREATE INDEX IF NOT EXISTS idx_workout_session_date ON workout_session(date);
         CREATE INDEX IF NOT EXISTS idx_workout_session_user ON workout_session(user_id);
       `);
-      console.log('workout_session table created');
 
       // 4. ワークアウトセットテーブル
       await this.db.execAsync(`
@@ -124,7 +113,6 @@ class DatabaseService {
 
         CREATE INDEX IF NOT EXISTS idx_workout_set_session ON workout_set(session_id);
       `);
-      console.log('workout_set table created');
 
       // 5. 種目マスタテーブル
       await this.db.execAsync(`
@@ -139,7 +127,6 @@ class DatabaseService {
 
         CREATE INDEX IF NOT EXISTS idx_exercise_muscle_group ON exercise_master(muscle_group);
       `);
-      console.log('exercise_master table created');
 
       // 6. ユーザー設定テーブル
       await this.db.execAsync(`
@@ -159,7 +146,6 @@ class DatabaseService {
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
       `);
-      console.log('user_settings table created');
 
       // 7. 同期キューテーブル
       await this.db.execAsync(`
@@ -174,11 +160,7 @@ class DatabaseService {
 
         CREATE INDEX IF NOT EXISTS idx_sync_queue_synced ON sync_queue(synced);
       `);
-      console.log('sync_queue table created');
-
-      console.log('All tables created successfully');
     } catch (error) {
-      console.error('Error creating tables:', error);
       throw error;
     }
   }
@@ -187,27 +169,21 @@ class DatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     try {
-      console.log('Running data migration...');
-
       // workout_setテーブルに有酸素運動用カラムを追加
       try {
         await this.db.execAsync(`
           ALTER TABLE workout_set ADD COLUMN time_minutes REAL;
         `);
-        console.log('Added time_minutes column to workout_set');
       } catch (error) {
         // カラムが既に存在する場合はエラーを無視
-        console.log('time_minutes column already exists or error:', error);
       }
 
       try {
         await this.db.execAsync(`
           ALTER TABLE workout_set ADD COLUMN distance_km REAL;
         `);
-        console.log('Added distance_km column to workout_set');
       } catch (error) {
         // カラムが既に存在する場合はエラーを無視
-        console.log('distance_km column already exists or error:', error);
       }
 
       // ID 19-33の不要データを削除
@@ -241,11 +217,7 @@ class DatabaseService {
         AND food_id NOT LIKE 'manual_%'
         AND food_id NOT LIKE 'jfc_%'
       `);
-      console.log('Cleaned up invalid food_log entries');
-
-      console.log('Data migration completed');
     } catch (error) {
-      console.error('Error in data migration:', error);
       // マイグレーションエラーは処理を続行
     }
   }
@@ -254,8 +226,6 @@ class DatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     try {
-      console.log('Inserting initial data...');
-
       // 初期食品データを投入（日本の一般的な食品）
       const initialFoods = [
         // 主食
@@ -445,7 +415,6 @@ class DatabaseService {
           insertedCount++;
         }
       }
-      console.log(`Inserted ${insertedCount} food items`);
 
       // 初期種目データを投入
       const initialExercises = [
@@ -758,11 +727,7 @@ class DatabaseService {
           insertedCount++;
         }
       }
-      console.log(`Inserted ${insertedCount} exercise items`);
-
-      console.log('Initial data insertion completed');
     } catch (error) {
-      console.error('Error inserting initial data:', error);
       // 初期データの挿入エラーは致命的ではないので、処理を続行
     }
   }
@@ -867,9 +832,7 @@ class DatabaseService {
         // 他のテーブルも同様に処理
       });
 
-      console.log('Data imported successfully');
     } catch (error) {
-      console.error('Import error:', error);
       throw error;
     }
   }

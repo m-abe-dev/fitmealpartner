@@ -153,7 +153,7 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({
         <TouchableOpacity
           style={styles.shareButton}
           onPress={() => {
-            console.log('Share score to SNS');
+            // Share functionality to be implemented
           }}
         >
           <Share size={20} color={colors.text.secondary} />
