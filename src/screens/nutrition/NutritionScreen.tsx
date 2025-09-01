@@ -20,6 +20,7 @@ import { useNutritionData } from '../../hooks/useNutritionData';
 import { useFoodLog } from '../../hooks/useFoodLog';
 import { useProfileData } from '../../hooks/useProfileData';
 import { MealTab, FoodLogItem } from './types/nutrition.types';
+import FoodRepository from '../../services/database/repositories/FoodRepository';
 
 export const NutritionScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
@@ -66,10 +67,9 @@ export const NutritionScreen: React.FC = () => {
       protein: food.protein,
       fat: food.fat,
       carbs: food.carbs,
-      foodId: food.id, // 元の食品ID
+      foodId: food.id.startsWith('jfc_') || !(/^\d+$/.test(food.id)) ? food.id : undefined,
       amount: 100,
       unit: 'g',
-      // id, meal, timeはuseFoodLogのaddFoodで生成される
     });
   };
 

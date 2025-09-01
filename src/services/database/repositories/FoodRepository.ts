@@ -96,39 +96,40 @@ class FoodRepository {
   // 最近使用した食品の取得
   async getRecentFoods(userId: string, limit: number = 10): Promise<Food[]> {
     try {
-      // まず最近のログから食品IDを取得
+      console.log('getRecentFoods called with userId:', userId);
+      
+      // 最近のログから重複なしで食品IDを取得（NULL値を除外）
       const recentLogs = await DatabaseService.getAllAsync(
         `SELECT DISTINCT food_id, MAX(logged_at) as last_used
          FROM food_log 
-         WHERE user_id = ?
+         WHERE user_id = ? AND food_id IS NOT NULL AND food_id != ''
          GROUP BY food_id
          ORDER BY last_used DESC
          LIMIT ?`,
         [userId, limit]
       ) as Array<{ food_id: string; last_used: string }>;
       
+      console.log('Recent logs found:', recentLogs);
+      
       if (recentLogs.length === 0) {
-        console.log('最近のログが見つかりません');
         return [];
       }
       
-      // 食品IDリストから食品情報を取得
-      const foodIds = recentLogs.map(log => log.food_id);
-      const placeholders = foodIds.map(() => '?').join(',');
+      // 各food_idの食品情報を個別に取得
+      const foods: Food[] = [];
+      for (const log of recentLogs) {
+        const food = await DatabaseService.getFirstAsync(
+          'SELECT * FROM food_db WHERE food_id = ?',
+          [log.food_id]
+        ) as Record<string, any> | null;
+        
+        if (food) {
+          foods.push(this.mapRowToFood(food));
+        }
+      }
       
-      const foods = await DatabaseService.getAllAsync(
-        `SELECT * FROM food_db WHERE food_id IN (${placeholders})`,
-        foodIds
-      ) as Record<string, any>[];
-      
-      // 元の順序を保持
-      const foodMap = new Map(foods.map(f => [f.food_id, f]));
-      const orderedFoods = recentLogs
-        .map(log => foodMap.get(log.food_id))
-        .filter(Boolean)
-        .map(row => this.mapRowToFood(row as Record<string, any>));
-      
-      return orderedFoods;
+      console.log('Foods found:', foods.length);
+      return foods;
     } catch (error) {
       console.error('getRecentFoods エラー:', error);
       return [];

@@ -9,7 +9,7 @@ export interface UseFoodLogReturn {
   isLoading: boolean;
   setSelectedMeal: (meal: 'breakfast' | 'lunch' | 'dinner' | 'snack') => void;
   setEditingFood: (food: FoodLogItem | null) => void;
-  addFood: (food: Omit<FoodLogItem, 'id' | 'meal' | 'time'>) => void;
+  addFood: (food: Omit<FoodLogItem, 'id' | 'meal' | 'time' | 'foodId'> & { foodId?: string }) => void;
   updateFood: (updatedFood: FoodLogItem) => void;
   deleteFood: (foodId: string) => void;
   toggleFavorite: (foodId: string) => void;

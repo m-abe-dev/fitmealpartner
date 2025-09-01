@@ -62,7 +62,7 @@ export const MealLogCard: React.FC<MealLogCardProps> = ({
                   <Text style={styles.mealName}>{meal.label}</Text>
                   {mealTotals.calories > 0 ? (
                     <Text style={styles.mealTotals}>
-                      {mealTotals.calories} kcal • P{mealTotals.protein}g F{mealTotals.fat}g C{mealTotals.carbs}g
+                      {mealTotals.calories.toFixed(1)} kcal • P{mealTotals.protein.toFixed(1)}g F{mealTotals.fat.toFixed(1)}g C{mealTotals.carbs.toFixed(1)}g
                     </Text>
                   ) : (
                     <Text style={styles.mealEmpty}>記録なし</Text>

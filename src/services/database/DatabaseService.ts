@@ -234,6 +234,15 @@ class DatabaseService {
         );
       }
 
+      // 古い無効なfood_logエントリをクリーンアップ
+      await this.db.runAsync(`
+        DELETE FROM food_log 
+        WHERE food_id NOT IN (SELECT food_id FROM food_db)
+        AND food_id NOT LIKE 'manual_%'
+        AND food_id NOT LIKE 'jfc_%'
+      `);
+      console.log('Cleaned up invalid food_log entries');
+
       console.log('Data migration completed');
     } catch (error) {
       console.error('Error in data migration:', error);

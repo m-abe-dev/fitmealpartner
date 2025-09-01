@@ -196,9 +196,13 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
   // お気に入りボタンのトグル機能を追加
   const toggleFavorite = async (foodId: string) => {
     try {
+      console.log('お気に入り切り替え開始:', foodId);
       await FoodRepository.toggleFavorite(foodId);
+      
       // お気に入りリストを再読み込み
       const favoriteFoodsData = await FoodRepository.getFavoriteFoods(20);
+      console.log('お気に入り再読み込み結果:', favoriteFoodsData);
+      
       const formattedFoods = favoriteFoodsData.map(food => ({
         id: food.food_id,
         name: food.name_ja,
