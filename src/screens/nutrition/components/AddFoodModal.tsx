@@ -23,8 +23,12 @@ import {
 import { colors, typography, spacing, radius, shadows } from '../../../design-system';
 import { Button } from '../../../components/common/Button';
 import { Badge } from '../../../components/common/Badge';
+import { BarcodeScanner } from '../../../components/common/BarcodeScanner';
 import { Food, NewFood, FoodLogItem } from '../types/nutrition.types';
-import { mockFoodDatabase, mockFoodHistory, mockFavoritesFoods } from '../data/mockData';
+import FoodDatabaseService from '../../../services/FoodDatabaseService';
+import JapaneseFoodCompositionService from '../../../services/JapaneseFoodCompositionService';
+import FoodRepository from '../../../services/database/repositories/FoodRepository';
+import DatabaseService from '../../../services/database/DatabaseService';
 
 interface AddFoodModalProps {
   isVisible: boolean;
@@ -53,7 +57,10 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
   const [internalSearchQuery, setInternalSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [preventBlur, setPreventBlur] = useState(false);
-  
+  const [showScanner, setShowScanner] = useState(false);
+  const [recentFoods, setRecentFoods] = useState<Food[]>([]);
+  const [favoritesFoods, setFavoritesFoods] = useState<Food[]>([]);
+
   // 外部から渡されたsearchQueryを使用するか、内部状態を使用するかを決定
   const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : internalSearchQuery;
   const setSearchQuery = onSearchQueryChange || setInternalSearchQuery;
@@ -84,15 +91,130 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
     }
   }, [editingFood]);
 
+  // 最近の食品を読み込み
+  useEffect(() => {
+    const loadRecentFoods = async () => {
+      try {
+        console.log('=== 履歴読み込み開始 ===');
+        await DatabaseService.initialize();
+
+        const userId = 'user_1';
+        
+        // デバッグ: 全ての食事ログをチェック
+        const allLogs = await DatabaseService.getAllAsync(
+          'SELECT * FROM food_log WHERE user_id = ? ORDER BY logged_at DESC LIMIT 10',
+          [userId]
+        );
+        console.log('食事ログ数:', allLogs.length);
+        console.log('食事ログ詳細:', allLogs);
+
+        // デバッグ: 食品データベースをチェック
+        const allFoods = await DatabaseService.getAllAsync(
+          'SELECT * FROM food_db LIMIT 10'
+        );
+        console.log('食品DB数:', allFoods.length);
+        console.log('食品DB詳細:', allFoods);
+
+        const recentFoodsData = await FoodRepository.getRecentFoods(userId, 10);
+        console.log('取得した最近の食品データ:', recentFoodsData);
+        
+        if (recentFoodsData.length > 0) {
+          const formattedFoods = recentFoodsData.map(food => ({
+            id: food.food_id,
+            name: food.name_ja,
+            calories: Math.round(food.kcal100),
+            protein: Math.round(food.p100 * 10) / 10,
+            fat: Math.round(food.f100 * 10) / 10,
+            carbs: Math.round(food.c100 * 10) / 10,
+          }));
+          setRecentFoods(formattedFoods);
+        }
+      } catch (error) {
+        console.error('最近の食品読み込みエラー:', error);
+        setRecentFoods([]);
+      }
+    };
+
+    if (isVisible) {
+      loadRecentFoods();
+    }
+  }, [isVisible]);
+
+  // お気に入り食品を読み込み
+  useEffect(() => {
+    const loadFavoriteFoods = async () => {
+      try {
+        await DatabaseService.initialize();
+        
+        const favoriteFoodsData = await FoodRepository.getFavoriteFoods(20);
+        
+        if (favoriteFoodsData.length > 0) {
+          const formattedFoods = favoriteFoodsData.map(food => ({
+            id: food.food_id,
+            name: food.name_ja,
+            calories: Math.round(food.kcal100),
+            protein: Math.round(food.p100 * 10) / 10,
+            fat: Math.round(food.f100 * 10) / 10,
+            carbs: Math.round(food.c100 * 10) / 10,
+          }));
+          setFavoritesFoods(formattedFoods);
+        }
+      } catch (error) {
+        console.error('お気に入り食品読み込みエラー:', error);
+        setFavoritesFoods([]);
+      }
+    };
+
+    if (isVisible) {
+      loadFavoriteFoods();
+    }
+  }, [isVisible]);
+
   const getSearchResults = (): Food[] => {
     if (!searchQuery.trim()) return [];
-    return mockFoodDatabase.filter(food =>
-      food.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+
+    // 日本食品成分表から検索
+    const compositionResults = JapaneseFoodCompositionService.searchByName(searchQuery);
+
+    // Food型に変換
+    const formattedResults = compositionResults.map(item => ({
+      id: `jfc_${item.food_code}`,
+      name: item.name_ja,
+      calories: Math.round(item.energy_kcal),
+      protein: Math.round(item.protein_g * 10) / 10,
+      fat: Math.round(item.fat_g * 10) / 10,
+      carbs: Math.round(item.carbohydrate_g * 10) / 10,
+    }));
+
+    return formattedResults;
   };
 
   const getFavoritesFoods = (): Food[] => {
-    return favoriteFoods.length > 0 ? favoriteFoods : mockFavoritesFoods;
+    return favoriteFoods.length > 0 ? favoriteFoods : favoritesFoods;
+  };
+
+  // お気に入りボタンのトグル機能を追加
+  const toggleFavorite = async (foodId: string) => {
+    try {
+      console.log('お気に入り切り替え開始:', foodId);
+      await FoodRepository.toggleFavorite(foodId);
+      
+      // お気に入りリストを再読み込み
+      const favoriteFoodsData = await FoodRepository.getFavoriteFoods(20);
+      console.log('お気に入り再読み込み結果:', favoriteFoodsData);
+      
+      const formattedFoods = favoriteFoodsData.map(food => ({
+        id: food.food_id,
+        name: food.name_ja,
+        calories: Math.round(food.kcal100),
+        protein: Math.round(food.p100 * 10) / 10,
+        fat: Math.round(food.f100 * 10) / 10,
+        carbs: Math.round(food.c100 * 10) / 10,
+      }));
+      setFavoritesFoods(formattedFoods);
+    } catch (error) {
+      console.error('お気に入り切り替えエラー:', error);
+    }
   };
 
   const handleSearchFocus = () => {
@@ -114,11 +236,11 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
     // 即座に検索状態をクリア
     setIsSearchFocused(false);
     setSearchQuery('');
-    
+
     try {
       // 食品を追加
       await onAddFood(food);
-      
+
       // モーダルを閉じる
       onClose();
     } catch (error) {
@@ -196,8 +318,11 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
     setSearchQuery('');
     setIsSearchFocused(false);
     setActiveTab('manual');
+    setShowScanner(false);
     onClose();
   };
+
+  console.log('最近の食品:', recentFoods);
 
   return (
     <Modal
@@ -242,7 +367,7 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
             {/* Search Overlay */}
             {isSearchFocused && searchQuery.trim() && (
               <View style={styles.searchOverlay}>
-                <View 
+                <View
                   style={styles.searchResults}
                   onTouchStart={() => {
                     setPreventBlur(true);
@@ -465,22 +590,53 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
               {/* Scan Tab */}
               {activeTab === 'scan' && (
                 <View style={styles.scanSection}>
-                  <View style={styles.emptyState}>
-                    <QrCode size={48} color={colors.text.tertiary} />
-                    <Text style={styles.emptyStateTitle}>バーコードスキャン機能は開発中です</Text>
-                    <Text style={styles.emptyStateSubtext}>
-                      商品のバーコードをスキャンして栄養情報を取得できるようになります
+                  <TouchableOpacity
+                    style={styles.scanButton}
+                    onPress={() => setShowScanner(true)}
+                  >
+                    <QrCode size={32} color={colors.primary.main} />
+                    <Text style={styles.scanButtonText}>バーコードをスキャン</Text>
+                    <Text style={styles.scanButtonSubtext}>
+                      商品のバーコードをカメラで読み取ります
                     </Text>
-                  </View>
+                  </TouchableOpacity>
 
                   <View style={styles.featurePreview}>
-                    <Text style={styles.featureTitle}>予定機能:</Text>
+                    <Text style={styles.featureTitle}>利用可能な機能:</Text>
                     <Text style={styles.featureItem}>• カメラでバーコードスキャン</Text>
                     <Text style={styles.featureItem}>• 商品データベースから栄養情報取得</Text>
+                    <Text style={styles.featureItem}>• 日本の食品データベース対応</Text>
                     <Text style={styles.featureItem}>• 分量調整機能</Text>
-                    <Text style={styles.featureItem}>• よく使う商品の保存</Text>
                   </View>
                 </View>
+              )}
+
+              {/* Barcode Scanner Modal */}
+              {showScanner && (
+                <Modal
+                  visible={showScanner}
+                  animationType="slide"
+                  presentationStyle="fullScreen"
+                >
+                  <BarcodeScanner
+                    onScan={async (barcode) => {
+                      setShowScanner(false);
+                      const foodData = await FoodDatabaseService.searchByBarcode(barcode);
+
+                      if (foodData) {
+                        await onAddFood(foodData);
+                        onClose();
+                      } else {
+                        Alert.alert(
+                          '商品が見つかりません',
+                          'この商品は登録されていません。手動で入力してください。',
+                          [{ text: 'OK', onPress: () => setActiveTab('manual') }]
+                        );
+                      }
+                    }}
+                    onClose={() => setShowScanner(false)}
+                  />
+                </Modal>
               )}
 
               {/* History Section (only show when not favorites or scan tab) */}
@@ -490,22 +646,47 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
                     <Clock size={20} color={colors.text.secondary} />
                     <Text style={styles.sectionTitle}>最近の履歴</Text>
                   </View>
-                  {mockFoodHistory.map((food) => (
-                    <TouchableOpacity
-                      key={food.id}
-                      onPress={() => addFromHistory(food)}
-                      style={styles.historyItem}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.historyInfo}>
-                        <Text style={styles.foodName}>{food.name}</Text>
-                        <Text style={styles.foodDetails}>
-                          {food.calories}kcal • P:{food.protein}g F:{food.fat}g C:{food.carbs}g
-                        </Text>
-                      </View>
-                      <Plus size={20} color={colors.primary.main} />
-                    </TouchableOpacity>
-                  ))}
+                  {recentFoods.length > 0 ? (
+                    recentFoods.map((food) => {
+                      const isFavorite = favoritesFoods.some(f => f.id === food.id);
+                      return (
+                        <TouchableOpacity
+                          key={food.id}
+                          onPress={() => addFromHistory(food)}
+                          style={styles.historyItem}
+                          activeOpacity={0.7}
+                        >
+                          <View style={styles.historyInfo}>
+                            <Text style={styles.foodName}>{food.name}</Text>
+                            <Text style={styles.foodDetails}>
+                              {food.calories}kcal • P:{food.protein}g F:{food.fat}g C:{food.carbs}g
+                            </Text>
+                          </View>
+                          <View style={styles.historyActions}>
+                            <TouchableOpacity
+                              onPress={() => toggleFavorite(food.id)}
+                              style={styles.favoriteToggle}
+                            >
+                              <Heart 
+                                size={20} 
+                                color={colors.status.error}
+                                fill={isFavorite ? colors.status.error : 'transparent'}
+                              />
+                            </TouchableOpacity>
+                            <Plus size={20} color={colors.primary.main} />
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })
+                  ) : (
+                    <View style={styles.emptyState}>
+                      <Clock size={48} color={colors.text.tertiary} />
+                      <Text style={styles.emptyStateTitle}>履歴がありません</Text>
+                      <Text style={styles.emptyStateSubtext}>
+                        食材を追加すると履歴に表示されます
+                      </Text>
+                    </View>
+                  )}
                 </View>
               )}
             </View>
@@ -773,6 +954,26 @@ const styles = StyleSheet.create({
   scanSection: {
     gap: spacing.lg,
   },
+  scanButton: {
+    backgroundColor: colors.background.secondary,
+    borderWidth: 2,
+    borderColor: colors.primary.main,
+    borderStyle: 'dashed',
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  scanButtonText: {
+    fontSize: typography.fontSize.base,
+    fontFamily: typography.fontFamily.bold,
+    color: colors.primary.main,
+  },
+  scanButtonSubtext: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    textAlign: 'center',
+  },
   featurePreview: {
     backgroundColor: colors.background.secondary,
     padding: spacing.md,
@@ -845,5 +1046,13 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
     marginTop: spacing.xxxs,
+  },
+  historyActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  favoriteToggle: {
+    padding: spacing.xs,
   },
 });

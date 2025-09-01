@@ -20,6 +20,7 @@ import { useNutritionData } from '../../hooks/useNutritionData';
 import { useFoodLog } from '../../hooks/useFoodLog';
 import { useProfileData } from '../../hooks/useProfileData';
 import { MealTab, FoodLogItem } from './types/nutrition.types';
+import FoodRepository from '../../services/database/repositories/FoodRepository';
 
 export const NutritionScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
@@ -59,17 +60,37 @@ export const NutritionScreen: React.FC = () => {
   };
 
   // 食材追加ハンドラー
-  const handleAddFood = (food: { id: string; name: string; calories: number; protein: number; fat: number; carbs: number; }) => {
+  const handleAddFood = async (food: { id: string; name: string; calories: number; protein: number; fat: number; carbs: number; }) => {
+    // 日本食品成分表からの食品の場合、food_dbに登録
+    if (food.id.startsWith('jfc_')) {
+      try {
+        await FoodRepository.addFood({
+          food_id: food.id,
+          name_ja: food.name,
+          name_en: food.name,
+          category: '日本食品成分表',
+          p100: food.protein,
+          f100: food.fat,
+          c100: food.carbs,
+          kcal100: food.calories,
+          source: 'jfc',
+          is_favorite: false
+        });
+        console.log('日本食品成分表の食品をfood_dbに登録:', food.id);
+      } catch (error) {
+        console.error('food_db登録エラー:', error);
+      }
+    }
+
     addFood({
       name: food.name,
       calories: food.calories,
       protein: food.protein,
       fat: food.fat,
       carbs: food.carbs,
-      foodId: food.id, // 元の食品ID
+      foodId: food.id,
       amount: 100,
       unit: 'g',
-      // id, meal, timeはuseFoodLogのaddFoodで生成される
     });
   };
 

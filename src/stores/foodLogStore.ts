@@ -12,7 +12,7 @@ interface FoodLogState {
   setSelectedMeal: (meal: 'breakfast' | 'lunch' | 'dinner' | 'snack') => void;
   setEditingFood: (food: FoodLogItem | null) => void;
   loadTodaysFoodLog: () => Promise<void>;
-  addFood: (food: Omit<FoodLogItem, 'id' | 'meal' | 'time'>) => Promise<void>;
+  addFood: (food: Omit<FoodLogItem, 'id' | 'meal' | 'time' | 'foodId'> & { foodId?: string }) => Promise<void>;
   updateFood: (updatedFood: FoodLogItem) => Promise<void>;
   deleteFood: (foodId: string) => Promise<void>;
   toggleFavorite: (foodId: string) => Promise<void>;
@@ -51,7 +51,7 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
 
       const favorites = await DatabaseService.getAllAsync<any>(
         'SELECT * FROM food_favorites WHERE user_id = ?',
-        ['guest']
+        ['user_1']
       );
       const favoriteNames = new Set(favorites.map(f => f.food_name));
 
@@ -89,9 +89,40 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
     console.log('📝 Store addFood開始:', food);
     const { selectedMeal } = get();
 
+    // foodIdが設定されていない場合は手動入力として一意のIDを生成
+    const foodId = food.foodId || `manual_${Date.now()}`;
+
+    // 手動入力の食品の場合、food_dbに登録
+    if (!food.foodId || foodId.startsWith('manual_')) {
+      try {
+        await DatabaseService.runAsync(
+          `INSERT OR REPLACE INTO food_db 
+           (food_id, name_ja, name_en, category, p100, f100, c100, kcal100, source, is_favorite) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            foodId,
+            food.name,
+            food.name,
+            '手動入力',
+            food.protein,
+            food.fat,
+            food.carbs,
+            food.calories,
+            'manual',
+            0
+          ]
+        );
+        console.log('手動入力食品をfood_dbに登録:', foodId);
+      } catch (error) {
+        console.error('food_db登録エラー:', error);
+      }
+    }
+
+    const itemId = Date.now().toString();
     const newFoodItem: FoodLogItem = {
       ...food,
-      id: Date.now().toString(),
+      id: itemId,
+      foodId: foodId,
       meal: selectedMeal,
       time: new Date().toLocaleTimeString('ja-JP', {
         hour: '2-digit',
@@ -111,10 +142,10 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
           amount_g, protein_g, fat_g, carb_g, kcal
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          'guest',
+          'user_1',
           dateString,
           selectedMeal,
-          food.foodId || null,
+          foodId,
           food.name,
           food.amount,
           food.protein,
@@ -124,14 +155,9 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
         ]
       );
 
-      console.log('✅ SQLite保存成功:', {
-        id: result.lastInsertRowId,
-        rowsAffected: result.changes,
-      });
-
       newFoodItem.id = result.lastInsertRowId?.toString() || newFoodItem.id;
+      console.log('📝 DB保存完了 - food_id:', foodId);
 
-      console.log('🔄 Store - foodLog状態更新実行');
       set(state => {
         const updated = [...state.foodLog, newFoodItem];
         console.log('🔄 Store - foodLog状態更新完了:', updated.length);
@@ -199,36 +225,17 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
       if (!currentFood) return;
 
       const newFavoriteStatus = !currentFood.isFavorite;
+      const actualFoodId = currentFood.foodId;
 
-      if (currentFood.foodId) {
-        await DatabaseService.runAsync(
+      console.log(`お気に入り切り替え: ID=${actualFoodId}, 新状態=${newFavoriteStatus}`);
+
+      // food_dbテーブルのお気に入り状態を更新
+      if (actualFoodId) {
+        const updateResult = await DatabaseService.runAsync(
           'UPDATE food_db SET is_favorite = ? WHERE food_id = ?',
-          [newFavoriteStatus ? 1 : 0, currentFood.foodId]
+          [newFavoriteStatus ? 1 : 0, actualFoodId]
         );
-      }
-
-      await DatabaseService.execAsync(`
-        CREATE TABLE IF NOT EXISTS food_favorites (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id TEXT,
-          food_name TEXT,
-          food_id TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          UNIQUE(user_id, food_name)
-        );
-      `);
-
-      if (newFavoriteStatus) {
-        await DatabaseService.runAsync(
-          `INSERT OR REPLACE INTO food_favorites (user_id, food_name, food_id)
-           VALUES (?, ?, ?)`,
-          ['guest', currentFood.name, currentFood.foodId || null]
-        );
-      } else {
-        await DatabaseService.runAsync(
-          'DELETE FROM food_favorites WHERE user_id = ? AND food_name = ?',
-          ['guest', currentFood.name]
-        );
+        console.log(`お気に入り状態更新完了: 変更行数=${updateResult.changes}`);
       }
 
       set(state => ({

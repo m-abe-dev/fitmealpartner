@@ -95,18 +95,45 @@ class FoodRepository {
 
   // 最近使用した食品の取得
   async getRecentFoods(userId: string, limit: number = 10): Promise<Food[]> {
-    
-    
-    const result = await DatabaseService.getAllAsync(
-      `SELECT DISTINCT f.* FROM food_db f
-       INNER JOIN food_log fl ON f.food_id = fl.food_id
-       WHERE fl.user_id = ?
-       ORDER BY fl.logged_at DESC
-       LIMIT ?`,
-      [userId, limit]
-    ) as Record<string, any>[];
-    
-    return result.map(row => this.mapRowToFood(row));
+    try {
+      console.log('getRecentFoods called with userId:', userId);
+      
+      // 最近のログから重複なしで食品IDを取得（NULL値を除外）
+      const recentLogs = await DatabaseService.getAllAsync(
+        `SELECT DISTINCT food_id, MAX(logged_at) as last_used
+         FROM food_log 
+         WHERE user_id = ? AND food_id IS NOT NULL AND food_id != ''
+         GROUP BY food_id
+         ORDER BY last_used DESC
+         LIMIT ?`,
+        [userId, limit]
+      ) as Array<{ food_id: string; last_used: string }>;
+      
+      console.log('Recent logs found:', recentLogs);
+      
+      if (recentLogs.length === 0) {
+        return [];
+      }
+      
+      // 各food_idの食品情報を個別に取得
+      const foods: Food[] = [];
+      for (const log of recentLogs) {
+        const food = await DatabaseService.getFirstAsync(
+          'SELECT * FROM food_db WHERE food_id = ?',
+          [log.food_id]
+        ) as Record<string, any> | null;
+        
+        if (food) {
+          foods.push(this.mapRowToFood(food));
+        }
+      }
+      
+      console.log('Foods found:', foods.length);
+      return foods;
+    } catch (error) {
+      console.error('getRecentFoods エラー:', error);
+      return [];
+    }
   }
 
   // 食品をお気に入りに追加/削除
