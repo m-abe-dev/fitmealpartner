@@ -128,24 +128,6 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
             carbs: Math.round(food.c100 * 10) / 10,
           }));
           setRecentFoods(formattedFoods);
-        } else {
-          // データベースに履歴がない場合、初期食品を表示
-          const defaultFoods = await DatabaseService.getAllAsync(
-            'SELECT * FROM food_db LIMIT 5'
-          ) as any[];
-          
-          if (defaultFoods.length > 0) {
-            const formattedFoods = defaultFoods.map((food: any) => ({
-              id: food.food_id,
-              name: food.name_ja,
-              calories: Math.round(food.kcal100),
-              protein: Math.round(food.p100 * 10) / 10,
-              fat: Math.round(food.f100 * 10) / 10,
-              carbs: Math.round(food.c100 * 10) / 10,
-            }));
-            setRecentFoods(formattedFoods);
-            console.log('デフォルト食品を設定:', formattedFoods);
-          }
         }
       } catch (error) {
         console.error('最近の食品読み込みエラー:', error);
