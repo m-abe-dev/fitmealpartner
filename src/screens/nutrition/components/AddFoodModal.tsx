@@ -9,6 +9,8 @@ import {
   TouchableWithoutFeedback,
   Alert,
   Pressable,
+  Dimensions,
+  FlatList,
 } from 'react-native';
 import { Modal } from 'react-native';
 import {
@@ -65,6 +67,9 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
   const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : internalSearchQuery;
   const setSearchQuery = onSearchQueryChange || setInternalSearchQuery;
   const [activeTab, setActiveTab] = useState<'manual' | 'favorites' | 'scan'>('manual');
+
+  const RESULTS_MAX_H = Math.round(Dimensions.get('window').height * 0.45);
+  const overlayOpen = isSearchFocused && !!searchQuery.trim();
   const [newFood, setNewFood] = useState<NewFood>({
     name: '',
     protein: 0,
@@ -99,7 +104,7 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
         await DatabaseService.initialize();
 
         const userId = 'user_1';
-        
+
         // デバッグ: 全ての食事ログをチェック
         const allLogs = await DatabaseService.getAllAsync(
           'SELECT * FROM food_log WHERE user_id = ? ORDER BY logged_at DESC LIMIT 10',
@@ -112,12 +117,9 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
         const allFoods = await DatabaseService.getAllAsync(
           'SELECT * FROM food_db LIMIT 10'
         );
-        console.log('食品DB数:', allFoods.length);
-        console.log('食品DB詳細:', allFoods);
 
         const recentFoodsData = await FoodRepository.getRecentFoods(userId, 10);
-        console.log('取得した最近の食品データ:', recentFoodsData);
-        
+
         if (recentFoodsData.length > 0) {
           const formattedFoods = recentFoodsData.map(food => ({
             id: food.food_id,
@@ -145,9 +147,9 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
     const loadFavoriteFoods = async () => {
       try {
         await DatabaseService.initialize();
-        
+
         const favoriteFoodsData = await FoodRepository.getFavoriteFoods(20);
-        
+
         if (favoriteFoodsData.length > 0) {
           const formattedFoods = favoriteFoodsData.map(food => ({
             id: food.food_id,
@@ -198,11 +200,11 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
     try {
       console.log('お気に入り切り替え開始:', foodId);
       await FoodRepository.toggleFavorite(foodId);
-      
+
       // お気に入りリストを再読み込み
       const favoriteFoodsData = await FoodRepository.getFavoriteFoods(20);
       console.log('お気に入り再読み込み結果:', favoriteFoodsData);
-      
+
       const formattedFoods = favoriteFoodsData.map(food => ({
         id: food.food_id,
         name: food.name_ja,
@@ -322,8 +324,6 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
     onClose();
   };
 
-  console.log('最近の食品:', recentFoods);
-
   return (
     <Modal
       visible={isVisible}
@@ -344,88 +344,34 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Search Input */}
+        <View style={styles.searchContainer}>
+          <Search
+            size={20}
+            color={colors.text.tertiary}
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onFocus={handleSearchFocus}
+            onBlur={handleSearchBlur}
+            placeholder="食材を検索..."
+            placeholderTextColor={colors.text.tertiary}
+          />
+        </View>
+
+        <ScrollView
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={!overlayOpen}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.contentInner}>
-            {/* Search Input */}
-            <View style={styles.searchContainer}>
-              <Search
-                size={20}
-                color={colors.text.tertiary}
-                style={styles.searchIcon}
-              />
-              <TextInput
-                style={styles.searchInput}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                onFocus={handleSearchFocus}
-                onBlur={handleSearchBlur}
-                placeholder="食材を検索..."
-                placeholderTextColor={colors.text.tertiary}
-              />
-            </View>
 
-            {/* Search Overlay */}
-            {isSearchFocused && searchQuery.trim() && (
-              <View style={styles.searchOverlay}>
-                <View
-                  style={styles.searchResults}
-                  onTouchStart={() => {
-                    setPreventBlur(true);
-                  }}
-                  onTouchEnd={() => {
-                    setTimeout(() => setPreventBlur(false), 100);
-                  }}
-                >
-                      <ScrollView style={styles.searchResultsList}>
-                        {getSearchResults().length > 0 ? (
-                          <View style={styles.searchResultsContent}>
-                            <Text style={styles.searchResultsTitle}>
-                              検索結果 ({getSearchResults().length}件)
-                            </Text>
-                            {getSearchResults().map((food) => (
-                              <TouchableOpacity
-                                key={food.id}
-                                style={styles.searchResultItem}
-                                activeOpacity={0.7}
-                                onPress={() => selectSearchResult(food)}
-                              >
-                                <View style={styles.searchResultContent}>
-                                  <View style={styles.searchResultLeft}>
-                                    <View>
-                                      <Text style={styles.foodName}>{food.name}</Text>
-                                      <Text style={styles.foodDetails}>
-                                        {food.calories}kcal • P:{food.protein}g F:{food.fat}g C:{food.carbs}g
-                                      </Text>
-                                    </View>
-                                  </View>
-                                  <Plus size={20} color={colors.primary.main} />
-                                </View>
-                              </TouchableOpacity>
-                            ))}
-                          </View>
-                        ) : (
-                          <View style={styles.noResults}>
-                            <Search size={48} color={colors.text.tertiary} />
-                            <Text style={styles.noResultsText}>
-                              「{searchQuery}」の検索結果がありません
-                            </Text>
-                            <Text style={styles.noResultsSubtext}>
-                              手入力タブで新しい食材を追加できます
-                            </Text>
-                          </View>
-                        )}
-                      </ScrollView>
-                    </View>
-              </View>
-            )}
-
-            {/* Content with overlay when search is focused */}
-            <View style={[
-              styles.mainContent,
-              isSearchFocused && searchQuery.trim() && styles.overlayContent
-            ]}>
-              {/* Action Buttons */}
-              <View style={styles.actionButtons}>
+            {/* Action Buttons */}
+            <View style={styles.actionButtons}>
                 <TouchableOpacity
                   style={[
                     styles.actionButton,
@@ -667,8 +613,8 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
                               onPress={() => toggleFavorite(food.id)}
                               style={styles.favoriteToggle}
                             >
-                              <Heart 
-                                size={20} 
+                              <Heart
+                                size={20}
                                 color={colors.status.error}
                                 fill={isFavorite ? colors.status.error : 'transparent'}
                               />
@@ -689,9 +635,66 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
                   )}
                 </View>
               )}
-            </View>
           </View>
         </ScrollView>
+
+        {/* Search Overlay - 親ScrollViewの外に配置 */}
+        {overlayOpen && (
+          <View style={styles.searchOverlay}>
+            <TouchableWithoutFeedback onPress={() => setIsSearchFocused(false)}>
+              <View style={styles.searchOverlayBackground} />
+            </TouchableWithoutFeedback>
+
+            <View style={styles.searchResultsContainer}>
+              {getSearchResults().length > 0 ? (
+                <>
+                  <View style={styles.searchResultsHeader}>
+                    <Text style={styles.searchResultsTitle}>
+                      検索結果 ({getSearchResults().length}件)
+                    </Text>
+                  </View>
+                  <FlatList
+                    data={getSearchResults()}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={styles.searchResultItem}
+                        activeOpacity={0.7}
+                        onPress={() => selectSearchResult(item)}
+                      >
+                        <View style={styles.searchResultContent}>
+                          <View style={styles.searchResultLeft}>
+                            <View>
+                              <Text style={styles.foodName}>{item.name}</Text>
+                              <Text style={styles.foodDetails}>
+                                {item.calories}kcal • P:{item.protein}g F:{item.fat}g C:{item.carbs}g
+                              </Text>
+                            </View>
+                          </View>
+                          <Plus size={20} color={colors.primary.main} />
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                    style={{ height: RESULTS_MAX_H }}
+                    contentContainerStyle={styles.searchResultsScrollContent}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={true}
+                  />
+                </>
+              ) : (
+                <View style={styles.noResults}>
+                  <Search size={48} color={colors.text.tertiary} />
+                  <Text style={styles.noResultsText}>
+                    「{searchQuery}」の検索結果がありません
+                  </Text>
+                  <Text style={styles.noResultsSubtext}>
+                    手入力タブで新しい食材を追加できます
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
       </View>
     </Modal>
   );
@@ -755,39 +758,46 @@ const styles = StyleSheet.create({
   },
   searchOverlay: {
     position: 'absolute',
-    top: 60,
+    top: 110,
     left: 0,
     right: 0,
-    bottom: 0,
+    height: 450,
     zIndex: 1000,
   },
-  overlayBackground: {
+  searchOverlayBackground: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
-  searchResults: {
+  searchResultsContainer: {
+    position: 'absolute',
+    top: 0,
+    left: spacing.sm,
+    right: spacing.sm,
+    height: 400,
     backgroundColor: colors.background.primary,
-    marginHorizontal: spacing.sm,
     borderRadius: radius.lg,
-    maxHeight: 288,
     ...shadows.lg,
     elevation: 10,
-    zIndex: 1100,
+    overflow: 'hidden',
+    paddingBottom: spacing.xxxl,
   },
-  searchResultsList: {
-    maxHeight: 288,
-  },
-  searchResultsContent: {
+  searchResultsHeader: {
     padding: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+    backgroundColor: colors.background.primary,
+  },
+  searchResultsScrollContent: {
+    padding: spacing.md,
+    paddingTop: spacing.sm,
   },
   searchResultsTitle: {
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
-    marginBottom: spacing.sm,
   },
   searchResultItem: {
     marginBottom: spacing.xs,
