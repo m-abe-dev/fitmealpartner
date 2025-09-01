@@ -7,7 +7,7 @@ export class DatabaseTest {
   
   static async runAllTests(): Promise<boolean> {
     try {
-      console.log('🔍 Starting database tests...');
+      // Starting database tests...
       
       // データベース初期化テスト
       await this.testDatabaseInitialization();
@@ -21,17 +21,16 @@ export class DatabaseTest {
       // ワークアウト関連テスト
       await this.testWorkoutRepository();
       
-      console.log('✅ All database tests passed!');
+      // All database tests passed
       return true;
       
     } catch (error) {
-      console.error('❌ Database tests failed:', error);
       return false;
     }
   }
 
   static async testDatabaseInitialization(): Promise<void> {
-    console.log('📦 Testing database initialization...');
+    // Testing database initialization...
     
     // データベースを初期化
     await DatabaseService.initialize();
@@ -41,11 +40,11 @@ export class DatabaseTest {
       throw new Error('Database initialization failed');
     }
     
-    console.log('✅ Database initialization test passed');
+    // Database initialization test passed
   }
 
   static async testUserRepository(): Promise<void> {
-    console.log('👤 Testing UserRepository...');
+    // Testing UserRepository...
     
     const testUserId = 'test-user-001';
     
@@ -86,11 +85,11 @@ export class DatabaseTest {
       throw new Error('Onboarding completion check failed');
     }
     
-    console.log('✅ UserRepository test passed');
+    // UserRepository test passed
   }
 
   static async testFoodRepository(): Promise<void> {
-    console.log('🍎 Testing FoodRepository...');
+    // Testing FoodRepository...
     
     const testUserId = 'test-user-001';
     const today = new Date().toISOString().split('T')[0];
@@ -102,7 +101,7 @@ export class DatabaseTest {
     }
     
     const testFood = searchResults[0];
-    console.log(`Found food: ${testFood.name_ja}`);
+    // Found food
     
     // 栄養計算テスト
     const nutrition = FoodRepository.calculateNutrition(testFood, 150);
@@ -140,13 +139,13 @@ export class DatabaseTest {
       throw new Error('Nutrition summary calculation failed');
     }
     
-    console.log(`Daily nutrition: ${summary.total_kcal} kcal, ${summary.total_protein}g protein`);
+    // Daily nutrition calculated
     
-    console.log('✅ FoodRepository test passed');
+    // FoodRepository test passed
   }
 
   static async testWorkoutRepository(): Promise<void> {
-    console.log('💪 Testing WorkoutRepository...');
+    // Testing WorkoutRepository...
     
     const testUserId = 'test-user-001';
     const today = new Date().toISOString().split('T')[0];
@@ -158,7 +157,7 @@ export class DatabaseTest {
     }
     
     const testExercise = exerciseResults[0];
-    console.log(`Found exercise: ${testExercise.name_ja}`);
+    // Found exercise
     
     // ワークアウトセッションを開始
     const sessionId = await WorkoutRepository.startWorkoutSession({
@@ -204,7 +203,7 @@ export class DatabaseTest {
       throw new Error('Workout session retrieval failed');
     }
     
-    console.log(`Workout volume: ${sessionWithSets.total_volume_kg} kg`);
+    // Workout volume calculated
     
     // ワークアウトサマリーを取得
     const summaries = await WorkoutRepository.getWorkoutSummary(testUserId, today, today);
@@ -212,22 +211,22 @@ export class DatabaseTest {
       throw new Error('Workout summary calculation failed');
     }
     
-    console.log(`Daily workout: ${summaries[0].total_sets} sets, ${summaries[0].total_volume_kg} kg total volume`);
+    // Daily workout calculated
     
-    console.log('✅ WorkoutRepository test passed');
+    // WorkoutRepository test passed
   }
 
   static async cleanupTestData(): Promise<void> {
-    console.log('🧹 Cleaning up test data...');
+    // Cleaning up test data...
     
     const testUserId = 'test-user-001';
     
     try {
       // テストユーザーのデータを削除
       await UserRepository.deleteAllUserData(testUserId);
-      console.log('✅ Test data cleanup completed');
+      // Test data cleanup completed
     } catch (error) {
-      console.warn('⚠️ Test data cleanup failed (this is ok for initial tests):', error);
+      // Test data cleanup failed (this is ok for initial tests)
     }
   }
 }

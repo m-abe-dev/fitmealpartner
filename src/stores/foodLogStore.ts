@@ -84,7 +84,6 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
 
       set({ foodLog: mappedLogs, isLoading: false });
     } catch (error) {
-      console.error('食事ログの読み込みエラー:', error);
       set({ isLoading: false });
     }
   },
@@ -116,7 +115,7 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
           ]
         );
       } catch (error) {
-        console.error('food_db登録エラー:', error);
+        // Ignore errors
       }
     }
 
@@ -158,15 +157,12 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
       );
 
       newFoodItem.id = result.lastInsertRowId?.toString() || newFoodItem.id;
-      console.log('📝 DB保存完了 - food_id:', foodId);
 
       set(state => {
         const updated = [...state.foodLog, newFoodItem];
-        console.log('🔄 Store - foodLog状態更新完了:', updated.length);
         return { foodLog: updated };
       });
     } catch (error) {
-      console.error('❌ 保存エラー:', error);
       throw error;
     }
   },
@@ -197,7 +193,6 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
         editingFood: null,
       }));
     } catch (error) {
-      console.error('更新エラー:', error);
       throw error;
     }
   },
@@ -208,14 +203,11 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
         parseInt(foodId),
       ]);
 
-      console.log('🗑️ Store - foodLog状態削除実行:', foodId);
       set(state => {
         const updated = state.foodLog.filter(food => food.id !== foodId);
-        console.log('🗑️ Store - foodLog状態削除完了:', updated.length);
         return { foodLog: updated };
       });
     } catch (error) {
-      console.error('削除エラー:', error);
       throw error;
     }
   },
@@ -229,9 +221,6 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
       const newFavoriteStatus = !currentFood.isFavorite;
       const actualFoodId = currentFood.foodId;
 
-      console.log(
-        `お気に入り切り替え: ID=${actualFoodId}, 新状態=${newFavoriteStatus}`
-      );
 
       // food_dbテーブルのお気に入り状態を更新
       if (actualFoodId) {
@@ -239,7 +228,6 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
           'UPDATE food_db SET is_favorite = ? WHERE food_id = ?',
           [newFavoriteStatus ? 1 : 0, actualFoodId]
         );
-        console.log(`お気に入り状態更新完了: 変更行数=${updateResult.changes}`);
       }
 
       set(state => ({
@@ -248,7 +236,6 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
         ),
       }));
     } catch (error) {
-      console.error('お気に入り切り替えエラー:', error);
       throw error;
     }
   },

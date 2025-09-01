@@ -30,8 +30,6 @@ export const ExerciseList: React.FC<ExerciseListProps> = ({
   onUpdateSet,
 }) => {
 
-  console.log('📋 adsfasdfRendering ExerciseList with exercises:', exercises);
-
   const handleAddSet = (exerciseId: string) => {
     onAddSet(exerciseId);
   };

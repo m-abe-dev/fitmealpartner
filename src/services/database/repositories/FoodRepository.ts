@@ -121,10 +121,8 @@ class FoodRepository {
         }
       }
 
-      console.log('Foods found:', foods.length);
       return foods;
     } catch (error) {
-      console.error('getRecentFoods エラー:', error);
       return [];
     }
   }

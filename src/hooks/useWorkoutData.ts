@@ -25,7 +25,7 @@ export const useWorkoutData = () => {
     updateExercise: store.updateExercise,
     // Legacy method for backward compatibility
     updateExercises: (exercises: Exercise[]) => {
-      console.log('⚠️ updateExercises (legacy) called');
+      // Legacy method - no longer used
     },
   };
 };

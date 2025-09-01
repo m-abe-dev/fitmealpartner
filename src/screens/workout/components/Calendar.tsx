@@ -35,13 +35,11 @@ export const Calendar: React.FC<CalendarProps> = ({ onDayClick }) => {
       const startDate = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
       const endDate = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-31`;
 
-      console.log('Checking workout sessions for:', startDate, 'to', endDate);
 
       // データベースの全体状況確認
       const checkAllSessions = await DatabaseService.getAllAsync<any>(
         'SELECT * FROM workout_session LIMIT 10'
       );
-      console.log('All workout sessions in DB:', checkAllSessions);
 
       // セットが存在するセッションのみを取得
       const sessions = await DatabaseService.getAllAsync<any>(
@@ -53,19 +51,15 @@ export const Calendar: React.FC<CalendarProps> = ({ onDayClick }) => {
         [startDate, endDate]
       );
 
-      console.log('Sessions with actual workout sets:', sessions);
 
       // セッションが存在する場合のみ日付を抽出
       if (sessions && sessions.length > 0) {
         const days = sessions.map(session => {
           const day = parseInt(session.date.split('-')[2]);
-          console.log('Adding workout day:', day, 'from date:', session.date);
           return day;
         });
         setWorkoutDays(days);
-        console.log('Workout days set to:', days);
       } else {
-        console.log('No workout sessions with sets found, clearing workout days');
         setWorkoutDays([]);
       }
     } catch (error) {

@@ -76,9 +76,8 @@ export const NutritionScreen: React.FC = () => {
           source: 'jfc',
           is_favorite: false
         });
-        console.log('日本食品成分表の食品をfood_dbに登録:', food.id);
       } catch (error) {
-        console.error('food_db登録エラー:', error);
+        // Ignore errors
       }
     }
 
@@ -108,7 +107,7 @@ export const NutritionScreen: React.FC = () => {
 
   // シェアハンドラー
   const handleShare = () => {
-    console.log('Share nutrition data');
+    // Share functionality to be implemented
   };
 
   return (

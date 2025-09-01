@@ -104,7 +104,6 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       });
 
       const exercises = Array.from(exerciseMap.values());
-      console.log('📊 Loaded exercises with types:', exercises.map(ex => ({ name: ex.name, category: ex.category, type: ex.type })));
       set({ exercises, isLoading: false });
     } catch (error) {
       set({ isLoading: false });
@@ -112,14 +111,11 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   },
 
   addExercise: async exercise => {
-    console.log('🎯 addExercise called with:', exercise);
     const { currentSessionId } = get();
     
     if (!currentSessionId) {
-      console.error('❌ No current session ID');
       return;
     }
-    console.log('✅ Current session ID:', currentSessionId);
 
     try {
       // exercise_masterに種目を追加/取得
@@ -150,7 +146,6 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
         type: correctType
       };
 
-      console.log('🔧 Exercise type corrected:', { category: exercise.category, type: correctType });
 
       // 各セットをworkout_setに追加
       for (const [index, workoutSet] of exercise.sets.entries()) {
@@ -197,17 +192,14 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
               ? { ...ex, sets: [...ex.sets, ...exerciseWithCorrectType.sets] }
               : ex
           );
-          console.log('✅ Exercise updated (merged sets) with type:', correctType);
         } else {
           // Add new exercise
           updated = [...state.exercises, exerciseWithCorrectType];
-          console.log('✅ Exercise added with type:', correctType, 'Total exercises:', updated.length);
         }
         
         return { exercises: updated };
       });
     } catch (error) {
-      console.error('❌ addExercise error:', error);
       throw error;
     }
   },

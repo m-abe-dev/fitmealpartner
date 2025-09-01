@@ -100,7 +100,6 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
   useEffect(() => {
     const loadRecentFoods = async () => {
       try {
-        console.log('=== 履歴読み込み開始 ===');
         await DatabaseService.initialize();
 
         const userId = 'user_1';
@@ -130,7 +129,6 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
           setRecentFoods(formattedFoods);
         }
       } catch (error) {
-        console.error('最近の食品読み込みエラー:', error);
         setRecentFoods([]);
       }
     };
@@ -160,7 +158,6 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
           setFavoritesFoods(formattedFoods);
         }
       } catch (error) {
-        console.error('お気に入り食品読み込みエラー:', error);
         setFavoritesFoods([]);
       }
     };
@@ -196,12 +193,10 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
   // お気に入りボタンのトグル機能を追加
   const toggleFavorite = async (foodId: string) => {
     try {
-      console.log('お気に入り切り替え開始:', foodId);
       await FoodRepository.toggleFavorite(foodId);
 
       // お気に入りリストを再読み込み
       const favoriteFoodsData = await FoodRepository.getFavoriteFoods(20);
-      console.log('お気に入り再読み込み結果:', favoriteFoodsData);
 
       const formattedFoods = favoriteFoodsData.map(food => ({
         id: food.food_id,
@@ -213,7 +208,7 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
       }));
       setFavoritesFoods(formattedFoods);
     } catch (error) {
-      console.error('お気に入り切り替えエラー:', error);
+      // Ignore errors
     }
   };
 
@@ -244,7 +239,6 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
       // モーダルを閉じる
       onClose();
     } catch (error) {
-      console.error('食材追加エラー:', error);
       Alert.alert('エラー', '食材の追加に失敗しました');
     }
   };
@@ -254,7 +248,6 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
       await onAddFood(food);
       onClose();
     } catch (error) {
-      console.error('食材追加エラー:', error);
       Alert.alert('エラー', '食材の追加に失敗しました');
     }
   };
@@ -279,7 +272,6 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
       setNewFood({ name: '', protein: 0, fat: 0, carbs: 0 });
       onClose();
     } catch (error) {
-      console.error('食材追加エラー:', error);
       Alert.alert('エラー', '食材の追加に失敗しました');
     }
   };
@@ -309,7 +301,6 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
       await onUpdateFood(updatedFood);
       onClose();
     } catch (error) {
-      console.error('食材更新エラー:', error);
       Alert.alert('エラー', '食材の更新に失敗しました');
     }
   };
@@ -648,7 +639,7 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
                 <>
                   <View style={styles.searchResultsHeader}>
                     <Text style={styles.searchResultsTitle}>
-                      検索結果 ({getSearchResults().length}件)
+                      検索結果 ({getSearchResults().length}件) *100gあたりの栄養価
                     </Text>
                   </View>
                   <FlatList

@@ -61,7 +61,6 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
 
       // ワークアウトセットが存在しない場合はnullを設定
       if (!workoutSets || workoutSets.length === 0) {
-        console.log(`No workout sets found for session ${session.session_id}`);
         setWorkoutData(null);
         return;
       }
