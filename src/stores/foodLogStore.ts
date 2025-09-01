@@ -12,7 +12,11 @@ interface FoodLogState {
   setSelectedMeal: (meal: 'breakfast' | 'lunch' | 'dinner' | 'snack') => void;
   setEditingFood: (food: FoodLogItem | null) => void;
   loadTodaysFoodLog: () => Promise<void>;
-  addFood: (food: Omit<FoodLogItem, 'id' | 'meal' | 'time' | 'foodId'> & { foodId?: string }) => Promise<void>;
+  addFood: (
+    food: Omit<FoodLogItem, 'id' | 'meal' | 'time' | 'foodId'> & {
+      foodId?: string;
+    }
+  ) => Promise<void>;
   updateFood: (updatedFood: FoodLogItem) => Promise<void>;
   deleteFood: (foodId: string) => Promise<void>;
   toggleFavorite: (foodId: string) => Promise<void>;
@@ -86,7 +90,6 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
   },
 
   addFood: async food => {
-    console.log('📝 Store addFood開始:', food);
     const { selectedMeal } = get();
 
     // foodIdが設定されていない場合は手動入力として一意のIDを生成
@@ -96,8 +99,8 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
     if (!food.foodId || foodId.startsWith('manual_')) {
       try {
         await DatabaseService.runAsync(
-          `INSERT OR REPLACE INTO food_db 
-           (food_id, name_ja, name_en, category, p100, f100, c100, kcal100, source, is_favorite) 
+          `INSERT OR REPLACE INTO food_db
+           (food_id, name_ja, name_en, category, p100, f100, c100, kcal100, source, is_favorite)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             foodId,
@@ -109,10 +112,9 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
             food.carbs,
             food.calories,
             'manual',
-            0
+            0,
           ]
         );
-        console.log('手動入力食品をfood_dbに登録:', foodId);
       } catch (error) {
         console.error('food_db登録エラー:', error);
       }
@@ -227,7 +229,9 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
       const newFavoriteStatus = !currentFood.isFavorite;
       const actualFoodId = currentFood.foodId;
 
-      console.log(`お気に入り切り替え: ID=${actualFoodId}, 新状態=${newFavoriteStatus}`);
+      console.log(
+        `お気に入り切り替え: ID=${actualFoodId}, 新状態=${newFavoriteStatus}`
+      );
 
       // food_dbテーブルのお気に入り状態を更新
       if (actualFoodId) {

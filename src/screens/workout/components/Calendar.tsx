@@ -28,24 +28,24 @@ export const Calendar: React.FC<CalendarProps> = ({ onDayClick }) => {
   const loadWorkoutDays = async () => {
     try {
       await DatabaseService.initialize();
-      
+
       // 選択月のワークアウト日を取得
       const startDate = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
       const endDate = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-31`;
-      
+
       const sessions = await DatabaseService.getAllAsync<any>(
-        `SELECT DISTINCT date FROM workout_session 
+        `SELECT DISTINCT date FROM workout_session
          WHERE date >= ? AND date <= ?
          ORDER BY date`,
         [startDate, endDate]
       );
-      
+
       // 日付から日の部分を抽出
       const days = sessions.map(session => {
         const day = parseInt(session.date.split('-')[2]);
         return day;
       });
-      
+
       setWorkoutDays(days);
     } catch (error) {
       console.error('Failed to load workout days:', error);
@@ -140,6 +140,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onDayClick }) => {
 
           const isToday = day === today && selectedMonth === todayMonth && selectedYear === todayYear;
           const hasWorkoutDay = hasWorkout(day);
+          console.log(`Day: ${day}, Has Workout: ${hasWorkoutDay}`);
 
           return (
             <TouchableOpacity

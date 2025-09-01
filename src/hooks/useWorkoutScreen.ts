@@ -36,8 +36,12 @@ export const useWorkoutScreen = () => {
 
   // Calendar state
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number>(
+    new Date().getMonth()
+  );
+  const [selectedYear, setSelectedYear] = useState<number>(
+    new Date().getFullYear()
+  );
 
   // Calendar data
   const currentDate = new Date();
@@ -168,12 +172,6 @@ export const useWorkoutScreen = () => {
     exerciseName: string,
     sets: WorkoutSet[]
   ) => {
-    console.log('🚀 handleRecordWorkout called:', {
-      exerciseName,
-      sets,
-      selectedExercise,
-    });
-
     if (!selectedExercise) {
       console.error('❌ No selected exercise');
       return;
@@ -188,11 +186,8 @@ export const useWorkoutScreen = () => {
       type: selectedExercise.category === '有酸素' ? 'cardio' : 'strength',
     };
 
-    console.log('🔧 Creating exercise with category:', selectedExercise.category, 'type:', newExercise.type);
-
     try {
       await addExercise(newExercise);
-      console.log('✅ Exercise recorded successfully');
       setCurrentView('main');
     } catch (error) {
       console.error('❌ Failed to record exercise:', error);

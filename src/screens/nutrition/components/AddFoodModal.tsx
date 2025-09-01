@@ -110,8 +110,6 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
           'SELECT * FROM food_log WHERE user_id = ? ORDER BY logged_at DESC LIMIT 10',
           [userId]
         );
-        console.log('食事ログ数:', allLogs.length);
-        console.log('食事ログ詳細:', allLogs);
 
         // デバッグ: 食品データベースをチェック
         const allFoods = await DatabaseService.getAllAsync(

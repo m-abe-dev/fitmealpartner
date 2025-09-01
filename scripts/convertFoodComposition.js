@@ -2,16 +2,19 @@ const fs = require('fs');
 const path = require('path');
 
 // CSVファイルを読み込み
-const csvPath = path.join(__dirname, '../src/data/raw/food_composition_2023.csv');
+const csvPath = path.join(
+  __dirname,
+  '../src/data/raw/food_composition_2023.csv'
+);
 const csvData = fs.readFileSync(csvPath, 'utf-8');
 
 // 行ごとに分割
 const lines = csvData.split('\n');
 
 // データ行（8行目以降）を抽出
-const dataLines = lines.slice(7).filter(line => line.trim() && !line.startsWith(',,,,,'));
-
-console.log(`データ行数: ${dataLines.length}`);
+const dataLines = lines
+  .slice(7)
+  .filter(line => line.trim() && !line.startsWith(',,,,,'));
 
 // データを変換
 const foodData = [];
@@ -19,7 +22,7 @@ let validCount = 0;
 
 dataLines.forEach((line, index) => {
   const columns = line.split(',');
-  
+
   // 必要なカラムのみ抽出（位置ベース）
   const foodGroup = columns[0] || '';
   const foodNumber = columns[1] || '';
@@ -38,15 +41,29 @@ dataLines.forEach((line, index) => {
   const carbSugar = columns[14] || '';
   const carbStarch = columns[15] || '';
   const carbOther = columns[16] || '';
-  
+
   // データの有効性チェック
-  if (!foodName || !energyKcal || energyKcal === '-' || energyKcal === 'Tr' || energyKcal === '(0)') {
+  if (
+    !foodName ||
+    !energyKcal ||
+    energyKcal === '-' ||
+    energyKcal === 'Tr' ||
+    energyKcal === '(0)'
+  ) {
     return;
   }
 
   // 数値変換用のヘルパー関数
-  const parseNum = (val) => {
-    if (!val || val === '-' || val === 'Tr' || val === '(0)' || val.includes('(') || val === '') return 0;
+  const parseNum = val => {
+    if (
+      !val ||
+      val === '-' ||
+      val === 'Tr' ||
+      val === '(0)' ||
+      val.includes('(') ||
+      val === ''
+    )
+      return 0;
     const num = parseFloat(val);
     return isNaN(num) ? 0 : num;
   };
@@ -66,7 +83,7 @@ dataLines.forEach((line, index) => {
       protein_g: proteinValue,
       fat_g: fatValue,
       carbohydrate_g: carbValue,
-      water_g: parseNum(water)
+      water_g: parseNum(water),
     };
 
     foodData.push(food);
@@ -79,7 +96,10 @@ console.log('サンプルデータ:');
 console.log(foodData.slice(0, 3));
 
 // JSONファイルとして保存
-const outputPath = path.join(__dirname, '../src/data/japanese-food-composition-2023.json');
+const outputPath = path.join(
+  __dirname,
+  '../src/data/japanese-food-composition-2023.json'
+);
 fs.writeFileSync(outputPath, JSON.stringify(foodData, null, 2), 'utf-8');
 
 console.log(`✅ 変換完了: ${foodData.length}件の食品データを保存しました`);
