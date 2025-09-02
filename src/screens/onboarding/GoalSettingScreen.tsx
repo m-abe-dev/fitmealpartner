@@ -273,6 +273,7 @@ export function GoalSettingScreen({ onNext, currentData }: OnboardingStepProps) 
                     setShowDatePicker(false);
                   }}
                   minDate={new Date().toISOString().split('T')[0]}
+                  showYearSelector={false}
                 />
               </View>
             </View>

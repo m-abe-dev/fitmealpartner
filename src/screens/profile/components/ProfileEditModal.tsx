@@ -345,6 +345,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     selectedDate={profile.targetDate}
                     onDateSelect={handleCalendarDateSelect}
                     minDate={getMinDate()}
+                    showYearSelector={false}
                   />
                 </View>
               </View>

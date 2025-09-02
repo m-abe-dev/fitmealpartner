@@ -4,31 +4,47 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
+  Modal,
+  ScrollView,
 } from 'react-native';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../../design-system';
 
 interface SimpleCalendarProps {
   selectedDate?: string;
   onDateSelect: (dateString: string) => void;
-  minDate: string;
+  minDate?: string;
+  maxDate?: string;
+  showYearSelector?: boolean;
 }
 
 export const SimpleCalendar: React.FC<SimpleCalendarProps> = ({
   selectedDate,
   onDateSelect,
-  minDate
+  minDate,
+  maxDate,
+  showYearSelector = false,
 }) => {
   const today = new Date();
-  const currentMonth = today.getMonth();
-  const currentYear = today.getFullYear();
-  const [displayMonth, setDisplayMonth] = useState(currentMonth);
-  const [displayYear, setDisplayYear] = useState(currentYear);
+  const initialDate = selectedDate ? new Date(selectedDate) : today;
+  
+  const [displayMonth, setDisplayMonth] = useState(initialDate.getMonth());
+  const [displayYear, setDisplayYear] = useState(initialDate.getFullYear());
+  const [showYearPicker, setShowYearPicker] = useState(false);
+
+  const minDateObj = minDate ? new Date(minDate) : new Date(1900, 0, 1);
+  const maxDateObj = maxDate ? new Date(maxDate) : new Date(2100, 11, 31);
+
+  // 年の選択肢を生成
+  const startYear = minDateObj.getFullYear();
+  const endYear = maxDateObj.getFullYear();
+  const yearOptions = Array.from(
+    { length: endYear - startYear + 1 }, 
+    (_, i) => startYear + i
+  ).reverse();
 
   const daysInMonth = new Date(displayYear, displayMonth + 1, 0).getDate();
   const firstDayOfMonth = new Date(displayYear, displayMonth, 1).getDay();
-  const minDateObj = new Date(minDate);
 
   const monthNames = [
     '1月', '2月', '3月', '4月', '5月', '6月',
@@ -61,26 +77,57 @@ export const SimpleCalendar: React.FC<SimpleCalendarProps> = ({
     }
   };
 
-  const isPrevDisabled = displayYear < currentYear || (displayYear === currentYear && displayMonth <= currentMonth);
+  const isPrevDisabled = () => {
+    const currentDisplay = new Date(displayYear, displayMonth, 1);
+    const minDisplay = new Date(minDateObj.getFullYear(), minDateObj.getMonth(), 1);
+    return currentDisplay <= minDisplay;
+  };
+
+  const isNextDisabled = () => {
+    const currentDisplay = new Date(displayYear, displayMonth, 1);
+    const maxDisplay = new Date(maxDateObj.getFullYear(), maxDateObj.getMonth(), 1);
+    return currentDisplay >= maxDisplay;
+  };
+
+  const handleYearSelect = (year: number) => {
+    setDisplayYear(year);
+    setShowYearPicker(false);
+  };
 
   return (
     <View style={styles.calendar}>
       <View style={styles.calendarNavigation}>
         <TouchableOpacity
           onPress={goToPreviousMonth}
-          disabled={isPrevDisabled}
-          style={[styles.calendarNavButton, isPrevDisabled && styles.calendarNavButtonDisabled]}
+          disabled={isPrevDisabled()}
+          style={[styles.calendarNavButton, isPrevDisabled() && styles.calendarNavButtonDisabled]}
         >
-          <ChevronLeft size={20} color={isPrevDisabled ? colors.text.tertiary : colors.text.secondary} />
+          <ChevronLeft size={20} color={isPrevDisabled() ? colors.text.tertiary : colors.text.secondary} />
         </TouchableOpacity>
 
-        <View style={styles.calendarMonthYearContainer}>
+        <TouchableOpacity 
+          style={styles.calendarMonthYearContainer}
+          onPress={showYearSelector ? () => setShowYearPicker(true) : undefined}
+          disabled={!showYearSelector}
+        >
           <Text style={styles.calendarMonthText}>{monthNames[displayMonth]}</Text>
-          <Text style={styles.calendarYearText}>{displayYear}</Text>
-        </View>
+          <Text style={[
+            styles.calendarYearText,
+            showYearSelector && styles.calendarYearClickable
+          ]}>
+            {displayYear}年
+          </Text>
+          {showYearSelector && (
+            <ChevronDown size={16} color={colors.primary.main} style={styles.yearDropdownIcon} />
+          )}
+        </TouchableOpacity>
 
-        <TouchableOpacity onPress={goToNextMonth} style={styles.calendarNavButton}>
-          <ChevronRight size={20} color={colors.text.secondary} />
+        <TouchableOpacity 
+          onPress={goToNextMonth} 
+          disabled={isNextDisabled()}
+          style={[styles.calendarNavButton, isNextDisabled() && styles.calendarNavButtonDisabled]}
+        >
+          <ChevronRight size={20} color={isNextDisabled() ? colors.text.tertiary : colors.text.secondary} />
         </TouchableOpacity>
       </View>
 
@@ -99,7 +146,7 @@ export const SimpleCalendar: React.FC<SimpleCalendarProps> = ({
           const dateString = `${displayYear}-${String(displayMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
           const currentDateObj = new Date(displayYear, displayMonth, day);
           const isSelected = selectedDate === dateString;
-          const isDisabled = currentDateObj < minDateObj;
+          const isDisabled = currentDateObj < minDateObj || currentDateObj > maxDateObj;
           const isToday = dateString === today.toISOString().split('T')[0];
 
           return (
@@ -126,6 +173,51 @@ export const SimpleCalendar: React.FC<SimpleCalendarProps> = ({
           );
         })}
       </View>
+
+      {/* Year Picker Modal */}
+      {showYearPicker && (
+        <Modal
+          transparent={true}
+          animationType="fade"
+          visible={showYearPicker}
+          onRequestClose={() => setShowYearPicker(false)}
+        >
+          <TouchableOpacity 
+            style={styles.yearPickerOverlay}
+            activeOpacity={1}
+            onPress={() => setShowYearPicker(false)}
+          >
+            <View style={styles.yearPickerContainer}>
+              <View style={styles.yearPickerHeader}>
+                <Text style={styles.yearPickerTitle}>年を選択</Text>
+              </View>
+              <ScrollView 
+                style={styles.yearPickerScroll}
+                showsVerticalScrollIndicator={true}
+                contentContainerStyle={styles.yearPickerContent}
+              >
+                {yearOptions.map((year) => (
+                  <TouchableOpacity
+                    key={year}
+                    style={[
+                      styles.yearPickerItem,
+                      displayYear === year && styles.yearPickerItemSelected
+                    ]}
+                    onPress={() => handleYearSelect(year)}
+                  >
+                    <Text style={[
+                      styles.yearPickerItemText,
+                      displayYear === year && styles.yearPickerItemTextSelected
+                    ]}>
+                      {year}年
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
     </View>
   );
 };
@@ -162,6 +254,63 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontFamily: typography.fontFamily.bold,
   },
+  calendarYearClickable: {
+    color: colors.primary.main,
+    textDecorationLine: 'underline',
+  },
+  yearDropdownIcon: {
+    marginLeft: 4,
+  },
+  // Year Picker styles
+  yearPickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  yearPickerContainer: {
+    backgroundColor: colors.background.primary,
+    borderRadius: radius.lg,
+    width: '80%',
+    maxHeight: '60%',
+    overflow: 'hidden',
+  },
+  yearPickerHeader: {
+    padding: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+    backgroundColor: colors.background.secondary,
+  },
+  yearPickerTitle: {
+    fontSize: typography.fontSize.lg,
+    fontFamily: typography.fontFamily.bold,
+    color: colors.text.primary,
+    textAlign: 'center',
+  },
+  yearPickerScroll: {
+    maxHeight: 300,
+  },
+  yearPickerContent: {
+    paddingVertical: spacing.sm,
+  },
+  yearPickerItem: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border.light,
+  },
+  yearPickerItemSelected: {
+    backgroundColor: colors.primary.light,
+  },
+  yearPickerItemText: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.primary,
+    textAlign: 'center',
+  },
+  yearPickerItemTextSelected: {
+    color: colors.primary.main,
+    fontFamily: typography.fontFamily.bold,
+  },
   calendarWeekDays: {
     flexDirection: 'row',
     marginBottom: spacing.sm,
@@ -179,7 +328,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   calendarDayCell: {
-    width: 47,
+    width: '14.28%',
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',

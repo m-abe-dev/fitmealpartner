@@ -8,11 +8,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
-  FlatList,
 } from 'react-native';
-import { User, Calendar, Ruler, Weight, ChevronDown } from 'lucide-react-native';
+import { User, Calendar } from 'lucide-react-native';
 import { colors, typography, spacing, radius, shadows } from '../../design-system';
 import { ProfileData, OnboardingStepProps } from '../../types/onboarding.types';
+import { DropdownSelector } from '../../components/common/DropdownSelector';
+import { SimpleCalendar } from '../../components/common/SimpleCalendar';
 
 export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
   onNext,
@@ -31,25 +32,26 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
     currentData?.profile?.weight || 65
   );
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [isHeightPickerOpen, setIsHeightPickerOpen] = useState(false);
-  const [isWeightPickerOpen, setIsWeightPickerOpen] = useState(false);
-
-  // 生年月日用の選択肢を生成
-  const years = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i);
-  const months = Array.from({ length: 12 }, (_, i) => i + 1);
-  const days = Array.from({ length: 31 }, (_, i) => i + 1);
-
-  const [selectedYear, setSelectedYear] = useState(birthDate.getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(birthDate.getMonth() + 1);
-  const [selectedDay, setSelectedDay] = useState(birthDate.getDate());
+  const [selectedDateString, setSelectedDateString] = useState(
+    currentData?.profile?.birthDate
+      ? currentData.profile.birthDate.toISOString().split('T')[0]
+      : '2000-01-01'
+  );
 
   // 身長の選択肢を生成（140cm〜220cm）
-  const heightOptions = Array.from({ length: 81 }, (_, i) => i + 140);
+  const heightOptions = Array.from({ length: 81 }, (_, i) => ({
+    value: i + 140,
+    label: `${i + 140}cm`
+  }));
 
   // 体重の選択肢を生成（35kg〜150kg、整数のみ）
-  const weightOptions = Array.from({ length: 116 }, (_, i) => i + 35);
+  const weightOptions = Array.from({ length: 116 }, (_, i) => ({
+    value: i + 35,
+    label: `${i + 35}kg`
+  }));
 
-  const calculateAge = (birthDate: Date): number => {
+  const calculateAge = (dateString: string): number => {
+    const birthDate = new Date(dateString);
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
@@ -61,16 +63,16 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
     return age;
   };
 
-  const updateBirthDate = () => {
-    const newDate = new Date(selectedYear, selectedMonth - 1, selectedDay);
-    setBirthDate(newDate);
+  const handleDateSelect = (dateString: string) => {
+    setSelectedDateString(dateString);
+    setBirthDate(new Date(dateString));
     setShowDatePicker(false);
   };
 
   const handleNext = () => {
     const profileData: ProfileData = {
       gender,
-      birthDate,
+      birthDate: new Date(selectedDateString),
       height,
       weight,
     };
@@ -99,11 +101,8 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
 
         <View style={styles.form}>
           {/* Gender Selection */}
-          <View style={styles.inputGroup}>
-            <View style={styles.labelContainer}>
-              <User size={20} color={colors.primary.main} />
+          <View >
               <Text style={styles.label}>性別</Text>
-            </View>
             <View style={styles.segmentedContainer}>
               {[
                 { key: 'male', label: '男性' },
@@ -132,50 +131,41 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
           </View>
 
           {/* Birth Date */}
-          <View style={styles.inputGroup}>
-            <View style={styles.labelContainer}>
-              <Calendar size={20} color={colors.primary.main} />
+          <View >
               <Text style={styles.label}>生年月日</Text>
-            </View>
             <TouchableOpacity
               style={styles.dropdownButton}
               onPress={() => setShowDatePicker(true)}
             >
               <Text style={styles.dropdownButtonText}>
-                {birthDate.toLocaleDateString('ja-JP')} ({calculateAge(birthDate)}歳)
+                {new Date(selectedDateString).toLocaleDateString('ja-JP')} ({calculateAge(selectedDateString)}歳)
               </Text>
-              <ChevronDown size={20} color={colors.text.secondary} />
+              <Calendar size={20} color={colors.text.secondary} />
             </TouchableOpacity>
           </View>
 
           {/* Height */}
-          <View style={styles.inputGroup}>
-            <View style={styles.labelContainer}>
-              <Ruler size={20} color={colors.primary.main} />
-              <Text style={styles.label}>身長</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.dropdownButton}
-              onPress={() => setIsHeightPickerOpen(true)}
-            >
-              <Text style={styles.dropdownButtonText}>{height} cm</Text>
-              <ChevronDown size={20} color={colors.text.secondary} />
-            </TouchableOpacity>
+          <View >
+            <DropdownSelector
+              label="身長"
+              value={height}
+              options={heightOptions}
+              onSelect={setHeight}
+              placeholder="選択してください"
+              defaultScrollToValue={170}
+            />
           </View>
 
           {/* Weight */}
-          <View style={styles.inputGroup}>
-            <View style={styles.labelContainer}>
-              <Weight size={20} color={colors.primary.main} />
-              <Text style={styles.label}>体重</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.dropdownButton}
-              onPress={() => setIsWeightPickerOpen(true)}
-            >
-              <Text style={styles.dropdownButtonText}>{weight} kg</Text>
-              <ChevronDown size={20} color={colors.text.secondary} />
-            </TouchableOpacity>
+          <View >
+            <DropdownSelector
+              label="体重"
+              value={weight}
+              options={weightOptions}
+              onSelect={setWeight}
+              placeholder="選択してください"
+              defaultScrollToValue={65}
+            />
           </View>
         </View>
 
@@ -191,227 +181,48 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
         </View>
       </ScrollView>
 
-      {/* Simple List Picker for Date */}
-      <Modal
-        visible={showDatePicker}
-        transparent={true}
-        animationType="slide"
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.listPickerContainer}>
-            <View style={styles.pickerHeader}>
-              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                <Text style={styles.pickerCancelText}>キャンセル</Text>
-              </TouchableOpacity>
-              <Text style={styles.pickerTitle}>生年月日</Text>
-              <TouchableOpacity onPress={updateBirthDate}>
-                <Text style={styles.pickerDoneText}>完了</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.datePickerRow}>
-              {/* Year */}
-              <View style={styles.datePickerColumn}>
-                <Text style={styles.columnTitle}>年</Text>
-                <FlatList
-                  data={years}
-                  keyExtractor={(item) => item.toString()}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity
-                      style={[
-                        styles.listItem,
-                        selectedYear === item && styles.listItemSelected
-                      ]}
-                      onPress={() => setSelectedYear(item)}
-                    >
-                      <Text style={[
-                        styles.listItemText,
-                        selectedYear === item && styles.listItemTextSelected
-                      ]}>
-                        {item}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                  style={styles.flatList}
-                  showsVerticalScrollIndicator={false}
-                  getItemLayout={(_, index) => ({
-                    length: 44,
-                    offset: 44 * index,
-                    index,
-                  })}
-                  initialScrollIndex={years.indexOf(selectedYear)}
-                />
-              </View>
-
-              {/* Month */}
-              <View style={styles.datePickerColumn}>
-                <Text style={styles.columnTitle}>月</Text>
-                <FlatList
-                  data={months}
-                  keyExtractor={(item) => item.toString()}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity
-                      style={[
-                        styles.listItem,
-                        selectedMonth === item && styles.listItemSelected
-                      ]}
-                      onPress={() => setSelectedMonth(item)}
-                    >
-                      <Text style={[
-                        styles.listItemText,
-                        selectedMonth === item && styles.listItemTextSelected
-                      ]}>
-                        {item}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                  style={styles.flatList}
-                  showsVerticalScrollIndicator={false}
-                  getItemLayout={(_, index) => ({
-                    length: 44,
-                    offset: 44 * index,
-                    index,
-                  })}
-                  initialScrollIndex={selectedMonth - 1}
-                />
-              </View>
-
-              {/* Day */}
-              <View style={styles.datePickerColumn}>
-                <Text style={styles.columnTitle}>日</Text>
-                <FlatList
-                  data={days}
-                  keyExtractor={(item) => item.toString()}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity
-                      style={[
-                        styles.listItem,
-                        selectedDay === item && styles.listItemSelected
-                      ]}
-                      onPress={() => setSelectedDay(item)}
-                    >
-                      <Text style={[
-                        styles.listItemText,
-                        selectedDay === item && styles.listItemTextSelected
-                      ]}>
-                        {item}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                  style={styles.flatList}
-                  showsVerticalScrollIndicator={false}
-                  getItemLayout={(_, index) => ({
-                    length: 44,
-                    offset: 44 * index,
-                    index,
-                  })}
-                  initialScrollIndex={selectedDay - 1}
-                />
-              </View>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Height Picker Modal */}
-      <Modal
-        visible={isHeightPickerOpen}
-        transparent={true}
-        animationType="slide"
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.listPickerContainer}>
-            <View style={styles.pickerHeader}>
-              <TouchableOpacity onPress={() => setIsHeightPickerOpen(false)}>
-                <Text style={styles.pickerCancelText}>キャンセル</Text>
-              </TouchableOpacity>
-              <Text style={styles.pickerTitle}>身長</Text>
-              <TouchableOpacity onPress={() => setIsHeightPickerOpen(false)}>
-                <Text style={styles.pickerDoneText}>完了</Text>
-              </TouchableOpacity>
-            </View>
-
-            <FlatList
-              data={heightOptions}
-              keyExtractor={(item) => item.toString()}
-              renderItem={({ item }) => (
+      {/* Birth Date Picker Modal */}
+      {showDatePicker && (
+        <Modal
+          transparent={true}
+          animationType="slide"
+          visible={showDatePicker}
+          onRequestClose={() => setShowDatePicker(false)}
+        >
+          <View style={styles.calendarOverlay}>
+            <View style={styles.calendarContainer}>
+              <View style={styles.calendarHeader}>
                 <TouchableOpacity
-                  style={[
-                    styles.listItem,
-                    height === item && styles.listItemSelected
-                  ]}
-                  onPress={() => setHeight(item)}
+                  onPress={() => setShowDatePicker(false)}
+                  style={styles.calendarHeaderButton}
                 >
-                  <Text style={[
-                    styles.listItemText,
-                    height === item && styles.listItemTextSelected
-                  ]}>
-                    {item} cm
-                  </Text>
+                  <Text style={styles.calendarCancel}>キャンセル</Text>
                 </TouchableOpacity>
-              )}
-              style={styles.singleFlatList}
-              showsVerticalScrollIndicator={false}
-              getItemLayout={(_, index) => ({
-                length: 44,
-                offset: 44 * index,
-                index,
-              })}
-              initialScrollIndex={heightOptions.indexOf(height)}
-            />
-          </View>
-        </View>
-      </Modal>
-
-      {/* Weight Picker Modal */}
-      <Modal
-        visible={isWeightPickerOpen}
-        transparent={true}
-        animationType="slide"
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.listPickerContainer}>
-            <View style={styles.pickerHeader}>
-              <TouchableOpacity onPress={() => setIsWeightPickerOpen(false)}>
-                <Text style={styles.pickerCancelText}>キャンセル</Text>
-              </TouchableOpacity>
-              <Text style={styles.pickerTitle}>体重</Text>
-              <TouchableOpacity onPress={() => setIsWeightPickerOpen(false)}>
-                <Text style={styles.pickerDoneText}>完了</Text>
-              </TouchableOpacity>
-            </View>
-
-            <FlatList
-              data={weightOptions}
-              keyExtractor={(item) => item.toString()}
-              renderItem={({ item }) => (
+                <View style={styles.calendarTitleContainer}>
+                  <Text style={styles.calendarTitle}>生年月日を選択</Text>
+                </View>
                 <TouchableOpacity
-                  style={[
-                    styles.listItem,
-                    weight === item && styles.listItemSelected
-                  ]}
-                  onPress={() => setWeight(item)}
+                  onPress={() => setShowDatePicker(false)}
+                  style={styles.calendarHeaderButton}
                 >
-                  <Text style={[
-                    styles.listItemText,
-                    weight === item && styles.listItemTextSelected
-                  ]}>
-                    {item} kg
-                  </Text>
+                  <Text style={styles.calendarDone}>完了</Text>
                 </TouchableOpacity>
-              )}
-              style={styles.singleFlatList}
-              showsVerticalScrollIndicator={false}
-              getItemLayout={(_, index) => ({
-                length: 44,
-                offset: 44 * index,
-                index,
-              })}
-              initialScrollIndex={weightOptions.indexOf(weight)}
-            />
+              </View>
+
+              <View style={styles.calendarContent}>
+                <SimpleCalendar
+                  selectedDate={selectedDateString}
+                  onDateSelect={handleDateSelect}
+                  minDate="1924-01-01"
+                  maxDate={new Date().toISOString().split('T')[0]}
+                  showYearSelector={true}
+                />
+              </View>
+            </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      )}
+
     </KeyboardAvoidingView>
   );
 };
@@ -468,18 +279,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     gap: spacing.xl,
   },
-  inputGroup: {
-    gap: spacing.md,
-  },
   labelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
   },
   label: {
-    fontSize: typography.fontSize.base,
-    color: colors.text.primary,
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
     fontFamily: typography.fontFamily.medium,
+    marginBottom: spacing.xs,
   },
   segmentedContainer: {
     flexDirection: 'row',
@@ -505,6 +314,62 @@ const styles = StyleSheet.create({
     color: colors.text.inverse,
     fontFamily: typography.fontFamily.bold,
   },
+  // Calendar modal styles
+  calendarOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  calendarContainer: {
+    backgroundColor: colors.background.primary,
+    borderRadius: radius.lg,
+    margin: spacing.md,
+    maxWidth: 400,
+    width: '95%',
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+  },
+  calendarHeaderButton: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    width: 90,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  calendarTitleContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  calendarCancel: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.secondary,
+    fontFamily: typography.fontFamily.regular,
+    textAlign: 'center',
+  },
+  calendarTitle: {
+    fontSize: typography.fontSize.lg,
+    color: colors.text.primary,
+    fontFamily: typography.fontFamily.bold,
+    textAlign: 'center',
+  },
+  calendarDone: {
+    fontSize: typography.fontSize.base,
+    color: colors.primary.main,
+    fontFamily: typography.fontFamily.bold,
+    textAlign: 'center',
+  },
+  calendarContent: {
+    padding: spacing.lg,
+  },
   dropdownButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -513,97 +378,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border.light,
     borderRadius: radius.lg,
-    paddingVertical: spacing.lg,
     paddingHorizontal: spacing.lg,
-    minHeight: 56,
-    ...shadows.sm,
+    minHeight: 48,
   },
   dropdownButtonText: {
     fontSize: typography.fontSize.base,
     color: colors.text.primary,
     fontFamily: typography.fontFamily.regular,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'flex-end',
-  },
-  listPickerContainer: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    maxHeight: '60%',
-  },
-  pickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E5E5',
-    backgroundColor: '#F8F9FA',
-  },
-  pickerTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  pickerCancelText: {
-    fontSize: 17,
-    color: '#007AFF',
-  },
-  pickerDoneText: {
-    fontSize: 17,
-    color: '#007AFF',
-    fontWeight: '600',
-  },
-  datePickerRow: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    height: 300,
-  },
-  datePickerColumn: {
-    flex: 1,
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: '#E5E5E5',
-  },
-  columnTitle: {
-    textAlign: 'center',
-    paddingVertical: spacing.sm,
-    fontSize: typography.fontSize.sm,
-    color: colors.text.secondary,
-    fontFamily: typography.fontFamily.medium,
-    backgroundColor: '#F8F9FA',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E5E5',
-  },
-  flatList: {
-    height: 250,
-  },
-  singleFlatList: {
-    height: 300,
-    backgroundColor: '#FFFFFF',
-  },
-  listItem: {
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#F0F0F0',
-  },
-  listItemSelected: {
-    backgroundColor: '#E3F2FD',
-  },
-  listItemText: {
-    fontSize: 18,
-    color: '#000000',
-    fontFamily: typography.fontFamily.regular,
-  },
-  listItemTextSelected: {
-    fontSize: 18,
-    color: '#007AFF',
-    fontFamily: typography.fontFamily.bold,
   },
   buttonContainer: {
     paddingHorizontal: spacing.xl,
