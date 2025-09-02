@@ -72,12 +72,16 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
       <View style={[styles.header, hideProgress && styles.headerNoProgress]}>
         <View style={styles.titleContainer}>
           {showBackButton && onBack && (
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={onBack}
-            >
-              <ChevronLeft size={24} color={colors.text.primary} />
-            </TouchableOpacity>
+            <View style={styles.backButtonWrapper}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={onBack}
+                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                activeOpacity={0.7}
+              >
+                <ChevronLeft size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+            </View>
           )}
           <Text style={styles.title}>{title}</Text>
         </View>
@@ -143,15 +147,17 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
   },
   backButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.background.secondary,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'absolute',
-    left: 0,
-    padding: spacing.sm,
+    shadowColor: colors.gray[900],
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
   progressContainer: {
     alignItems: 'center',
@@ -185,6 +191,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xxl,
     paddingBottom: spacing.xl,
     alignItems: 'center',
+    position: 'relative',
   },
   titleContainer: {
     flexDirection: 'row',
@@ -192,6 +199,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
     marginBottom: spacing.sm,
+    minHeight: 44,
   },
   title: {
     fontSize: typography.fontSize.xl,
@@ -199,6 +207,16 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     textAlign: 'center',
     flex: 1,
+    paddingHorizontal: 60,
+  },
+  backButtonWrapper: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    zIndex: 10,
+    width: 60,
   },
   subtitle: {
     fontSize: typography.fontSize.md,
