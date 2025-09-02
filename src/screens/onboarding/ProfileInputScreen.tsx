@@ -3,17 +3,15 @@ import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Modal,
 } from 'react-native';
-import { User, Calendar } from 'lucide-react-native';
-import { colors, typography, spacing, radius, shadows } from '../../design-system';
+import { Calendar } from 'lucide-react-native';
+import { colors, typography, spacing, radius } from '../../design-system';
 import { ProfileData, OnboardingStepProps } from '../../types/onboarding.types';
 import { DropdownSelector } from '../../components/common/DropdownSelector';
-import { SimpleCalendar } from '../../components/common/SimpleCalendar';
+import { OnboardingLayout } from '../../components/common/OnboardingLayout';
+import { OnboardingSection } from '../../components/common/OnboardingSection';
+import { CalendarModal } from '../../components/common/CalendarModal';
 
 export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
   onNext,
@@ -81,28 +79,19 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <OnboardingLayout
+      currentStep={1}
+      totalSteps={4}
+      title="基本情報を入力"
+      subtitle="あなたに最適なトレーニングプランを作成するための基本情報を教えてください"
+      onNext={handleNext}
+      nextButtonText="次へ"
+      isNextEnabled={true}
     >
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.title}>ようこそ、{'\n'}あなたの専属AIトレーナーへ</Text>
-          <Text style={styles.subtitle}>基本プロフィールを教えてください</Text>
-
-          {/* Progress Bar */}
-          <View style={styles.progressContainer}>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: '25%' }]} />
-            </View>
-            <Text style={styles.progressText}>1/4</Text>
-          </View>
-        </View>
-
-        <View style={styles.form}>
+      <OnboardingSection>
           {/* Gender Selection */}
-          <View >
-              <Text style={styles.label}>性別</Text>
+          <View>
+            <Text style={styles.label}>性別</Text>
             <View style={styles.segmentedContainer}>
               {[
                 { key: 'male', label: '男性' },
@@ -131,8 +120,8 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
           </View>
 
           {/* Birth Date */}
-          <View >
-              <Text style={styles.label}>生年月日</Text>
+          <View>
+            <Text style={styles.label}>生年月日</Text>
             <TouchableOpacity
               style={styles.dropdownButton}
               onPress={() => setShowDatePicker(true)}
@@ -145,9 +134,9 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
           </View>
 
           {/* Height */}
-          <View >
+          <View style={{ marginBottom: spacing.md }}>
             <DropdownSelector
-              label="身長"
+              label="身長 (cm)"
               value={height}
               options={heightOptions}
               onSelect={setHeight}
@@ -157,9 +146,9 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
           </View>
 
           {/* Weight */}
-          <View >
+          <View style={{ marginBottom: spacing.md }}>
             <DropdownSelector
-              label="体重"
+              label="体重 (kg)"
               value={weight}
               options={weightOptions}
               onSelect={setWeight}
@@ -167,123 +156,23 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
               defaultScrollToValue={65}
             />
           </View>
-        </View>
+      </OnboardingSection>
 
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.nextButton}
-            onPress={handleNext}
-          >
-            <Text style={styles.nextButtonText}>
-              次へ
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-
-      {/* Birth Date Picker Modal */}
-      {showDatePicker && (
-        <Modal
-          transparent={true}
-          animationType="slide"
-          visible={showDatePicker}
-          onRequestClose={() => setShowDatePicker(false)}
-        >
-          <View style={styles.calendarOverlay}>
-            <View style={styles.calendarContainer}>
-              <View style={styles.calendarHeader}>
-                <TouchableOpacity
-                  onPress={() => setShowDatePicker(false)}
-                  style={styles.calendarHeaderButton}
-                >
-                  <Text style={styles.calendarCancel}>キャンセル</Text>
-                </TouchableOpacity>
-                <View style={styles.calendarTitleContainer}>
-                  <Text style={styles.calendarTitle}>生年月日を選択</Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => setShowDatePicker(false)}
-                  style={styles.calendarHeaderButton}
-                >
-                  <Text style={styles.calendarDone}>完了</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.calendarContent}>
-                <SimpleCalendar
-                  selectedDate={selectedDateString}
-                  onDateSelect={handleDateSelect}
-                  minDate="1924-01-01"
-                  maxDate={new Date().toISOString().split('T')[0]}
-                  showYearSelector={true}
-                />
-              </View>
-            </View>
-          </View>
-        </Modal>
-      )}
-
-    </KeyboardAvoidingView>
+      <CalendarModal
+        isVisible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        selectedDate={selectedDateString}
+        onDateSelect={handleDateSelect}
+        title="生年月日を選択"
+        minDate="1924-01-01"
+        maxDate={new Date().toISOString().split('T')[0]}
+        showYearSelector={true}
+      />
+    </OnboardingLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  header: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.lg,
-  },
-  title: {
-    fontSize: typography.fontSize['2xl'],
-    color: colors.text.primary,
-    fontFamily: typography.fontFamily.bold,
-    lineHeight: typography.fontSize['2xl'] * 1.2,
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    fontSize: typography.fontSize.base,
-    color: colors.text.secondary,
-    fontFamily: typography.fontFamily.regular,
-    marginBottom: spacing.xl,
-  },
-  progressContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  progressBar: {
-    flex: 1,
-    height: 4,
-    backgroundColor: colors.border.light,
-    borderRadius: radius.full,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.primary.main,
-    borderRadius: radius.full,
-  },
-  progressText: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.secondary,
-    fontFamily: typography.fontFamily.medium,
-  },
-  form: {
-    paddingHorizontal: spacing.xl,
-    gap: spacing.xl,
-  },
-  labelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
   label: {
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
@@ -295,6 +184,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.secondary,
     borderRadius: radius.lg,
     padding: spacing.xxxs,
+    marginBottom: spacing.md,
   },
   segmentButton: {
     flex: 1,
@@ -314,92 +204,22 @@ const styles = StyleSheet.create({
     color: colors.text.inverse,
     fontFamily: typography.fontFamily.bold,
   },
-  // Calendar modal styles
-  calendarOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  calendarContainer: {
-    backgroundColor: colors.background.primary,
-    borderRadius: radius.lg,
-    margin: spacing.md,
-    maxWidth: 400,
-    width: '95%',
-  },
-  calendarHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  calendarHeaderButton: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    width: 90,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  calendarTitleContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  calendarCancel: {
-    fontSize: typography.fontSize.base,
-    color: colors.text.secondary,
-    fontFamily: typography.fontFamily.regular,
-    textAlign: 'center',
-  },
-  calendarTitle: {
-    fontSize: typography.fontSize.lg,
-    color: colors.text.primary,
-    fontFamily: typography.fontFamily.bold,
-    textAlign: 'center',
-  },
-  calendarDone: {
-    fontSize: typography.fontSize.base,
-    color: colors.primary.main,
-    fontFamily: typography.fontFamily.bold,
-    textAlign: 'center',
-  },
-  calendarContent: {
-    padding: spacing.lg,
-  },
   dropdownButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'white',
+    backgroundColor: colors.background.primary,
     borderWidth: 1,
     borderColor: colors.border.light,
-    borderRadius: radius.lg,
-    paddingHorizontal: spacing.lg,
-    minHeight: 48,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    height: 48,
+    marginBottom: spacing.md,
   },
   dropdownButtonText: {
     fontSize: typography.fontSize.base,
     color: colors.text.primary,
     fontFamily: typography.fontFamily.regular,
-  },
-  buttonContainer: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
-  },
-  nextButton: {
-    backgroundColor: colors.primary.main,
-    borderRadius: radius.lg,
-    paddingVertical: spacing.lg,
-    alignItems: 'center',
-    ...shadows.md,
-  },
-  nextButtonText: {
-    fontSize: typography.fontSize.lg,
-    color: colors.text.inverse,
-    fontFamily: typography.fontFamily.bold,
   },
 });
