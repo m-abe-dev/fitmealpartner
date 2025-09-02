@@ -8,6 +8,7 @@ import { DashboardScreen } from '../screens/dashboard/DashboardScreen';
 import { NutritionScreen } from '../screens/nutrition/NutritionScreen';
 import { WorkoutScreen } from '../screens/workout/WorkoutScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
+import { ProfileInputScreen } from '../screens/onboarding/ProfileInputScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -61,6 +62,20 @@ export default function AppNavigator() {
         },
       })}
     >
+      {/* Test: ProfileInput Screen */}
+      <Tab.Screen
+        name="ProfileInput"
+        options={{ tabBarLabel: 'テスト' }}
+      >
+        {() => (
+          <ProfileInputScreen
+            onNext={(data) => {
+              console.log('Profile data:', data);
+              alert('プロフィールデータが保存されました！');
+            }}
+          />
+        )}
+      </Tab.Screen>
       <Tab.Screen
         name="Dashboard"
         component={DashboardScreen}
