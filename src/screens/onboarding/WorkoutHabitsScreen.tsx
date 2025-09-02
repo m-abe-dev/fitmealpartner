@@ -10,7 +10,7 @@ import { DropdownSelector } from '../../components/common/DropdownSelector';
 import { OnboardingLayout } from '../../components/common/OnboardingLayout';
 import { OnboardingSection } from '../../components/common/OnboardingSection';
 
-export function WorkoutHabitsScreen({ onNext, currentData }: OnboardingStepProps) {
+export function WorkoutHabitsScreen({ onNext, onBack, currentData }: OnboardingStepProps) {
   const [activityLevel, setActivityLevel] = useState<
     'sedentary' | 'light' | 'moderate' | 'active' | 'very-active'
   >(currentData?.workoutHabits?.activityLevel || 'moderate');
@@ -56,10 +56,12 @@ export function WorkoutHabitsScreen({ onNext, currentData }: OnboardingStepProps
   return (
     <OnboardingLayout
       currentStep={3}
-      totalSteps={4}
+      totalSteps={3}
       title="トレーニング習慣"
       subtitle="普段のトレーニング習慣を教えてください"
       onNext={handleNext}
+      onBack={onBack}
+      showBackButton={true}
       nextButtonText="次へ"
       isNextEnabled={true}
       isScrollView={false}

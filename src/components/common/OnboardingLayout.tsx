@@ -5,8 +5,9 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  SafeAreaView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ChevronLeft } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../../design-system';
 
 interface OnboardingLayoutProps {
@@ -16,10 +17,13 @@ interface OnboardingLayoutProps {
   title: string;
   subtitle: string;
   onNext?: () => void;
+  onBack?: () => void;
   nextButtonText?: string;
   isNextEnabled?: boolean;
   nextButtonDisabled?: boolean;
   isScrollView?: boolean;
+  showBackButton?: boolean;
+  hideProgress?: boolean;
 }
 
 export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
@@ -29,10 +33,13 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
   title,
   subtitle,
   onNext,
+  onBack,
   nextButtonText = '次へ',
   isNextEnabled = true,
   nextButtonDisabled = false,
   isScrollView = true,
+  showBackButton = false,
+  hideProgress = false,
 }) => {
   const progressPercentage = (currentStep / totalSteps) * 100;
 
@@ -41,28 +48,44 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
     ? { style: styles.scrollView, showsVerticalScrollIndicator: false }
     : { style: styles.scrollView };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <ContentWrapper {...contentProps}>
-        {/* Progress Bar */}
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
+  const content = (
+    <>
+      {/* Header with Back Button */}
+      {!hideProgress && (
+        <View style={styles.headerContainer}>
+          {/* Progress Bar */}
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${progressPercentage}%` }
+                ]}
+              />
+            </View>
+            <Text style={styles.progressText}>{currentStep} / {totalSteps}</Text>
           </View>
-          <Text style={styles.progressText}>{currentStep} / {totalSteps}</Text>
         </View>
+      )}
 
-        {/* Header */}
-        <View style={styles.header}>
+      {/* Title and Subtitle */}
+      <View style={[styles.header, hideProgress && styles.headerNoProgress]}>
+        <View style={styles.titleContainer}>
+          {showBackButton && onBack && (
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={onBack}
+            >
+              <ChevronLeft size={24} color={colors.text.primary} />
+            </TouchableOpacity>
+          )}
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>
-            {subtitle}
-          </Text>
         </View>
+        <Text style={styles.subtitle}>{subtitle}</Text>
+      </View>
 
-        {/* Content */}
-        {children}
-      </ContentWrapper>
+      {/* Content */}
+      {children}
 
       {/* Next Button */}
       {onNext && (
@@ -84,6 +107,24 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
           </TouchableOpacity>
         </View>
       )}
+    </>
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {isScrollView ? (
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {content}
+        </ScrollView>
+      ) : (
+        <View style={styles.staticContainer}>
+          {content}
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -95,12 +136,31 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    marginBottom: spacing.xxxl,
+    // marginBottom: spacing.xxxl,
   },
-  progressContainer: {
+  headerContainer: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
+  },
+  backButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.background.secondary,
     alignItems: 'center',
+    justifyContent: 'center',
+    position: 'absolute',
+    left: 0,
+    padding: spacing.sm,
+  },
+  progressContainer: {
+    alignItems: 'center',
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  staticContainer: {
+    flex: 1,
   },
   progressBar: {
     width: '100%',
@@ -126,12 +186,19 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     alignItems: 'center',
   },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    marginBottom: spacing.sm,
+  },
   title: {
     fontSize: typography.fontSize.xl,
     fontFamily: typography.fontFamily.bold,
     color: colors.text.primary,
     textAlign: 'center',
-    marginBottom: spacing.sm,
+    flex: 1,
   },
   subtitle: {
     fontSize: typography.fontSize.md,
@@ -161,5 +228,8 @@ const styles = StyleSheet.create({
   },
   nextButtonTextDisabled: {
     color: colors.gray[500],
+  },
+  headerNoProgress: {
+    paddingTop: spacing.lg,
   },
 });

@@ -81,7 +81,7 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
   return (
     <OnboardingLayout
       currentStep={1}
-      totalSteps={4}
+      totalSteps={3}
       title="基本情報を入力"
       subtitle="あなたに最適なトレーニングプランを作成するための基本情報を教えてください"
       onNext={handleNext}

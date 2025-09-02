@@ -1,21 +1,34 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text, StyleSheet } from 'react-native';
-import { BarChart3, Dumbbell, UtensilsCrossed, Settings } from 'lucide-react-native';
+import { View, Text, StyleSheet, Alert } from 'react-native';
+import { BarChart3, Dumbbell, UtensilsCrossed, Settings, UserPlus } from 'lucide-react-native';
 import { colors, typography, spacing } from '../design-system';
 
 import { DashboardScreen } from '../screens/dashboard/DashboardScreen';
 import { NutritionScreen } from '../screens/nutrition/NutritionScreen';
 import { WorkoutScreen } from '../screens/workout/WorkoutScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
-import { ProfileInputScreen } from '../screens/onboarding/ProfileInputScreen';
-import { GoalSettingScreen } from '../screens/onboarding/GoalSettingScreen';
-import { WorkoutHabitsScreen } from '../screens/onboarding/WorkoutHabitsScreen';
-import { CompletionScreen } from '@/screens/onboarding/CompletionScreen';
+import { OnboardingNavigator } from './OnboardingNavigator';
 
 const Tab = createBottomTabNavigator();
 
 export default function AppNavigator() {
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
+
+  const handleOnboardingComplete = (data: any) => {
+    console.log('Onboarding completed with data:', data);
+    Alert.alert(
+      '登録完了！',
+      'プロフィール設定が完了しました。',
+      [
+        {
+          text: 'OK',
+          onPress: () => setOnboardingComplete(true),
+        },
+      ]
+    );
+  };
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -38,6 +51,9 @@ export default function AppNavigator() {
           let Icon;
 
           switch (route.name) {
+            case 'Onboarding':
+              Icon = UserPlus;
+              break;
             case 'Dashboard':
               Icon = BarChart3;
               break;
@@ -65,33 +81,16 @@ export default function AppNavigator() {
         },
       })}
     >
-      {/* Test: Onboarding Screens */}
-      <Tab.Screen
-        name="ProfileInput"
-        options={{ tabBarLabel: 'プロフィール' }}
-      >
-        {() => (
-          <WorkoutHabitsScreen
-            onNext={(data) => {
-              console.log('Profile data:', data);
-              alert('プロフィールデータが保存されました！');
-            }}
-          />
-        )}
-      </Tab.Screen>
-      <Tab.Screen
-        name="GoalSetting"
-        options={{ tabBarLabel: '目標設定' }}
-      >
-        {() => (
-          <CompletionScreen
-            onNext={(data) => {
-              console.log('Goal data:', data);
-              alert('目標設定が保存されました！');
-            }}
-          />
-        )}
-      </Tab.Screen>
+      {/* Onboarding Flow */}
+      {!onboardingComplete && (
+        <Tab.Screen
+          name="Onboarding"
+          options={{ tabBarLabel: 'セットアップ' }}
+        >
+          {() => <OnboardingNavigator onComplete={handleOnboardingComplete} />}
+        </Tab.Screen>
+      )}
+
       <Tab.Screen
         name="Dashboard"
         component={DashboardScreen}

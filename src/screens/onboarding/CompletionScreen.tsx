@@ -11,7 +11,7 @@ import { OnboardingStepProps } from '../../types/onboarding.types';
 import { OnboardingLayout } from '../../components/common/OnboardingLayout';
 import { OnboardingSection } from '../../components/common/OnboardingSection';
 
-export function CompletionScreen({ onNext, currentData }: OnboardingStepProps) {
+export function CompletionScreen({ onNext, onBack, currentData }: OnboardingStepProps) {
   const calculateNutritionTargets = () => {
     if (!currentData?.profile || !currentData?.goal || !currentData?.workoutHabits) {
       return null;
@@ -76,9 +76,9 @@ export function CompletionScreen({ onNext, currentData }: OnboardingStepProps) {
 
   const getGoalDisplayText = () => {
     if (!currentData?.goal) return '';
-    
+
     const { goal, targetWeight, targetDate } = currentData.goal;
-    
+
     const goalTexts = {
       cut: '減量',
       bulk: '増量',
@@ -86,7 +86,7 @@ export function CompletionScreen({ onNext, currentData }: OnboardingStepProps) {
     };
 
     let text = goalTexts[goal];
-    
+
     if (goal !== 'maintain' && targetWeight) {
       text += ` (目標: ${targetWeight}kg`;
       if (targetDate) {
@@ -126,8 +126,10 @@ export function CompletionScreen({ onNext, currentData }: OnboardingStepProps) {
       currentStep={4}
       totalSteps={4}
       title="準備完了！"
-      subtitle="あなたの目標達成に向けて、今日から始めましょう"
-      isScrollView={false}
+      subtitle="あなたの目標達成に向けて今日から始めましょう"
+      onBack={onBack}
+      showBackButton={true}
+      hideProgress={true}
     >
       <OnboardingSection>
         {/* Success Icon */}
@@ -168,7 +170,7 @@ export function CompletionScreen({ onNext, currentData }: OnboardingStepProps) {
         </View>
 
         {/* CTA Buttons */}
-        <View style={styles.ctaContainer}>
+        <View>
           <TouchableOpacity
             style={styles.primaryButton}
             onPress={handleStartJourney}
@@ -177,15 +179,6 @@ export function CompletionScreen({ onNext, currentData }: OnboardingStepProps) {
               今日から始める
             </Text>
           </TouchableOpacity>
-          
-          <View style={styles.secondaryButtonsContainer}>
-            <TouchableOpacity style={styles.secondaryButton}>
-              <Text style={styles.secondaryButtonText}>食事を記録</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.secondaryButton}>
-              <Text style={styles.secondaryButtonText}>トレーニング記録</Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* Info Message */}
@@ -266,9 +259,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.medium,
     color: colors.text.secondary,
     textAlign: 'center',
-  },
-  ctaContainer: {
-    marginBottom: spacing.xl,
   },
   primaryButton: {
     backgroundColor: colors.primary.main,

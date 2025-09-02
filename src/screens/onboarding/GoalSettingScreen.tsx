@@ -46,7 +46,7 @@ const goalOptions: GoalOption[] = [
   },
 ];
 
-export function GoalSettingScreen({ onNext, currentData }: OnboardingStepProps) {
+export function GoalSettingScreen({ onNext, onBack, currentData }: OnboardingStepProps) {
   const [selectedGoal, setSelectedGoal] = useState<'cut' | 'bulk' | 'maintain' | null>(
     currentData?.goal?.goal || null
   );
@@ -123,14 +123,16 @@ export function GoalSettingScreen({ onNext, currentData }: OnboardingStepProps) 
   return (
     <OnboardingLayout
       currentStep={2}
-      totalSteps={4}
+      totalSteps={3}
       title="目標を設定しましょう"
       subtitle="あなたの目標に合わせて最適なトレーニングプランを提案します"
       onNext={handleNext}
+      onBack={onBack}
+      showBackButton={true}
       nextButtonText="次へ"
       isNextEnabled={isNextEnabled()}
     >
-      <OnboardingSection title="目標を選択してください">
+      <OnboardingSection>
         <View style={styles.goalList}>
           {goalOptions.map((option) => {
             const isSelected = selectedGoal === option.key;
