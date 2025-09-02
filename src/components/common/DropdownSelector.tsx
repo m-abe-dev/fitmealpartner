@@ -108,7 +108,7 @@ export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
 const styles = StyleSheet.create({
   dropdownContainer: {
     marginBottom: 0,
-    zIndex: 1000,
+    position: 'relative',
   },
   label: {
     fontSize: typography.fontSize.sm,
@@ -155,12 +155,15 @@ const styles = StyleSheet.create({
     borderColor: colors.border.light,
     borderRadius: radius.md,
     maxHeight: 220,
-    zIndex: 1000,
-    ...shadows.md,
+    zIndex: 9999,
+    elevation: 10,
+    ...shadows.lg,
     marginTop: 4,
+    overflow: 'hidden',
   },
   dropdownScroll: {
     maxHeight: 220,
+    backgroundColor: colors.background.primary,
   },
   dropdownItem: {
     paddingHorizontal: spacing.md,
@@ -169,6 +172,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border.light + '50',
+    backgroundColor: colors.background.primary,
   },
   dropdownItemSelected: {
     backgroundColor: colors.primary[50],

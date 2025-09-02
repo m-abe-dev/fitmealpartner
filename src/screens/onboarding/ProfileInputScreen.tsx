@@ -87,6 +87,7 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
       onNext={handleNext}
       nextButtonText="次へ"
       isNextEnabled={true}
+      isScrollView={false}
     >
       <OnboardingSection>
           {/* Gender Selection */}
@@ -134,7 +135,7 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
           </View>
 
           {/* Height */}
-          <View style={{ marginBottom: spacing.md }}>
+          <View style={{ marginBottom: spacing.md, zIndex: 20 }}>
             <DropdownSelector
               label="身長 (cm)"
               value={height}
@@ -146,7 +147,7 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
           </View>
 
           {/* Weight */}
-          <View style={{ marginBottom: spacing.md }}>
+          <View style={{ marginBottom: spacing.md, zIndex: 10 }}>
             <DropdownSelector
               label="体重 (kg)"
               value={weight}
@@ -188,7 +189,7 @@ const styles = StyleSheet.create({
   },
   segmentButton: {
     flex: 1,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     alignItems: 'center',
     borderRadius: radius.md,
   },

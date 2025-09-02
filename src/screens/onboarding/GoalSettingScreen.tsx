@@ -50,7 +50,7 @@ export function GoalSettingScreen({ onNext, currentData }: OnboardingStepProps) 
   const [selectedGoal, setSelectedGoal] = useState<'cut' | 'bulk' | 'maintain' | null>(
     currentData?.goal?.goal || null
   );
-  
+
   const [targetWeight, setTargetWeight] = useState<number | undefined>(
     currentData?.goal?.targetWeight || undefined
   );
@@ -74,7 +74,7 @@ export function GoalSettingScreen({ onNext, currentData }: OnboardingStepProps) 
         Alert.alert('入力エラー', '目標体重を設定してください');
         return;
       }
-      
+
       // 現在の体重と同じ場合のチェック
       if (currentData?.profile?.weight && targetWeight === currentData.profile.weight) {
         Alert.alert('入力エラー', '目標体重は現在の体重と異なる値を設定してください');
@@ -91,7 +91,7 @@ export function GoalSettingScreen({ onNext, currentData }: OnboardingStepProps) 
       const targetDateObj = new Date(targetDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       if (targetDateObj <= today) {
         Alert.alert('入力エラー', '目標達成日は明日以降の日付を選択してください');
         return;
@@ -109,13 +109,13 @@ export function GoalSettingScreen({ onNext, currentData }: OnboardingStepProps) 
 
   const isNextEnabled = () => {
     if (!selectedGoal) return false;
-    
+
     if (selectedGoal === 'maintain') {
       return true;
     }
-    
+
     // 増量・減量の場合は目標体重と日付が設定されていること
-    return targetWeight !== undefined && 
+    return targetWeight !== undefined &&
            targetWeight !== currentData?.profile?.weight &&
            targetDate !== undefined;
   };
@@ -135,7 +135,7 @@ export function GoalSettingScreen({ onNext, currentData }: OnboardingStepProps) 
           {goalOptions.map((option) => {
             const isSelected = selectedGoal === option.key;
             const Icon = option.icon;
-            
+
             return (
               <TouchableOpacity
                 key={option.key}
@@ -167,7 +167,7 @@ export function GoalSettingScreen({ onNext, currentData }: OnboardingStepProps) 
       {selectedGoal && selectedGoal !== 'maintain' && (
         <OnboardingSection title="体重変化の目標">
           {/* 目標体重 */}
-          <View style={styles.fullWidthGroup}>
+          <View style={[styles.fullWidthGroup, { zIndex: 30 }]}>
             <DropdownSelector
               label="目標体重 (kg)"
               value={targetWeight}

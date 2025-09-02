@@ -19,6 +19,7 @@ interface OnboardingLayoutProps {
   nextButtonText?: string;
   isNextEnabled?: boolean;
   nextButtonDisabled?: boolean;
+  isScrollView?: boolean;
 }
 
 export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
@@ -31,12 +32,18 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
   nextButtonText = '次へ',
   isNextEnabled = true,
   nextButtonDisabled = false,
+  isScrollView = true,
 }) => {
   const progressPercentage = (currentStep / totalSteps) * 100;
 
+  const ContentWrapper = isScrollView ? ScrollView : View;
+  const contentProps = isScrollView
+    ? { style: styles.scrollView, showsVerticalScrollIndicator: false }
+    : { style: styles.scrollView };
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ContentWrapper {...contentProps}>
         {/* Progress Bar */}
         <View style={styles.progressContainer}>
           <View style={styles.progressBar}>
@@ -55,7 +62,7 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
 
         {/* Content */}
         {children}
-      </ScrollView>
+      </ContentWrapper>
 
       {/* Next Button */}
       {onNext && (
@@ -88,6 +95,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    marginBottom: spacing.xxxl,
   },
   progressContainer: {
     paddingHorizontal: spacing.xl,
@@ -134,8 +142,8 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xl,
-    paddingTop: spacing.lg,
+    // paddingBottom: spacing.xl,
+    // marginTop: spacing.lg,
   },
   nextButton: {
     backgroundColor: colors.primary.main,
