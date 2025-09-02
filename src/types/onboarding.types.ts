@@ -12,10 +12,9 @@ export interface GoalData {
 }
 
 export interface WorkoutHabitsData {
-  frequency: number; // 週何回
-  environment: 'home' | 'gym' | 'both';
+  activityLevel: 'sedentary' | 'light' | 'moderate' | 'active' | 'very-active';
+  environment: 'home' | 'gym' | 'studio';
   experience: 'beginner' | 'intermediate' | 'advanced';
-  preferredDays: string[]; // ['monday', 'wednesday', 'friday']
 }
 
 export interface OnboardingData {

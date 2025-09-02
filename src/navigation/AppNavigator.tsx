@@ -10,6 +10,7 @@ import { WorkoutScreen } from '../screens/workout/WorkoutScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
 import { ProfileInputScreen } from '../screens/onboarding/ProfileInputScreen';
 import { GoalSettingScreen } from '../screens/onboarding/GoalSettingScreen';
+import { WorkoutHabitsScreen } from '../screens/onboarding/WorkoutHabitsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -69,7 +70,7 @@ export default function AppNavigator() {
         options={{ tabBarLabel: 'プロフィール' }}
       >
         {() => (
-          <ProfileInputScreen
+          <WorkoutHabitsScreen
             onNext={(data) => {
               console.log('Profile data:', data);
               alert('プロフィールデータが保存されました！');

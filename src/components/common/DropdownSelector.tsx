@@ -19,7 +19,7 @@ interface DropdownSelectorProps {
   options: DropdownOption[];
   onSelect: (value: any) => void;
   placeholder?: string;
-  defaultScrollToValue?: number;
+  defaultScrollToValue?: number | string;
 }
 
 export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
