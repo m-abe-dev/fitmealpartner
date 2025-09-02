@@ -191,6 +191,7 @@ export function GoalSettingScreen({ onNext, currentData }: OnboardingStepProps) 
                 options={weightOptions}
                 onSelect={setTargetWeight}
                 placeholder="選択してください"
+                defaultScrollToValue={65}
               />
             </View>
 

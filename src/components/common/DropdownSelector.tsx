@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ interface DropdownSelectorProps {
   options: DropdownOption[];
   onSelect: (value: any) => void;
   placeholder?: string;
+  defaultScrollToValue?: number;
 }
 
 export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
@@ -26,9 +27,27 @@ export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
   value,
   options,
   onSelect,
-  placeholder = "選択してください"
+  placeholder = "選択してください",
+  defaultScrollToValue = 65,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (isOpen && scrollViewRef.current) {
+      const targetValue = value || defaultScrollToValue;
+      const index = options.findIndex(opt => opt.value === targetValue);
+      
+      if (index !== -1) {
+        const itemHeight = 44;
+        const scrollPosition = Math.max(0, (index - 2) * itemHeight);
+        
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({ y: scrollPosition, animated: false });
+        }, 100);
+      }
+    }
+  }, [isOpen, value, options, defaultScrollToValue]);
 
   return (
     <View style={styles.dropdownContainer}>
@@ -51,13 +70,19 @@ export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
 
       {isOpen && (
         <View style={styles.dropdownList}>
-          <ScrollView style={styles.dropdownScroll} showsVerticalScrollIndicator={false}>
+          <ScrollView 
+            ref={scrollViewRef}
+            style={styles.dropdownScroll} 
+            showsVerticalScrollIndicator={true}
+            nestedScrollEnabled={true}
+          >
             {options.map((option) => (
               <TouchableOpacity
                 key={option.value}
                 style={[
                   styles.dropdownItem,
-                  value === option.value && styles.dropdownItemSelected
+                  value === option.value && styles.dropdownItemSelected,
+                  !value && option.value === defaultScrollToValue && styles.dropdownItemDefault
                 ]}
                 onPress={() => {
                   onSelect(option.value);
@@ -66,7 +91,8 @@ export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
               >
                 <Text style={[
                   styles.dropdownItemText,
-                  value === option.value && styles.dropdownItemTextSelected
+                  value === option.value && styles.dropdownItemTextSelected,
+                  !value && option.value === defaultScrollToValue && styles.dropdownItemTextDefault
                 ]}>
                   {option.label}
                 </Text>
@@ -82,6 +108,7 @@ export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
 const styles = StyleSheet.create({
   dropdownContainer: {
     marginBottom: 0,
+    zIndex: 1000,
   },
   label: {
     fontSize: typography.fontSize.sm,
@@ -127,17 +154,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border.light,
     borderRadius: radius.md,
-    maxHeight: 200,
+    maxHeight: 220,
     zIndex: 1000,
     ...shadows.md,
+    marginTop: 4,
   },
   dropdownScroll: {
-    maxHeight: 200,
+    maxHeight: 220,
   },
   dropdownItem: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
+    paddingVertical: 12,
+    height: 44,
+    justifyContent: 'center',
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border.light + '50',
   },
   dropdownItemSelected: {
@@ -151,5 +181,15 @@ const styles = StyleSheet.create({
   dropdownItemTextSelected: {
     color: colors.primary.main,
     fontFamily: typography.fontFamily.bold,
+  },
+  dropdownItemSelected: {
+    backgroundColor: colors.primary[50],
+  },
+  dropdownItemDefault: {
+    backgroundColor: colors.gray[50],
+  },
+  dropdownItemTextDefault: {
+    color: colors.text.secondary,
+    fontWeight: '500',
   },
 });
