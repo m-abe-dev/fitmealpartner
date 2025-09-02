@@ -37,11 +37,11 @@ export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
     if (isOpen && scrollViewRef.current) {
       const targetValue = value || defaultScrollToValue;
       const index = options.findIndex(opt => opt.value === targetValue);
-      
+
       if (index !== -1) {
         const itemHeight = 44;
         const scrollPosition = Math.max(0, (index - 2) * itemHeight);
-        
+
         setTimeout(() => {
           scrollViewRef.current?.scrollTo({ y: scrollPosition, animated: false });
         }, 100);
@@ -70,9 +70,9 @@ export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
 
       {isOpen && (
         <View style={styles.dropdownList}>
-          <ScrollView 
+          <ScrollView
             ref={scrollViewRef}
-            style={styles.dropdownScroll} 
+            style={styles.dropdownScroll}
             showsVerticalScrollIndicator={true}
             nestedScrollEnabled={true}
           >
@@ -181,9 +181,6 @@ const styles = StyleSheet.create({
   dropdownItemTextSelected: {
     color: colors.primary.main,
     fontFamily: typography.fontFamily.bold,
-  },
-  dropdownItemSelected: {
-    backgroundColor: colors.primary[50],
   },
   dropdownItemDefault: {
     backgroundColor: colors.gray[50],
