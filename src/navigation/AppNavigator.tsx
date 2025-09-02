@@ -11,6 +11,7 @@ import { ProfileScreen } from '../screens/profile/ProfileScreen';
 import { ProfileInputScreen } from '../screens/onboarding/ProfileInputScreen';
 import { GoalSettingScreen } from '../screens/onboarding/GoalSettingScreen';
 import { WorkoutHabitsScreen } from '../screens/onboarding/WorkoutHabitsScreen';
+import { CompletionScreen } from '@/screens/onboarding/CompletionScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -83,7 +84,7 @@ export default function AppNavigator() {
         options={{ tabBarLabel: '目標設定' }}
       >
         {() => (
-          <GoalSettingScreen
+          <CompletionScreen
             onNext={(data) => {
               console.log('Goal data:', data);
               alert('目標設定が保存されました！');
