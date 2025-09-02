@@ -17,23 +17,23 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
   onNext,
   currentData,
 }) => {
-  const [gender, setGender] = useState<'male' | 'female' | 'other'>(
-    currentData?.profile?.gender || 'male'
+  const [gender, setGender] = useState<'male' | 'female' | 'other' | null>(
+    currentData?.profile?.gender || null
   );
-  const [birthDate, setBirthDate] = useState<Date>(
-    currentData?.profile?.birthDate || new Date(2000, 0, 1)
+  const [birthDate, setBirthDate] = useState<Date | null>(
+    currentData?.profile?.birthDate || null
   );
-  const [height, setHeight] = useState<number>(
-    currentData?.profile?.height || 170
+  const [height, setHeight] = useState<number | null>(
+    currentData?.profile?.height || null
   );
-  const [weight, setWeight] = useState<number>(
-    currentData?.profile?.weight || 65
+  const [weight, setWeight] = useState<number | null>(
+    currentData?.profile?.weight || null
   );
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedDateString, setSelectedDateString] = useState(
+  const [selectedDateString, setSelectedDateString] = useState<string | null>(
     currentData?.profile?.birthDate
       ? currentData.profile.birthDate.toISOString().split('T')[0]
-      : '2000-01-01'
+      : null
   );
 
   // 身長の選択肢を生成（140cm〜220cm）
@@ -68,6 +68,10 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
   };
 
   const handleNext = () => {
+    if (!gender || !selectedDateString || !height || !weight) {
+      return;
+    }
+
     const profileData: ProfileData = {
       gender,
       birthDate: new Date(selectedDateString),
@@ -78,6 +82,10 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
     onNext({ profile: profileData });
   };
 
+  const isNextEnabled = (): boolean => {
+    return !!(gender && selectedDateString && height && weight);
+  };
+
   return (
     <OnboardingLayout
       currentStep={1}
@@ -86,7 +94,7 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
       subtitle="あなたに最適なトレーニングプランを作成するための基本情報を教えてください"
       onNext={handleNext}
       nextButtonText="次へ"
-      isNextEnabled={true}
+      isNextEnabled={isNextEnabled()}
       isScrollView={false}
     >
       <OnboardingSection>
@@ -124,11 +132,19 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
           <View>
             <Text style={styles.label}>生年月日</Text>
             <TouchableOpacity
-              style={styles.dropdownButton}
+              style={[
+                styles.dropdownButton,
+                !selectedDateString && styles.dropdownButtonEmpty
+              ]}
               onPress={() => setShowDatePicker(true)}
             >
-              <Text style={styles.dropdownButtonText}>
-                {new Date(selectedDateString).toLocaleDateString('ja-JP')} ({calculateAge(selectedDateString)}歳)
+              <Text style={[
+                styles.dropdownButtonText,
+                !selectedDateString && styles.placeholderText
+              ]}>
+                {selectedDateString 
+                  ? `${new Date(selectedDateString).toLocaleDateString('ja-JP')} (${calculateAge(selectedDateString)}歳)`
+                  : '選択してください'}
               </Text>
               <Calendar size={20} color={colors.text.secondary} />
             </TouchableOpacity>
@@ -162,7 +178,7 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
       <CalendarModal
         isVisible={showDatePicker}
         onClose={() => setShowDatePicker(false)}
-        selectedDate={selectedDateString}
+        selectedDate={selectedDateString || '2000-01-01'}
         onDateSelect={handleDateSelect}
         title="生年月日を選択"
         minDate="1924-01-01"
@@ -222,5 +238,12 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     color: colors.text.primary,
     fontFamily: typography.fontFamily.regular,
+  },
+  dropdownButtonEmpty: {
+    borderColor: colors.border.medium,
+    borderWidth: 1.5,
+  },
+  placeholderText: {
+    color: colors.text.tertiary,
   },
 });

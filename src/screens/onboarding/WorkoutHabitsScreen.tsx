@@ -64,7 +64,7 @@ export function WorkoutHabitsScreen({ onNext, onBack, currentData }: OnboardingS
       showBackButton={true}
       nextButtonText="次へ"
       isNextEnabled={true}
-      isScrollView={false}
+      isScrollView={true}
     >
       <OnboardingSection>
         {/* 活動レベル */}
