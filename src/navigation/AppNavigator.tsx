@@ -9,6 +9,7 @@ import { NutritionScreen } from '../screens/nutrition/NutritionScreen';
 import { WorkoutScreen } from '../screens/workout/WorkoutScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
 import { ProfileInputScreen } from '../screens/onboarding/ProfileInputScreen';
+import { GoalSettingScreen } from '../screens/onboarding/GoalSettingScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -62,16 +63,29 @@ export default function AppNavigator() {
         },
       })}
     >
-      {/* Test: ProfileInput Screen */}
+      {/* Test: Onboarding Screens */}
       <Tab.Screen
         name="ProfileInput"
-        options={{ tabBarLabel: 'テスト' }}
+        options={{ tabBarLabel: 'プロフィール' }}
       >
         {() => (
           <ProfileInputScreen
             onNext={(data) => {
               console.log('Profile data:', data);
               alert('プロフィールデータが保存されました！');
+            }}
+          />
+        )}
+      </Tab.Screen>
+      <Tab.Screen
+        name="GoalSetting"
+        options={{ tabBarLabel: '目標設定' }}
+      >
+        {() => (
+          <GoalSettingScreen
+            onNext={(data) => {
+              console.log('Goal data:', data);
+              alert('目標設定が保存されました！');
             }}
           />
         )}

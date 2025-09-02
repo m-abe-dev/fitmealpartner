@@ -7,9 +7,8 @@ export interface ProfileData {
 
 export interface GoalData {
   goal: 'cut' | 'bulk' | 'maintain';
-  priority: 'strength' | 'physique' | 'health';
-  timeframe: '3months' | '6months' | '1year';
-  targetWeight?: number; // kg
+  targetWeight?: number;
+  targetDate?: string;
 }
 
 export interface WorkoutHabitsData {

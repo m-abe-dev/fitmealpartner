@@ -1,0 +1,155 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from 'react-native';
+import { colors, typography, spacing, radius, shadows } from '../../design-system';
+
+interface DropdownOption {
+  value: any;
+  label: string;
+}
+
+interface DropdownSelectorProps {
+  label?: string;
+  value: any;
+  options: DropdownOption[];
+  onSelect: (value: any) => void;
+  placeholder?: string;
+}
+
+export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
+  label,
+  value,
+  options,
+  onSelect,
+  placeholder = "選択してください"
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <View style={styles.dropdownContainer}>
+      {label && <Text style={styles.label}>{label}</Text>}
+      <TouchableOpacity
+        style={[
+          styles.dropdownTrigger,
+          !value && styles.dropdownTriggerEmpty
+        ]}
+        onPress={() => setIsOpen(!isOpen)}
+      >
+        <Text style={[
+          styles.dropdownValue,
+          !value && styles.dropdownValuePlaceholder
+        ]}>
+          {value ? options.find(opt => opt.value === value)?.label : placeholder}
+        </Text>
+        <Text style={styles.dropdownArrow}>{isOpen ? '▲' : '▼'}</Text>
+      </TouchableOpacity>
+
+      {isOpen && (
+        <View style={styles.dropdownList}>
+          <ScrollView style={styles.dropdownScroll} showsVerticalScrollIndicator={false}>
+            {options.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.dropdownItem,
+                  value === option.value && styles.dropdownItemSelected
+                ]}
+                onPress={() => {
+                  onSelect(option.value);
+                  setIsOpen(false);
+                }}
+              >
+                <Text style={[
+                  styles.dropdownItemText,
+                  value === option.value && styles.dropdownItemTextSelected
+                ]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  dropdownContainer: {
+    marginBottom: 0,
+  },
+  label: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    fontFamily: typography.fontFamily.medium,
+    marginBottom: spacing.xs,
+  },
+  dropdownTrigger: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    height: 48,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.background.primary,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    borderRadius: radius.md,
+  },
+  dropdownTriggerEmpty: {
+    borderColor: colors.border.medium,
+    borderWidth: 1.5,
+  },
+  dropdownValue: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.primary,
+    fontFamily: typography.fontFamily.regular,
+    flex: 1,
+  },
+  dropdownValuePlaceholder: {
+    color: colors.text.tertiary,
+  },
+  dropdownArrow: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    fontFamily: typography.fontFamily.regular,
+  },
+  dropdownList: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: colors.background.primary,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    borderRadius: radius.md,
+    maxHeight: 200,
+    zIndex: 1000,
+    ...shadows.md,
+  },
+  dropdownScroll: {
+    maxHeight: 200,
+  },
+  dropdownItem: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light + '50',
+  },
+  dropdownItemSelected: {
+    backgroundColor: colors.primary[50],
+  },
+  dropdownItemText: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.primary,
+    fontFamily: typography.fontFamily.regular,
+  },
+  dropdownItemTextSelected: {
+    color: colors.primary.main,
+    fontFamily: typography.fontFamily.bold,
+  },
+});
