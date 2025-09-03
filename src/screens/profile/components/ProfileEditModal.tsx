@@ -24,6 +24,8 @@ import { colors, typography, spacing, radius, shadows } from '../../../design-sy
 import { Card } from '../../../components/common/Card';
 import { Button } from '../../../components/common/Button';
 import { Input } from '../../../components/common/Input';
+import { DropdownSelector } from '../../../components/common/DropdownSelector';
+import { SimpleCalendar } from '../../../components/common/SimpleCalendar';
 
 export interface ProfileData {
   age: number;
@@ -187,187 +189,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     return { value, label: `${value}kg` };
   });
 
-  // Simple Calendar Component
-  const SimpleCalendar = ({ selectedDate, onDateSelect, minDate }: {
-    selectedDate?: string;
-    onDateSelect: (dateString: string) => void;
-    minDate: string;
-  }) => {
-    const { width: screenWidth } = Dimensions.get('window');
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-    const [displayMonth, setDisplayMonth] = useState(currentMonth);
-    const [displayYear, setDisplayYear] = useState(currentYear);
 
-    const daysInMonth = new Date(displayYear, displayMonth + 1, 0).getDate();
-    const firstDayOfMonth = new Date(displayYear, displayMonth, 1).getDay();
-    const minDateObj = new Date(minDate);
-
-    const monthNames = [
-      '1月', '2月', '3月', '4月', '5月', '6月',
-      '7月', '8月', '9月', '10月', '11月', '12月'
-    ];
-
-    // Create calendar days array
-    const calendarDays = [];
-    // Empty cells for days before the first day of the month
-    for (let i = 0; i < firstDayOfMonth; i++) {
-      calendarDays.push(null);
-    }
-    // Days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      calendarDays.push(day);
-    }
-
-    const goToPreviousMonth = () => {
-      if (displayMonth === 0) {
-        setDisplayMonth(11);
-        setDisplayYear(displayYear - 1);
-      } else {
-        setDisplayMonth(displayMonth - 1);
-      }
-    };
-
-    const goToNextMonth = () => {
-      if (displayMonth === 11) {
-        setDisplayMonth(0);
-        setDisplayYear(displayYear + 1);
-      } else {
-        setDisplayMonth(displayMonth + 1);
-      }
-    };
-
-    const isPrevDisabled = displayYear < currentYear || (displayYear === currentYear && displayMonth <= currentMonth);
-
-    return (
-      <View style={styles.calendar}>
-        {/* Calendar Header */}
-        <View style={styles.calendarNavigation}>
-          <TouchableOpacity
-            onPress={goToPreviousMonth}
-            disabled={isPrevDisabled}
-            style={[styles.calendarNavButton, isPrevDisabled && styles.calendarNavButtonDisabled]}
-          >
-            <ChevronLeft size={20} color={isPrevDisabled ? colors.text.tertiary : colors.text.secondary} />
-          </TouchableOpacity>
-
-          <View style={styles.calendarMonthYearContainer}>
-            <Text style={styles.calendarMonthText}>{monthNames[displayMonth]}</Text>
-            <Text style={styles.calendarYearText}>{displayYear}</Text>
-          </View>
-
-          <TouchableOpacity onPress={goToNextMonth} style={styles.calendarNavButton}>
-            <ChevronRight size={20} color={colors.text.secondary} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Week days header */}
-        <View style={styles.calendarWeekDays}>
-          {['日', '月', '火', '水', '木', '金', '土'].map((day, index) => (
-            <Text key={index} style={styles.calendarWeekDay}>{day}</Text>
-          ))}
-        </View>
-
-        {/* Calendar grid */}
-        <View style={styles.calendarDaysContainer}>
-          {calendarDays.map((day, index) => {
-            if (day === null) {
-              return <View key={`empty-${index}`} style={styles.calendarDayCell} />;
-            }
-
-            const dateString = `${displayYear}-${String(displayMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const currentDateObj = new Date(displayYear, displayMonth, day);
-            const isSelected = selectedDate === dateString;
-            const isDisabled = currentDateObj < minDateObj;
-            const isToday = dateString === today.toISOString().split('T')[0];
-
-            return (
-              <TouchableOpacity
-                key={`day-${index}`}
-                onPress={() => !isDisabled && onDateSelect(dateString)}
-                disabled={isDisabled}
-                style={[
-                  styles.calendarDayCell,
-                  isToday && !isSelected && styles.calendarTodayCell,
-                  isSelected && styles.calendarSelectedCell,
-                  isDisabled && styles.calendarDisabledCell,
-                ]}
-              >
-                <Text style={[
-                  styles.calendarDayText,
-                  isToday && !isSelected && styles.calendarTodayText,
-                  isSelected && styles.calendarSelectedText,
-                  isDisabled && styles.calendarDisabledText,
-                ]}>
-                  {day}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-    );
-  };
-
-  // DropdownSelector コンポーネント
-  const DropdownSelector = ({
-    label,
-    value,
-    options,
-    onSelect,
-    displayValue
-  }: {
-    label: string;
-    value: any;
-    options: Array<{ value: any; label: string }>;
-    onSelect: (value: any) => void;
-    displayValue?: string;
-  }) => {
-    const [isOpen, setIsOpen] = useState(false);
-
-    return (
-      <View style={styles.dropdownContainer}>
-        {label && <Text style={styles.label}>{label}</Text>}
-        <TouchableOpacity
-          style={styles.dropdownTrigger}
-          onPress={() => setIsOpen(!isOpen)}
-        >
-          <Text style={styles.dropdownValue}>
-            {displayValue || options.find(opt => opt.value === value)?.label || 'Select...'}
-          </Text>
-          <Text style={styles.dropdownArrow}>{isOpen ? '▲' : '▼'}</Text>
-        </TouchableOpacity>
-
-        {isOpen && (
-          <View style={styles.dropdownList}>
-            <ScrollView style={styles.dropdownScroll} showsVerticalScrollIndicator={false}>
-              {options.map((option) => (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    styles.dropdownItem,
-                    value === option.value && styles.dropdownItemSelected
-                  ]}
-                  onPress={() => {
-                    onSelect(option.value);
-                    setIsOpen(false);
-                  }}
-                >
-                  <Text style={[
-                    styles.dropdownItemText,
-                    value === option.value && styles.dropdownItemTextSelected
-                  ]}>
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-      </View>
-    );
-  };
 
   return (
     <Modal
@@ -456,9 +278,8 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
               {/* 目標体重 */}
               <View style={styles.fullWidthGroup}>
-                <Text style={styles.goalLabel}>目標体重 (kg)</Text>
                 <DropdownSelector
-                  label=""
+                  label="目標体重 (kg)"
                   value={profile.targetWeight || profile.weight || 70}
                   options={targetWeightOptions}
                   onSelect={(targetWeight) => setProfile(prev => ({ ...prev, targetWeight }))}
@@ -524,6 +345,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     selectedDate={profile.targetDate}
                     onDateSelect={handleCalendarDateSelect}
                     minDate={getMinDate()}
+                    showYearSelector={false}
                   />
                 </View>
               </View>
@@ -581,73 +403,6 @@ const styles = StyleSheet.create({
   fullWidthGroup: {
     width: '100%',
      marginBottom: spacing.xs,
-  },
-  label: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.primary,
-    fontFamily: typography.fontFamily.medium,
-    marginBottom: spacing.sm,
-    fontWeight: '600',
-  },
-  dropdownContainer: {
-    marginBottom: 0,
-  },
-  dropdownTrigger: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    height: 48,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.background.primary,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: radius.md,
-  },
-  dropdownValue: {
-    fontSize: typography.fontSize.base,
-    color: colors.text.primary,
-    fontFamily: typography.fontFamily.regular,
-    flex: 1,
-  },
-  dropdownArrow: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.secondary,
-    fontFamily: typography.fontFamily.regular,
-  },
-  dropdownList: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
-    backgroundColor: colors.background.primary,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: radius.md,
-    maxHeight: 200,
-    zIndex: 1000,
-    ...shadows.md,
-  },
-  dropdownScroll: {
-    maxHeight: 200,
-  },
-  dropdownItem: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light + '50',
-  },
-  dropdownItemSelected: {
-    backgroundColor: colors.primary[50],
-  },
-  dropdownItemText: {
-    fontSize: typography.fontSize.base,
-    color: colors.text.primary,
-    fontFamily: typography.fontFamily.regular,
-  },
-  dropdownItemTextSelected: {
-    color: colors.primary.main,
-    fontFamily: typography.fontFamily.bold,
-    fontWeight: 'bold',
   },
   footer: {
     padding: spacing.lg,
@@ -763,86 +518,5 @@ const styles = StyleSheet.create({
   },
   calendarContent: {
     padding: spacing.lg,
-  },
-  calendar: {
-    backgroundColor: colors.background.primary,
-  },
-  calendarNavigation: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  calendarNavButton: {
-    padding: spacing.sm,
-    borderRadius: radius.md,
-  },
-  calendarNavButtonDisabled: {
-    opacity: 0.3,
-  },
-  calendarMonthYearContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  calendarMonthText: {
-    fontSize: typography.fontSize.xl,
-    color: colors.text.primary,
-    fontFamily: typography.fontFamily.bold,
-  },
-  calendarYearText: {
-    fontSize: typography.fontSize.xl,
-    color: colors.text.primary,
-    fontFamily: typography.fontFamily.bold,
-  },
-  calendarWeekDays: {
-    flexDirection: 'row',
-    marginBottom: spacing.sm,
-  },
-  calendarWeekDay: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: typography.fontSize.sm,
-    color: colors.text.secondary,
-    fontFamily: typography.fontFamily.medium,
-    paddingVertical: spacing.sm,
-  },
-  calendarDaysContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  calendarDayCell: {
-    width: 47,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 2,
-  },
-  calendarTodayCell: {
-    backgroundColor: colors.primary.main,
-    borderRadius: radius.full,
-  },
-  calendarSelectedCell: {
-    backgroundColor: colors.primary.main,
-    borderRadius: radius.full,
-  },
-  calendarDisabledCell: {
-    opacity: 0.3,
-  },
-  calendarDayText: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.primary,
-    fontFamily: typography.fontFamily.regular,
-  },
-  calendarTodayText: {
-    color: colors.text.inverse,
-    fontFamily: typography.fontFamily.bold,
-  },
-  calendarSelectedText: {
-    color: colors.text.inverse,
-    fontFamily: typography.fontFamily.bold,
-  },
-  calendarDisabledText: {
-    color: colors.text.tertiary,
   },
 });
