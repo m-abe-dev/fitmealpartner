@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border.light,
     borderRadius: radius.md,
-    maxHeight: 220,
+    maxHeight: 180,
     zIndex: 9999,
     elevation: 10,
     ...shadows.lg,

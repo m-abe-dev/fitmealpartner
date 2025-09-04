@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     padding: spacing.lg,
-    gap: spacing.lg,
+    gap: spacing.sm,
   },
   row: {
     flexDirection: 'row',
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
   },
   fullWidthGroup: {
     width: '100%',
-     marginBottom: spacing.xs,
+    marginBottom: spacing.xs,
   },
   label: {
     fontSize: typography.fontSize.sm,
@@ -451,7 +451,6 @@ const styles = StyleSheet.create({
   },
   // Goal section styles
   sectionContainer: {
-    marginTop: spacing.lg,
     paddingTop: spacing.lg,
     borderTopWidth: 1,
     borderTopColor: colors.border.light,
