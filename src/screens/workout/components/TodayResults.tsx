@@ -225,7 +225,7 @@ export const TodayResults: React.FC<TodayResultsProps> = ({
   return (
     <TouchableOpacity style={styles.summaryCard} onPress={onToggle}>
       <View style={styles.summaryHeader}>
-        <Text style={styles.summaryTitle}>今日の結果</Text>
+        <Text style={styles.summaryTitle}>今日の筋トレ結果</Text>
         <View style={styles.summaryActions}>
           <View style={[styles.scoreBadge, { backgroundColor: getScoreColor(score).bg }]}>
             <Text style={[styles.scoreText, { color: getScoreColor(score).text }]}>
