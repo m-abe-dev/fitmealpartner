@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View } from 'react-native';
 import { ProfileInputScreen } from '../screens/onboarding/ProfileInputScreen';
 import { GoalSettingScreen } from '../screens/onboarding/GoalSettingScreen';
 import { WorkoutHabitsScreen } from '../screens/onboarding/WorkoutHabitsScreen';
 import { CompletionScreen } from '../screens/onboarding/CompletionScreen';
 import { OnboardingData } from '../types/onboarding.types';
+import { OnboardingStorageService } from '../services/OnboardingStorageService';
 
 interface OnboardingNavigatorProps {
   onComplete: (data: OnboardingData) => void;
@@ -14,17 +15,29 @@ export const OnboardingNavigator: React.FC<OnboardingNavigatorProps> = ({ onComp
   const [currentStep, setCurrentStep] = useState(0);
   const [onboardingData, setOnboardingData] = useState<Partial<OnboardingData>>({});
 
-  const handleNext = (data: Partial<OnboardingData>) => {
+  const handleNext = async (data: Partial<OnboardingData>) => {
     const updatedData = { ...onboardingData, ...data };
     setOnboardingData(updatedData);
-
+    
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
     } else {
-      onComplete({
+      // CompletionScreenから完了時
+      const completeData = {
         ...updatedData,
         completedAt: new Date(),
-      } as OnboardingData);
+      } as OnboardingData;
+      
+      // 先に保存を実行
+      try {
+        await OnboardingStorageService.saveOnboardingData(completeData);
+        console.log('✅ Successfully saved onboarding data');
+      } catch (error) {
+        console.error('❌ Failed to save onboarding data:', error);
+      }
+      
+      // その後コールバックを呼ぶ
+      onComplete(completeData);
     }
   };
 

@@ -35,7 +35,7 @@ export const NutritionScoreCard: React.FC<NutritionScoreCardProps> = ({
       <View style={styles.nutritionCardGradient}>
         {/* ヘッダー */}
         <View style={styles.nutritionHeader}>
-          <Text style={styles.nutritionTitle}>今日の栄養</Text>
+          <Text style={styles.nutritionTitle}>今日の栄養結果</Text>
           <View style={[styles.totalScoreBadge, { backgroundColor: getScoreColorValue(scores.total).bg }]}>
             <Text style={[styles.totalScoreText, { color: getScoreColorValue(scores.total).text }]}>
               スコア {scores.total}

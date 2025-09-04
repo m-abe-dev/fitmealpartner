@@ -35,6 +35,7 @@ export interface ProfileData {
   activityLevel: 'sedentary' | 'light' | 'moderate' | 'active' | 'very-active';
   targetWeight?: number;
   targetDate?: string;
+  goal?: 'cut' | 'bulk' | 'maintain';
 }
 
 interface ProfileEditModalProps {
@@ -85,6 +86,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     ...profileData,
     targetWeight: profileData.targetWeight || profileData.weight || 70,
     targetDate: profileData.targetDate || getTodayDate(),
+    goal: profileData.goal || 'maintain',
   });
 
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -94,16 +96,12 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
       ...profileData,
       targetWeight: profileData.targetWeight || profileData.weight || 70,
       targetDate: profileData.targetDate || getTodayDate(),
+      goal: profileData.goal || 'maintain',
     });
   }, [profileData]);
 
   const handleSave = () => {
-    // 必須項目のバリデーション
-    if (!profile.age || profile.age < 10 || profile.age > 100) {
-      Alert.alert('入力エラー', '年齢は10〜100歳の間で選択してください');
-      return;
-    }
-
+    // 基本項目のバリデーション
     if (!profile.height || profile.height < 140 || profile.height > 220) {
       Alert.alert('入力エラー', '身長は140〜220cmの間で選択してください');
       return;
@@ -124,24 +122,26 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
       return;
     }
 
-    if (!profile.targetWeight || profile.targetWeight < 30 || profile.targetWeight > 200) {
-      Alert.alert('入力エラー', '目標体重は30〜200kgの間で選択してください');
-      return;
-    }
+    // 目標が維持以外の場合のみ目標体重と目標日をチェック
+    if (profile.goal !== 'maintain') {
+      if (!profile.targetWeight || profile.targetWeight < 30 || profile.targetWeight > 200) {
+        Alert.alert('入力エラー', '目標体重は30〜200kgの間で選択してください');
+        return;
+      }
 
-    if (!profile.targetDate) {
-      Alert.alert('入力エラー', '目標達成日を選択してください');
-      return;
-    }
+      if (!profile.targetDate) {
+        Alert.alert('入力エラー', '目標達成日を選択してください');
+        return;
+      }
 
-    // 目標日が今日以前でないかチェック
-    const targetDate = new Date(profile.targetDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+      const targetDate = new Date(profile.targetDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-    if (targetDate < today) {
-      Alert.alert('入力エラー', '目標達成日は今日以降の日付を選択してください');
-      return;
+      if (targetDate < today) {
+        Alert.alert('入力エラー', '目標達成日は今日以降の日付を選択してください');
+        return;
+      }
     }
 
     onSave(profile);
@@ -182,6 +182,11 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     { value: 'very-active', label: '非常に活発（1日2回）' },
   ];
 
+  const goalOptions = [
+    { value: 'cut', label: '減量' },
+    { value: 'bulk', label: '増量' },
+    { value: 'maintain', label: '維持' },
+  ];
 
   // 目標体重のオプション (30kgから200kgまで、0.5kg刻み)
   const targetWeightOptions = Array.from({ length: 341 }, (_, i) => {
@@ -213,18 +218,13 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
         <View style={styles.content}>
           <View style={styles.formContainer}>
-            {/* 年齢と身長 */}
+            {/* 年齢（表示のみ）と身長 */}
             <View style={styles.row}>
               <View style={styles.inputGroup}>
-                <DropdownSelector
-                  label="年齢"
-                  value={profile.age}
-                  options={Array.from({ length: 91 }, (_, i) => ({
-                    value: i + 10,
-                    label: `${i + 10}`
-                  }))}
-                  onSelect={(age) => setProfile(prev => ({ ...prev, age }))}
-                />
+                <Text style={styles.label}>年齢</Text>
+                <View style={styles.readOnlyContainer}>
+                  <Text style={styles.readOnlyValue}>{profile.age}歳</Text>
+                </View>
               </View>
               <View style={styles.inputGroup}>
                 <DropdownSelector
@@ -276,29 +276,42 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>体重変化の目標</Text>
 
-              {/* 目標体重 */}
+              {/* 目標タイプ */}
               <View style={styles.fullWidthGroup}>
                 <DropdownSelector
-                  label="目標体重 (kg)"
-                  value={profile.targetWeight || profile.weight || 70}
-                  options={targetWeightOptions}
-                  onSelect={(targetWeight) => setProfile(prev => ({ ...prev, targetWeight }))}
+                  label="目標"
+                  value={profile.goal || 'maintain'}
+                  options={goalOptions}
+                  onSelect={(goal) => setProfile(prev => ({ ...prev, goal }))}
                 />
               </View>
 
-              {/* Target Date */}
-              <View style={styles.fullWidthGroup}>
-                <Text style={styles.goalLabel}>目標達成日</Text>
-                <TouchableOpacity
-                  style={styles.dateInput}
-                  onPress={showCalendarPicker}
-                >
-                  <Calendar size={16} color={colors.text.secondary} />
-                  <Text style={styles.dateText}>
-                    {(profile.targetDate || getTodayDate()) ? new Date(profile.targetDate || getTodayDate()).toLocaleDateString('ja-JP') : '選択してください'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              {/* 目標が維持以外の場合のみ表示 */}
+              {profile.goal !== 'maintain' && (
+                <>
+                  <View style={styles.fullWidthGroup}>
+                    <DropdownSelector
+                      label="目標体重 (kg)"
+                      value={profile.targetWeight || profile.weight}
+                      options={targetWeightOptions}
+                      onSelect={(targetWeight) => setProfile(prev => ({ ...prev, targetWeight }))}
+                    />
+                  </View>
+
+                  <View style={styles.fullWidthGroup}>
+                    <Text style={styles.goalLabel}>目標達成日</Text>
+                    <TouchableOpacity
+                      style={styles.dateInput}
+                      onPress={showCalendarPicker}
+                    >
+                      <Calendar size={16} color={colors.text.secondary} />
+                      <Text style={styles.dateText}>
+                        {profile.targetDate ? new Date(profile.targetDate).toLocaleDateString('ja-JP') : '選択してください'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
             </View>
           </View>
         </View>
@@ -391,7 +404,7 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     padding: spacing.lg,
-    gap: spacing.lg,
+    gap: spacing.sm,
   },
   row: {
     flexDirection: 'row',
@@ -402,7 +415,27 @@ const styles = StyleSheet.create({
   },
   fullWidthGroup: {
     width: '100%',
-     marginBottom: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  label: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    fontFamily: typography.fontFamily.medium,
+    marginBottom: spacing.xs,
+  },
+  readOnlyContainer: {
+    height: 48,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.gray[100],
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    borderRadius: radius.md,
+    justifyContent: 'center',
+  },
+  readOnlyValue: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.secondary,
+    fontFamily: typography.fontFamily.regular,
   },
   footer: {
     padding: spacing.lg,
@@ -418,7 +451,6 @@ const styles = StyleSheet.create({
   },
   // Goal section styles
   sectionContainer: {
-    marginTop: spacing.lg,
     paddingTop: spacing.lg,
     borderTopWidth: 1,
     borderTopColor: colors.border.light,

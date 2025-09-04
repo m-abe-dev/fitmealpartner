@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text, StyleSheet, Alert } from 'react-native';
-import { BarChart3, Dumbbell, UtensilsCrossed, Settings, UserPlus } from 'lucide-react-native';
+import { View, StyleSheet, Alert, Text, TouchableOpacity } from 'react-native';
+import { BarChart3, Dumbbell, UtensilsCrossed, Settings, RefreshCw, Trash2 } from 'lucide-react-native';
 import { colors, typography, spacing } from '../design-system';
+import { OnboardingStorageService } from '../services/OnboardingStorageService';
 
 import { DashboardScreen } from '../screens/dashboard/DashboardScreen';
 import { NutritionScreen } from '../screens/nutrition/NutritionScreen';
@@ -12,8 +13,53 @@ import { OnboardingNavigator } from './OnboardingNavigator';
 
 const Tab = createBottomTabNavigator();
 
+// ========================================
+// 開発用設定（本番環境では必ずfalseにする）
+// ========================================
+
+// オンボーディングを見たい → FORCE_SHOW_ONBOARDING: true
+// オンボーディングをスキップ → SKIP_ONBOARDING: true
+const DEV_CONFIG = {
+  FORCE_SHOW_ONBOARDING: false,  // true: 常にオンボーディングを表示
+  SKIP_ONBOARDING: false,        // true: 常にオンボーディングをスキップ
+  SHOW_DEV_MENU: true,           // true: 開発メニューを表示
+};
+
 export default function AppNavigator() {
   const [onboardingComplete, setOnboardingComplete] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showDevMenu, setShowDevMenu] = useState(false);
+
+  // アプリ起動時にオンボーディング完了状態をチェック
+  useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      try {
+        // 開発用フラグのチェック
+        if (__DEV__ && DEV_CONFIG.SKIP_ONBOARDING) {
+          setOnboardingComplete(true);
+          setIsLoading(false);
+          return;
+        }
+
+        if (__DEV__ && DEV_CONFIG.FORCE_SHOW_ONBOARDING) {
+          await OnboardingStorageService.clearOnboardingData();
+          setOnboardingComplete(false);
+          setIsLoading(false);
+          return;
+        }
+
+        // 通常のチェック
+        const isComplete = await OnboardingStorageService.isOnboardingComplete();
+        setOnboardingComplete(isComplete);
+      } catch (error) {
+        console.error('Failed to check onboarding status:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkOnboardingStatus();
+  }, []);
 
   const handleOnboardingComplete = (data: any) => {
     console.log('Onboarding completed with data:', data);
@@ -29,8 +75,52 @@ export default function AppNavigator() {
     );
   };
 
+  // 開発用: オンボーディングデータをリセット
+  const resetOnboarding = async () => {
+    await OnboardingStorageService.clearOnboardingData();
+    setOnboardingComplete(false);
+    Alert.alert('リセット完了', 'オンボーディングデータをクリアしました');
+  };
+
+  // 開発用: オンボーディングをスキップ
+  const skipOnboarding = () => {
+    setOnboardingComplete(true);
+    Alert.alert('スキップ', 'オンボーディングをスキップしました');
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
+  // オンボーディングが未完了の場合
+  if (!onboardingComplete) {
+    return (
+      <View style={{ flex: 1 }}>
+        <OnboardingNavigator onComplete={handleOnboardingComplete} />
+
+        {/* 開発メニュー */}
+        {__DEV__ && DEV_CONFIG.SHOW_DEV_MENU && (
+          <View style={styles.devMenuContainer}>
+            <TouchableOpacity
+              style={styles.devButton}
+              onPress={skipOnboarding}
+            >
+              <Text style={styles.devButtonText}>Skip →</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  // オンボーディング完了後のタブナビゲーター
   return (
-    <Tab.Navigator
+    <>
+      <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: colors.primary.main,
@@ -51,9 +141,6 @@ export default function AppNavigator() {
           let Icon;
 
           switch (route.name) {
-            case 'Onboarding':
-              Icon = UserPlus;
-              break;
             case 'Dashboard':
               Icon = BarChart3;
               break;
@@ -81,16 +168,6 @@ export default function AppNavigator() {
         },
       })}
     >
-      {/* Onboarding Flow */}
-      {!onboardingComplete && (
-        <Tab.Screen
-          name="Onboarding"
-          options={{ tabBarLabel: 'セットアップ' }}
-        >
-          {() => <OnboardingNavigator onComplete={handleOnboardingComplete} />}
-        </Tab.Screen>
-      )}
-
       <Tab.Screen
         name="Dashboard"
         component={DashboardScreen}
@@ -111,7 +188,43 @@ export default function AppNavigator() {
         component={ProfileScreen}
         options={{ tabBarLabel: 'プロフィール' }}
       />
-    </Tab.Navigator>
+      </Tab.Navigator>
+
+      {/* 開発メニュー（タブ画面表示時） */}
+      {__DEV__ && DEV_CONFIG.SHOW_DEV_MENU && (
+        <TouchableOpacity
+          style={styles.devFloatingButton}
+          onPress={() => setShowDevMenu(!showDevMenu)}
+        >
+          <Text style={styles.devFloatingButtonText}>DEV</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* 開発メニューモーダル */}
+      {__DEV__ && showDevMenu && (
+        <View style={styles.devModal}>
+          <Text style={styles.devModalTitle}>開発メニュー</Text>
+
+          <TouchableOpacity
+            style={styles.devModalButton}
+            onPress={async () => {
+              await resetOnboarding();
+              setShowDevMenu(false);
+            }}
+          >
+            <Trash2 size={16} color={colors.text.inverse} />
+            <Text style={styles.devModalButtonText}>オンボーディングをリセット</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.devModalButton, styles.devModalCloseButton]}
+            onPress={() => setShowDevMenu(false)}
+          >
+            <Text style={styles.devModalButtonText}>閉じる</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </>
   );
 }
 
@@ -122,5 +235,82 @@ const styles = StyleSheet.create({
   },
   activeIconContainer: {
     // アクティブ時の背景
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background.primary,
+  },
+  loadingText: {
+    fontSize: typography.fontSize.lg,
+    color: colors.text.secondary,
+  },
+
+  // 開発メニュー
+  devMenuContainer: {
+    position: 'absolute',
+    bottom: 50,
+    right: 20,
+    zIndex: 9999,
+  },
+  devButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  devButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  devFloatingButton: {
+    position: 'absolute',
+    bottom: 100,
+    right: 20,
+    backgroundColor: 'rgba(255, 0, 0, 0.8)',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  devFloatingButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  devModal: {
+    position: 'absolute',
+    bottom: 160,
+    right: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    borderRadius: 10,
+    padding: 15,
+    zIndex: 9998,
+  },
+  devModalTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  devModalButton: {
+    backgroundColor: colors.primary.main,
+    padding: 10,
+    borderRadius: 5,
+    marginVertical: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  devModalButtonText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  devModalCloseButton: {
+    backgroundColor: colors.gray[600],
   },
 });

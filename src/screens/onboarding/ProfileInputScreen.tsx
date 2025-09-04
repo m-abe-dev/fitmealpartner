@@ -142,7 +142,7 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
                 styles.dropdownButtonText,
                 !selectedDateString && styles.placeholderText
               ]}>
-                {selectedDateString 
+                {selectedDateString
                   ? `${new Date(selectedDateString).toLocaleDateString('ja-JP')} (${calculateAge(selectedDateString)}歳)`
                   : '選択してください'}
               </Text>
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
-    height: 48,
+    height: 50,
     marginBottom: spacing.md,
   },
   dropdownButtonText: {
