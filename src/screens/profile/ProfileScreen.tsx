@@ -20,6 +20,7 @@ export const ProfileScreen: React.FC = () => {
     refreshing,
     notificationsEnabled,
     showProfileEditModal,
+    isLoading,
     setNotificationsEnabled,
     setShowProfileEditModal,
     onRefresh,
@@ -27,7 +28,7 @@ export const ProfileScreen: React.FC = () => {
   } = useProfileData();
 
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
-
+  
   const [deviceConnections] = useState<DeviceConnection[]>([
     { name: 'Apple Watch', type: 'fitness', connected: true, icon: '⌚' },
     { name: 'iPhone ヘルスケア', type: 'health', connected: true, icon: '📱' },
@@ -41,6 +42,17 @@ export const ProfileScreen: React.FC = () => {
     { id: 3, title: 'プロテイン王', description: 'タンパク質目標を30日連続達成', icon: '💪', unlocked: true },
     { id: 4, title: 'ワークアウト達人', description: '月20回のワークアウトを達成', icon: '🏆', unlocked: false }
   ]);
+
+  // ローディング中の表示（すべてのフック呼び出し後に配置）
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>読み込み中...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -94,6 +106,7 @@ export const ProfileScreen: React.FC = () => {
           activityLevel: userProfile.activityLevel,
           targetWeight: userProfile.targetWeight,
           targetDate: userProfile.targetDate,
+          goal: userProfile.goal,
         }}
         onSave={handleProfileSave}
       />
@@ -118,6 +131,16 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: typography.fontSize.sm,
     color: colors.text.tertiary,
+    fontFamily: typography.fontFamily.regular,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: typography.fontSize.md,
+    color: colors.text.secondary,
     fontFamily: typography.fontFamily.regular,
   },
 });
