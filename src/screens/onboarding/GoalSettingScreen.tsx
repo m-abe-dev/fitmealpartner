@@ -59,10 +59,68 @@ export function GoalSettingScreen({ onNext, onBack, currentData }: OnboardingSte
   );
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const weightOptions = Array.from({ length: 171 }, (_, i) => ({
-    value: i + 30,
-    label: `${i + 30} kg`
-  }));
+  // 現在の体重を取得
+  const currentWeight = currentData?.profile?.weight || 65;
+
+  // 目標に応じた体重選択肢を生成
+  const getWeightOptions = () => {
+    if (!selectedGoal || selectedGoal === 'maintain') {
+      return [];
+    }
+
+    const options = [];
+    
+    if (selectedGoal === 'cut') {
+      // 減量: 現在の体重から30kgまで（最小30kg）
+      const minWeight = 30;
+      const maxWeight = currentWeight - 1; // 現在の体重より1kg以上少ない
+      
+      if (maxWeight >= minWeight) {
+        for (let i = minWeight; i <= maxWeight; i++) {
+          options.push({
+            value: i,
+            label: `${i} kg`
+          });
+        }
+      }
+    } else if (selectedGoal === 'bulk') {
+      // 増量: 現在の体重+1kgから200kgまで
+      const minWeight = currentWeight + 1; // 現在の体重より1kg以上多い
+      const maxWeight = 200;
+      
+      for (let i = minWeight; i <= maxWeight; i++) {
+        options.push({
+          value: i,
+          label: `${i} kg`
+        });
+      }
+    }
+
+    return options;
+  };
+
+  const weightOptions = getWeightOptions();
+
+  // 目標が変更されたときに目標体重をリセット
+  const handleGoalSelect = (goal: 'cut' | 'bulk' | 'maintain') => {
+    setSelectedGoal(goal);
+    // 目標が変更されたら目標体重をリセット
+    if (goal !== selectedGoal) {
+      setTargetWeight(undefined);
+    }
+  };
+
+  // デフォルトスクロール値を計算
+  const getDefaultScrollValue = () => {
+    if (selectedGoal === 'cut') {
+      // 減量の場合: 現在の体重から5kg減を初期値に
+      return Math.max(30, currentWeight - 5);
+    } else if (selectedGoal === 'bulk') {
+      // 増量の場合: 現在の体重から5kg増を初期値に
+      return Math.min(200, currentWeight + 5);
+    }
+    return currentWeight;
+  };
 
   const handleNext = () => {
     if (!selectedGoal) return;
@@ -75,9 +133,14 @@ export function GoalSettingScreen({ onNext, onBack, currentData }: OnboardingSte
         return;
       }
 
-      // 現在の体重と同じ場合のチェック
-      if (currentData?.profile?.weight && targetWeight === currentData.profile.weight) {
-        Alert.alert('入力エラー', '目標体重は現在の体重と異なる値を設定してください');
+      // 減量/増量の妥当性チェック
+      if (selectedGoal === 'cut' && targetWeight >= currentWeight) {
+        Alert.alert('入力エラー', '減量の場合、目標体重は現在の体重より少なく設定してください');
+        return;
+      }
+      
+      if (selectedGoal === 'bulk' && targetWeight <= currentWeight) {
+        Alert.alert('入力エラー', '増量の場合、目標体重は現在の体重より多く設定してください');
         return;
       }
 
@@ -115,9 +178,7 @@ export function GoalSettingScreen({ onNext, onBack, currentData }: OnboardingSte
     }
 
     // 増量・減量の場合は目標体重と日付が設定されていること
-    return targetWeight !== undefined &&
-           targetWeight !== currentData?.profile?.weight &&
-           targetDate !== undefined;
+    return targetWeight !== undefined && targetDate !== undefined;
   };
 
   return (
@@ -145,7 +206,7 @@ export function GoalSettingScreen({ onNext, onBack, currentData }: OnboardingSte
                   styles.goalItem,
                   isSelected && { ...styles.goalItemSelected, borderColor: option.color }
                 ]}
-                onPress={() => setSelectedGoal(option.key)}
+                onPress={() => handleGoalSelect(option.key)}
               >
                 <View style={[styles.goalIconContainer, { backgroundColor: option.color + '20' }]}>
                   <Icon size={24} color={option.color} />
@@ -168,17 +229,33 @@ export function GoalSettingScreen({ onNext, onBack, currentData }: OnboardingSte
       {/* 目標体重と目標達成日 - 維持以外の場合のみ表示 */}
       {selectedGoal && selectedGoal !== 'maintain' && (
         <OnboardingSection title="体重変化の目標">
-          {/* 目標体重 */}
-          <View style={[styles.fullWidthGroup, { zIndex: 30 }]}>
-            <DropdownSelector
-              label="目標体重 (kg)"
-              value={targetWeight}
-              options={weightOptions}
-              onSelect={setTargetWeight}
-              placeholder="選択してください"
-              defaultScrollToValue={65}
-            />
+          {/* 現在の体重表示 */}
+          <View style={styles.currentWeightContainer}>
+            <Text style={styles.currentWeightLabel}>現在の体重</Text>
+            <Text style={styles.currentWeightValue}>{currentWeight} kg</Text>
           </View>
+
+          {/* 目標体重 */}
+          {weightOptions.length > 0 ? (
+            <View style={[styles.fullWidthGroup, { zIndex: 30 }]}>
+              <DropdownSelector
+                label={`目標体重 (${selectedGoal === 'cut' ? '減量' : '増量'})`}
+                value={targetWeight}
+                options={weightOptions}
+                onSelect={setTargetWeight}
+                placeholder="選択してください"
+                defaultScrollToValue={getDefaultScrollValue()}
+              />
+            </View>
+          ) : (
+            <View style={styles.warningContainer}>
+              <Text style={styles.warningText}>
+                {selectedGoal === 'cut' 
+                  ? '現在の体重が最小値（30kg）に近いため、これ以上の減量目標は設定できません'
+                  : '現在の体重が最大値（200kg）に近いため、これ以上の増量目標は設定できません'}
+              </Text>
+            </View>
+          )}
 
           {/* 目標達成日 */}
           <View style={styles.fullWidthGroup}>
@@ -287,5 +364,38 @@ const styles = StyleSheet.create({
   },
   dateTextPlaceholder: {
     color: colors.text.tertiary,
+  },
+  currentWeightContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.gray[50],
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  currentWeightLabel: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    fontFamily: typography.fontFamily.medium,
+  },
+  currentWeightValue: {
+    fontSize: typography.fontSize.lg,
+    color: colors.text.primary,
+    fontFamily: typography.fontFamily.bold,
+  },
+  warningContainer: {
+    backgroundColor: colors.status.warning + '10',
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.status.warning + '30',
+  },
+  warningText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.status.warning,
+    fontFamily: typography.fontFamily.regular,
+    textAlign: 'center',
   },
 });
