@@ -1,8 +1,16 @@
-import { NutritionData, AIUserProfile, FeedbackResponse, WorkoutData, WorkoutSuggestionResponse } from '../types/ai.types';
+import {
+  NutritionData,
+  AIUserProfile,
+  FeedbackResponse,
+  WorkoutData,
+  WorkoutSuggestionResponse,
+} from '../types/ai.types';
 
 // TODO: 本番環境では環境変数から取得
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'YOUR_SUPABASE_URL';
-const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_URL =
+  process.env.EXPO_PUBLIC_SUPABASE_URL || 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY =
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
 
 export class AIFeedbackService {
   /**
@@ -14,14 +22,14 @@ export class AIFeedbackService {
   ): Promise<FeedbackResponse> {
     try {
       console.log('Requesting nutrition feedback...', { nutrition, profile });
-      
+
       const response = await fetch(
         `${SUPABASE_URL}/functions/v1/nutrition-feedback`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
           },
           body: JSON.stringify({ nutrition, profile }),
         }
@@ -33,11 +41,11 @@ export class AIFeedbackService {
 
       const result = await response.json();
       console.log('Nutrition feedback received:', result);
-      
+
       return result;
     } catch (error) {
       console.error('Error getting nutrition feedback:', error);
-      
+
       // オフライン時またはエラー時のフォールバック
       return this.getNutritionFallback(nutrition);
     }
@@ -51,15 +59,18 @@ export class AIFeedbackService {
     profile: AIUserProfile
   ): Promise<WorkoutSuggestionResponse> {
     try {
-      console.log('Requesting workout suggestion...', { recentWorkouts, profile });
-      
+      console.log('Requesting workout suggestion...', {
+        recentWorkouts,
+        profile,
+      });
+
       const response = await fetch(
         `${SUPABASE_URL}/functions/v1/workout-suggestion`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
           },
           body: JSON.stringify({ recentWorkouts, profile }),
         }
@@ -71,11 +82,11 @@ export class AIFeedbackService {
 
       const result = await response.json();
       console.log('Workout suggestion received:', result);
-      
+
       return result;
     } catch (error) {
       console.error('Error getting workout suggestion:', error);
-      
+
       // オフライン時またはエラー時のフォールバック
       return this.getWorkoutFallback(recentWorkouts);
     }
@@ -84,14 +95,24 @@ export class AIFeedbackService {
   /**
    * 栄養フィードバックのフォールバック
    */
-  private static getNutritionFallback(nutrition: NutritionData): FeedbackResponse {
+  private static getNutritionFallback(
+    nutrition: NutritionData
+  ): FeedbackResponse {
     const proteinGap = Math.max(0, nutrition.targetProtein - nutrition.protein);
-    const calorieGap = Math.max(0, nutrition.targetCalories - nutrition.calories);
-    const proteinAchievement = (nutrition.protein / nutrition.targetProtein) * 100;
-    
+    const calorieGap = Math.max(
+      0,
+      nutrition.targetCalories - nutrition.calories
+    );
+    const proteinAchievement =
+      (nutrition.protein / nutrition.targetProtein) * 100;
+
     let feedback = '栄養記録お疲れ様です！';
     const suggestions: string[] = [];
-    const actionItems: Array<{ priority: 'high' | 'medium' | 'low', action: string, reason: string }> = [];
+    const actionItems: Array<{
+      priority: 'high' | 'medium' | 'low';
+      action: string;
+      reason: string;
+    }> = [];
 
     if (proteinGap > 20) {
       feedback = `タンパク質が約${Math.round(proteinGap)}g不足しています。`;
@@ -103,7 +124,7 @@ export class AIFeedbackService {
       actionItems.push({
         priority: 'high',
         action: 'サラダチキンまたはプロテインを摂取',
-        reason: '筋肉の維持・成長に必要'
+        reason: '筋肉の維持・成長に必要',
       });
     } else if (proteinAchievement >= 80) {
       feedback = 'タンパク質の摂取量は良好です！';
@@ -123,7 +144,7 @@ export class AIFeedbackService {
       actionItems.push({
         priority: 'medium',
         action: 'おにぎりやバナナなどでエネルギー補給',
-        reason: '基礎代謝の維持'
+        reason: '基礎代謝の維持',
       });
     }
 
@@ -132,27 +153,30 @@ export class AIFeedbackService {
       feedback,
       suggestions,
       actionItems,
-      error: 'ネットワーク接続を確認してください'
+      error: 'ネットワーク接続を確認してください',
     };
   }
 
   /**
    * ワークアウト提案のフォールバック
    */
-  private static getWorkoutFallback(recentWorkouts: WorkoutData[]): WorkoutSuggestionResponse {
+  private static getWorkoutFallback(
+    recentWorkouts: WorkoutData[]
+  ): WorkoutSuggestionResponse {
     // 最近のワークアウトから使用頻度の低い筋群を特定
     const muscleGroups = ['chest', 'back', 'shoulders', 'arms', 'legs', 'core'];
-    const workoutHistory = recentWorkouts.flatMap(w => 
+    const workoutHistory = recentWorkouts.flatMap(w =>
       w.exercises.map(e => e.muscleGroup)
     );
-    
+
     // 最も使用頻度の低い筋群を選択
-    const underused = muscleGroups.filter(muscle => 
-      !workoutHistory.includes(muscle)
+    const underused = muscleGroups.filter(
+      muscle => !workoutHistory.includes(muscle)
     );
-    
-    const targetMuscles = underused.length > 0 ? underused.slice(0, 2) : ['chest', 'arms'];
-    
+
+    const targetMuscles =
+      underused.length > 0 ? underused.slice(0, 2) : ['chest', 'arms'];
+
     return {
       success: false,
       nextWorkout: {
@@ -162,19 +186,19 @@ export class AIFeedbackService {
             name: 'プッシュアップ',
             sets: 3,
             reps: '10-15',
-            notes: '自重で基本的な胸筋トレーニング'
+            notes: '自重で基本的な胸筋トレーニング',
           },
           {
             name: 'プランク',
             sets: 3,
             reps: '30秒',
-            notes: 'コア強化の基本種目'
-          }
+            notes: 'コア強化の基本種目',
+          },
         ],
-        estimatedDuration: 30
+        estimatedDuration: 30,
       },
       feedback: 'オフライン時の基本的なワークアウト提案です。',
-      error: 'AI提案機能が利用できません'
+      error: 'AI提案機能が利用できません',
     };
   }
 
@@ -193,18 +217,18 @@ export class AIFeedbackService {
         targetProtein: 100,
         targetCarbs: 200,
         targetFat: 70,
-        meals: []
+        meals: [],
       };
-      
+
       const testProfile = {
         age: 30,
         weight: 70,
         height: 175,
         goal: 'maintain' as const,
         activityLevel: 'moderate',
-        gender: 'male' as const
+        gender: 'male' as const,
       };
-      
+
       const result = await this.getNutritionFeedback(testData, testProfile);
       return !!result; // レスポンスがあればOK
     } catch (error) {
