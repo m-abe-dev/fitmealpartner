@@ -19,6 +19,8 @@ import { DatabaseDebugger } from './components/DatabaseDebugger';
 import { useNutritionData } from '../../hooks/useNutritionData';
 import { useFoodLog } from '../../hooks/useFoodLog';
 import { useProfileData } from '../../hooks/useProfileData';
+import { useOnboardingData } from '../../hooks/useOnboardingData';
+import { AIFeedbackCard } from './components/AIFeedbackCard';
 import { MealTab, FoodLogItem } from './types/nutrition.types';
 import FoodRepository from '../../services/database/repositories/FoodRepository';
 
@@ -29,6 +31,7 @@ export const NutritionScreen: React.FC = () => {
 
   // プロフィールデータから動的な目標値を取得
   const { nutritionTargets } = useProfileData();
+  const { calculatedProfile } = useOnboardingData();
 
   // カスタムフックを使用
   const {
@@ -46,6 +49,43 @@ export const NutritionScreen: React.FC = () => {
 
   // foodLogと動的な目標値を使って栄養データを計算
   const { nutritionData, scores } = useNutritionData(foodLog, nutritionTargets);
+
+  // AI用のプロフィールデータを準備
+  const aiUserProfile = calculatedProfile ? {
+    weight: calculatedProfile.weight,
+    age: calculatedProfile.age,
+    goal: calculatedProfile.goal,
+    gender: calculatedProfile.gender,
+  } : {
+    weight: 70,
+    age: 25,
+    goal: 'maintain' as const,
+    gender: 'male' as const,
+  };
+
+  // AI用の栄養データを準備（foodLogから変換）
+  const aiNutritionData = {
+    calories: nutritionData.calories.current,
+    protein: nutritionData.protein.current,
+    carbs: nutritionData.carbs.current,
+    fat: nutritionData.fat.current,
+    targetCalories: nutritionTargets.calories,
+    targetProtein: nutritionTargets.protein,
+    targetCarbs: nutritionTargets.carbs,
+    targetFat: nutritionTargets.fat,
+    meals: foodLog.map((item, index) => ({
+      id: `meal-${index}`,
+      name: item.name,
+      calories: item.calories,
+      protein: item.protein,
+      carbs: item.carbs,
+      fat: item.fat,
+      time: new Date().toLocaleTimeString('ja-JP', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      }),
+    })),
+  };
 
   const mealTabs: MealTab[] = [
     { id: 'breakfast', label: '朝食', icon: '🌅' },
@@ -129,6 +169,14 @@ export const NutritionScreen: React.FC = () => {
           nutritionData={nutritionData}
           scores={scores}
         />
+
+        {/* AI 栄養フィードバック */}
+        {foodLog.length > 0 && (
+          <AIFeedbackCard
+            nutritionData={aiNutritionData}
+            userProfile={aiUserProfile}
+          />
+        )}
 
         {/* 食事ログ */}
         <MealLogCard

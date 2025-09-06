@@ -100,8 +100,14 @@ ${nutrition.meals.map(m => `- ${m.name}: ${m.calories}kcal (P:${m.protein}g C:${
     const { nutrition } = await req.json().catch(() => ({ nutrition: null }));
     
     let fallbackFeedback = '栄養バランスを確認中です。記録を継続して目標達成を目指しましょう！';
-    const fallbackSuggestions = [];
-    const fallbackActions = [];
+    
+    // 型を明示的に指定
+    const fallbackSuggestions: string[] = [];
+    const fallbackActions: Array<{
+      priority: 'high' | 'medium' | 'low';
+      action: string;
+      reason: string;
+    }> = [];
 
     if (nutrition) {
       const proteinGap = Math.max(0, nutrition.targetProtein - nutrition.protein);
@@ -111,7 +117,7 @@ ${nutrition.meals.map(m => `- ${m.name}: ${m.calories}kcal (P:${m.protein}g C:${
         fallbackFeedback = `タンパク質が約${Math.round(proteinGap)}g不足しています。プロテインやサラダチキンで補いましょう。`;
         fallbackSuggestions.push('セブンイレブンのサラダチキン（約20g）', 'ファミマのプロテインバー（約15g）');
         fallbackActions.push({
-          priority: 'high' as const,
+          priority: 'high',
           action: 'プロテイン1杯またはサラダチキン1個を追加',
           reason: '筋肉の回復と成長をサポート'
         });
@@ -131,7 +137,7 @@ ${nutrition.meals.map(m => `- ${m.name}: ${m.calories}kcal (P:${m.protein}g C:${
 
     if (fallbackActions.length === 0) {
       fallbackActions.push({
-        priority: 'medium' as const,
+        priority: 'medium',
         action: '次の食事でタンパク質を意識',
         reason: '栄養バランスの改善'
       });

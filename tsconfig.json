@@ -17,5 +17,6 @@
     },
     "typeRoots": ["node_modules/@types", "types"]
   },
-  "include": ["**/*", "types/**/*", "**/*.ts"]
+  "include": ["**/*", "types/**/*", "**/*.ts"],
+  "exclude": ["supabase/**/*"]
 }
