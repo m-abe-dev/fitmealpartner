@@ -15,13 +15,7 @@
       "@design-system/*": ["src/design-system/*"],
       "@design-system": ["src/design-system"]
     },
-    "typeRoots": [
-      "node_modules/@types",
-      "types"
-    ]
+    "typeRoots": ["node_modules/@types", "types"]
   },
-  "include": [
-    "**/*",
-    "types/**/*"
-  ]
+  "include": ["**/*", "types/**/*", "**/*.ts"]
 }

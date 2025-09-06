@@ -18,7 +18,7 @@ export async function generateAIResponse(
   
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4-turbo-preview',
+      model: 'gpt-3.5-turbo', // モデル名を修正
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
