@@ -14,6 +14,7 @@ export interface Exercise {
   sets: WorkoutSet[];
   isExpanded: boolean;
   type?: 'strength' | 'cardio'; // Exercise type
+  targetMuscles?: string[]; // 追加: ターゲット筋群の配列
 }
 
 export type WorkoutView = 'main' | 'exercise-selection' | 'exercise-detail';
@@ -44,6 +45,7 @@ export interface WorkoutDay {
     totalSets: number;
     totalReps: number;
     maxWeight: number;
+    targetMuscles?: string[]; // 追加
   }[];
   totalSets: number;
   score: number;
@@ -55,4 +57,12 @@ export interface SetInputs {
   reps: string;
   time: string;
   distance: string;
+}
+
+// WorkoutSessionインターフェースも追加
+export interface WorkoutSession {
+  date: string;
+  exercises: Exercise[];
+  duration?: number;
+  totalVolume?: number;
 }
