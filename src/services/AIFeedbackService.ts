@@ -5,14 +5,12 @@ import {
   WorkoutData,
   WorkoutSuggestionResponse,
 } from '../types/ai.types';
-
-// TODO: 本番環境では環境変数から取得
-const SUPABASE_URL =
-  process.env.EXPO_PUBLIC_SUPABASE_URL || 'YOUR_SUPABASE_URL';
-const SUPABASE_ANON_KEY =
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
+import { ENV } from '../config/environment';
 
 export class AIFeedbackService {
+  private static SUPABASE_URL = ENV.supabase.url;
+  private static SUPABASE_ANON_KEY = ENV.supabase.anonKey;
+
   /**
    * 栄養フィードバックを取得
    */
@@ -21,26 +19,26 @@ export class AIFeedbackService {
     profile: AIUserProfile
   ): Promise<FeedbackResponse> {
     try {
-      console.log('Requesting nutrition feedback...', { nutrition, profile });
-
       const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/nutrition-feedback`,
+        `${this.SUPABASE_URL}/functions/v1/nutrition-feedback`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${this.SUPABASE_ANON_KEY}`,
           },
           body: JSON.stringify({ nutrition, profile }),
         }
       );
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Response Error:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
-      console.log('Nutrition feedback received:', result);
+      console.log('Nutrition feedback received');
 
       return result;
     } catch (error) {
@@ -59,29 +57,28 @@ export class AIFeedbackService {
     profile: AIUserProfile
   ): Promise<WorkoutSuggestionResponse> {
     try {
-      console.log('Requesting workout suggestion...', {
-        recentWorkouts,
-        profile,
-      });
+      console.log('Requesting workout suggestion...');
 
       const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/workout-suggestion`,
+        `${this.SUPABASE_URL}/functions/v1/workout-suggestion`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${this.SUPABASE_ANON_KEY}`,
           },
           body: JSON.stringify({ recentWorkouts, profile }),
         }
       );
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Response Error:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
-      console.log('Workout suggestion received:', result);
+      console.log('Workout suggestion received');
 
       return result;
     } catch (error) {
