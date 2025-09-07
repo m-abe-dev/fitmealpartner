@@ -10,7 +10,10 @@ export class OnboardingStorageService {
         ...data,
         completedAt: data.completedAt || new Date(),
       };
-      await AsyncStorage.setItem(ONBOARDING_DATA_KEY, JSON.stringify(dataToStore));
+      await AsyncStorage.setItem(
+        ONBOARDING_DATA_KEY,
+        JSON.stringify(dataToStore)
+      );
       console.log('Saved onboarding data:', dataToStore);
     } catch (error) {
       console.error('Failed to save onboarding data:', error);
@@ -25,9 +28,9 @@ export class OnboardingStorageService {
         console.log('No onboarding data found');
         return null;
       }
-      
+
       const parsedData = JSON.parse(data);
-      
+
       // Date型の復元
       if (parsedData.profile?.birthDate) {
         parsedData.profile.birthDate = new Date(parsedData.profile.birthDate);
@@ -35,8 +38,7 @@ export class OnboardingStorageService {
       if (parsedData.completedAt) {
         parsedData.completedAt = new Date(parsedData.completedAt);
       }
-      
-      console.log('Loaded onboarding data:', parsedData);
+
       return parsedData;
     } catch (error) {
       console.error('Failed to load onboarding data:', error);
@@ -64,7 +66,9 @@ export class OnboardingStorageService {
     }
   }
 
-  static async updateOnboardingData(partialData: Partial<OnboardingData>): Promise<void> {
+  static async updateOnboardingData(
+    partialData: Partial<OnboardingData>
+  ): Promise<void> {
     try {
       const existingData = await this.getOnboardingData();
       const updatedData = { ...existingData, ...partialData };

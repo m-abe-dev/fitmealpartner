@@ -2,13 +2,22 @@ import { create } from 'zustand';
 import { Exercise, WorkoutSet } from '../screens/workout/types/workout.types';
 import DatabaseService from '../services/database/DatabaseService';
 
+interface WorkoutSession {
+  date: string;
+  exercises: Exercise[];
+  duration?: number;
+  totalVolume?: number;
+}
+
 interface WorkoutState {
   exercises: Exercise[];
   isLoading: boolean;
   currentSessionId: number | null;
+  workoutHistory: WorkoutSession[];
 
   // Actions
   loadTodaysWorkout: () => Promise<void>;
+  loadWorkoutHistory: () => Promise<void>;
   addExercise: (exercise: Exercise) => Promise<void>;
   deleteExercise: (exerciseId: string) => Promise<void>;
   updateExercise: (
@@ -30,6 +39,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   exercises: [],
   isLoading: true,
   currentSessionId: null,
+  workoutHistory: [],
 
   loadTodaysWorkout: async () => {
     try {
@@ -107,6 +117,85 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       set({ exercises, isLoading: false });
     } catch (error) {
       set({ isLoading: false });
+    }
+  },
+
+  loadWorkoutHistory: async () => {
+    try {
+      await DatabaseService.initialize();
+      
+      // 過去30日間のワークアウト履歴を取得
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const dateString = thirtyDaysAgo.toISOString().split('T')[0];
+      
+      const sessions = await DatabaseService.getAllAsync<any>(
+        `SELECT DISTINCT ws.date, 
+                COUNT(DISTINCT wset.exercise_id) as exercise_count,
+                SUM(wset.weight_kg * wset.reps) as total_volume
+         FROM workout_session ws
+         LEFT JOIN workout_set wset ON ws.session_id = wset.session_id
+         WHERE ws.date >= ? AND ws.user_id = ?
+         GROUP BY ws.date
+         ORDER BY ws.date DESC`,
+        [dateString, 'guest']
+      );
+      
+      const workoutHistory: WorkoutSession[] = [];
+      
+      for (const session of sessions) {
+        const workoutData = await DatabaseService.getAllAsync<any>(
+          `SELECT ws.*, es.exercise_id, es.name_ja as exercise_name, es.muscle_group
+           FROM workout_set ws
+           LEFT JOIN exercise_master es ON ws.exercise_id = es.exercise_id
+           WHERE ws.session_id = (
+             SELECT session_id FROM workout_session
+             WHERE date = ? AND user_id = ?
+             ORDER BY session_id DESC LIMIT 1
+           )
+           ORDER BY ws.exercise_id, ws.set_number`,
+          [session.date, 'guest']
+        );
+        
+        const exerciseMap = new Map<string, Exercise>();
+        
+        workoutData.forEach(row => {
+          const exerciseId = row.exercise_id?.toString() || 'unknown';
+          const exerciseName = row.exercise_name || `Exercise ${exerciseId}`;
+          
+          if (!exerciseMap.has(exerciseId)) {
+            exerciseMap.set(exerciseId, {
+              id: exerciseId,
+              name: exerciseName,
+              category: row.muscle_group,
+              sets: [],
+              isExpanded: false,
+              type: row.muscle_group === '有酸素' ? 'cardio' : 'strength',
+              targetMuscles: [row.muscle_group],
+            });
+          }
+          
+          const exercise = exerciseMap.get(exerciseId)!;
+          exercise.sets.push({
+            id: row.set_id?.toString() || `${Date.now()}-${exercise.sets.length}`,
+            weight: row.weight_kg || 0,
+            reps: row.reps || 0,
+            time: row.time_minutes || undefined,
+            distance: row.distance_km || undefined,
+          });
+        });
+        
+        workoutHistory.push({
+          date: session.date,
+          exercises: Array.from(exerciseMap.values()),
+          duration: 45, // デフォルト値
+          totalVolume: session.total_volume || 0,
+        });
+      }
+      
+      set({ workoutHistory });
+    } catch (error) {
+      console.error('Failed to load workout history:', error);
     }
   },
 

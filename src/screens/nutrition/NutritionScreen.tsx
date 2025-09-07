@@ -47,6 +47,7 @@ export const NutritionScreen: React.FC = () => {
   // foodLogと動的な目標値を使って栄養データを計算
   const { nutritionData, scores } = useNutritionData(foodLog, nutritionTargets);
 
+
   const mealTabs: MealTab[] = [
     { id: 'breakfast', label: '朝食', icon: '🌅' },
     { id: 'lunch', label: '昼食', icon: '🌞' },
@@ -129,6 +130,7 @@ export const NutritionScreen: React.FC = () => {
           nutritionData={nutritionData}
           scores={scores}
         />
+
 
         {/* 食事ログ */}
         <MealLogCard

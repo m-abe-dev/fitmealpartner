@@ -8,6 +8,7 @@ export const useWorkoutData = () => {
   // 初回マウント時にデータを読み込み
   useEffect(() => {
     store.loadTodaysWorkout();
+    store.loadWorkoutHistory();
   }, []);
 
   // exercises状態の変化をログ出力
@@ -15,6 +16,7 @@ export const useWorkoutData = () => {
 
   return {
     exercises: store.exercises,
+    workoutHistory: store.workoutHistory,
     isLoading: store.isLoading,
     addSet: store.addSet,
     updateSet: store.updateSet,
@@ -23,6 +25,7 @@ export const useWorkoutData = () => {
     addExercise: store.addExercise,
     toggleExerciseExpansion: store.toggleExerciseExpansion,
     updateExercise: store.updateExercise,
+    loadWorkoutHistory: store.loadWorkoutHistory,
     // Legacy method for backward compatibility
     updateExercises: (exercises: Exercise[]) => {
       // Legacy method - no longer used

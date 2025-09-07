@@ -40,14 +40,15 @@ export const useProfileData = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
-  const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(null);
+  const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(true);
 
   // オンボーディングデータの読み込み
   const loadOnboardingData = async () => {
     try {
       const data = await OnboardingStorageService.getOnboardingData();
-      console.log('Loaded onboarding data:', data);
       setOnboardingData(data);
     } catch (error) {
       console.error('Failed to load onboarding data:', error);
@@ -86,8 +87,14 @@ export const useProfileData = () => {
         goal: {
           ...onboardingData.goal,
           goal: updatedProfile.goal || 'maintain',
-          targetWeight: updatedProfile.goal === 'maintain' ? undefined : updatedProfile.targetWeight,
-          targetDate: updatedProfile.goal === 'maintain' ? undefined : updatedProfile.targetDate,
+          targetWeight:
+            updatedProfile.goal === 'maintain'
+              ? undefined
+              : updatedProfile.targetWeight,
+          targetDate:
+            updatedProfile.goal === 'maintain'
+              ? undefined
+              : updatedProfile.targetDate,
         },
         workoutHabits: {
           ...onboardingData.workoutHabits,
@@ -97,10 +104,10 @@ export const useProfileData = () => {
 
       // AsyncStorageに保存
       await OnboardingStorageService.saveOnboardingData(updatedOnboardingData);
-      
+
       // ローカル状態を更新
       setOnboardingData(updatedOnboardingData);
-      
+
       Alert.alert('成功', 'プロフィールが更新されました');
     } catch (error) {
       console.error('Failed to save profile:', error);
@@ -127,19 +134,24 @@ export const useProfileData = () => {
     }
 
     const { profile, goal, workoutHabits } = onboardingData;
-    
+
     // 年齢計算
     const today = new Date();
     const birthDate = new Date(profile.birthDate);
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
       age--;
     }
-    
+
     // BMI計算
     const heightInMeters = profile.height / 100;
-    const bmi = parseFloat((profile.weight / (heightInMeters * heightInMeters)).toFixed(1));
+    const bmi = parseFloat(
+      (profile.weight / (heightInMeters * heightInMeters)).toFixed(1)
+    );
 
     return {
       age,
@@ -152,7 +164,7 @@ export const useProfileData = () => {
       goal: goal.goal,
       bmi,
       startWeight: profile.weight,
-      joinDate: onboardingData.completedAt 
+      joinDate: onboardingData.completedAt
         ? new Date(onboardingData.completedAt).toISOString().split('T')[0]
         : new Date().toISOString().split('T')[0],
     };
@@ -160,34 +172,48 @@ export const useProfileData = () => {
 
   // 体重分析の計算
   const analysis: WeightAnalysis = useMemo(() => {
-    const targetDate = userProfile.targetDate ? new Date(userProfile.targetDate) : null;
+    const targetDate = userProfile.targetDate
+      ? new Date(userProfile.targetDate)
+      : null;
     const today = new Date();
     const daysToGoal = targetDate
-      ? Math.ceil((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+      ? Math.ceil(
+          (targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+        )
       : 0;
 
     const weightChangeToTarget = userProfile.targetWeight - userProfile.weight;
     const weeksToTarget = daysToGoal > 0 ? daysToGoal / 7 : 0;
-    const requiredWeeklyPace = weeksToTarget > 0 ? weightChangeToTarget / weeksToTarget : 0;
+    const requiredWeeklyPace =
+      weeksToTarget > 0 ? weightChangeToTarget / weeksToTarget : 0;
 
     // BMR計算（Harris-Benedict式）
     let bmr: number;
     if (userProfile.gender === 'male') {
-      bmr = 88.362 + 13.397 * userProfile.weight + 4.799 * userProfile.height - 5.677 * userProfile.age;
+      bmr =
+        88.362 +
+        13.397 * userProfile.weight +
+        4.799 * userProfile.height -
+        5.677 * userProfile.age;
     } else {
-      bmr = 447.593 + 9.247 * userProfile.weight + 3.098 * userProfile.height - 4.33 * userProfile.age;
+      bmr =
+        447.593 +
+        9.247 * userProfile.weight +
+        3.098 * userProfile.height -
+        4.33 * userProfile.age;
     }
 
     // 活動レベル係数
     const activityMultipliers = {
-      'sedentary': 1.2,
-      'light': 1.375,
-      'moderate': 1.55,
-      'active': 1.725,
+      sedentary: 1.2,
+      light: 1.375,
+      moderate: 1.55,
+      active: 1.725,
       'very-active': 1.9,
     };
 
-    const maintenanceCalories = bmr * activityMultipliers[userProfile.activityLevel];
+    const maintenanceCalories =
+      bmr * activityMultipliers[userProfile.activityLevel];
 
     // 警告レベルの判定
     const weeklyPaceKg = Math.abs(requiredWeeklyPace);
@@ -199,10 +225,14 @@ export const useProfileData = () => {
       recommendedWeeks = Math.abs(weightChangeToTarget) / 0.5;
       if (weeklyPaceKg > 0.75) {
         warningLevel = 'danger';
-        warningMessage = `危険な減量ペース（週${weeklyPaceKg.toFixed(1)}kg）です。推奨期間は${recommendedWeeks.toFixed(0)}週間です。`;
+        warningMessage = `危険な減量ペース（週${weeklyPaceKg.toFixed(
+          1
+        )}kg）です。推奨期間は${recommendedWeeks.toFixed(0)}週間です。`;
       } else if (weeklyPaceKg > 0.5) {
         warningLevel = 'caution';
-        warningMessage = `やや速い減量ペース（週${weeklyPaceKg.toFixed(1)}kg）です。注意して進めてください。`;
+        warningMessage = `やや速い減量ペース（週${weeklyPaceKg.toFixed(
+          1
+        )}kg）です。注意して進めてください。`;
       }
     } else if (weightChangeToTarget > 0 && weeklyPaceKg > 0.5) {
       warningLevel = 'caution';
@@ -240,7 +270,12 @@ export const useProfileData = () => {
     }
 
     // マクロ栄養素の計算
-    const proteinPerKg = userProfile.goal === 'cut' ? 2.2 : userProfile.goal === 'bulk' ? 1.8 : 2.0;
+    const proteinPerKg =
+      userProfile.goal === 'cut'
+        ? 2.2
+        : userProfile.goal === 'bulk'
+        ? 1.8
+        : 2.0;
     const protein = Math.round(userProfile.weight * proteinPerKg);
     const fatRatio = userProfile.goal === 'bulk' ? 0.25 : 0.27;
     const fat = Math.round((targetCalories * fatRatio) / 9);
