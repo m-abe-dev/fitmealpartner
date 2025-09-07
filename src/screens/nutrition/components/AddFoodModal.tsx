@@ -258,20 +258,27 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
       return;
     }
 
+    const foodId = `manual_${Date.now()}`;
+    const calories = Math.round(newFood.protein * 4 + newFood.fat * 9 + newFood.carbs * 4);
+
     const food: Food = {
-      id: Date.now().toString(),
+      id: foodId,
       name: newFood.name,
-      calories: Math.round(newFood.protein * 4 + newFood.fat * 9 + newFood.carbs * 4),
+      calories: calories,
       protein: newFood.protein,
       fat: newFood.fat,
       carbs: newFood.carbs,
     };
 
     try {
+      // onAddFoodに処理を委譲（ここではDBに保存しない）
       await onAddFood(food);
+      
+      // フォームをリセット
       setNewFood({ name: '', protein: 0, fat: 0, carbs: 0 });
       onClose();
     } catch (error) {
+      console.error('Error adding food:', error);
       Alert.alert('エラー', '食材の追加に失敗しました');
     }
   };
