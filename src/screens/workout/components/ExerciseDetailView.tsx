@@ -168,21 +168,33 @@ export const ExerciseDetailView: React.FC<ExerciseDetailViewProps> = ({
       return;
     }
 
-    const newSets = currentSets.map((set, index) => {
-      const recordData = lastRecord[index];
-      if (recordData) {
-        const displayWeight = weightUnit === 'kg'
-          ? recordData.weight
-          : Math.round(recordData.weight * 2.20462 * 10) / 10;
+    // 前回記録のセット数に合わせてcurrentSetsを調整
+    let newSets: SetInputs[] = [];
+    
+    lastRecord.forEach((record, index) => {
+      const displayWeight = weightUnit === 'kg'
+        ? record.weight
+        : Math.round(record.weight * 2.20462 * 10) / 10;
 
-        return {
-          ...set,
-          weight: displayWeight.toString(),
-          reps: recordData.reps.toString(),
-        };
-      }
-      return set;
+      newSets.push({
+        id: index + 1,
+        weight: displayWeight.toString(),
+        reps: record.reps.toString(),
+        time: "",
+        distance: ""
+      });
     });
+
+    // 最低3セットは確保（前回記録が3セット未満の場合）
+    while (newSets.length < 3) {
+      newSets.push({
+        id: newSets.length + 1,
+        weight: "",
+        reps: "",
+        time: "",
+        distance: ""
+      });
+    }
 
     setCurrentSets(newSets);
     Alert.alert('成功', `${lastRecord.length}セットの履歴をコピーしました`);

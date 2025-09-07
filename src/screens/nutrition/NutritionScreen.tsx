@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
+  Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Apple } from 'lucide-react-native';
@@ -62,9 +63,24 @@ export const NutritionScreen: React.FC = () => {
 
   // 食材追加ハンドラー
   const handleAddFood = async (food: { id: string; name: string; calories: number; protein: number; fat: number; carbs: number; }) => {
-    // 日本食品成分表からの食品の場合、food_dbに登録
-    if (food.id.startsWith('jfc_')) {
-      try {
+    try {
+      // 手入力された食材の場合、food_dbに登録
+      if (food.id.startsWith('manual_')) {
+        await FoodRepository.addFood({
+          food_id: food.id,
+          name_ja: food.name,
+          name_en: food.name,
+          category: '手入力',
+          p100: food.protein,
+          f100: food.fat,
+          c100: food.carbs,
+          kcal100: food.calories,
+          source: 'manual',
+          is_favorite: false
+        });
+      }
+      // 日本食品成分表からの食品の場合
+      else if (food.id.startsWith('jfc_')) {
         await FoodRepository.addFood({
           food_id: food.id,
           name_ja: food.name,
@@ -77,21 +93,25 @@ export const NutritionScreen: React.FC = () => {
           source: 'jfc',
           is_favorite: false
         });
-      } catch (error) {
-        // Ignore errors
       }
-    }
 
-    addFood({
-      name: food.name,
-      calories: food.calories,
-      protein: food.protein,
-      fat: food.fat,
-      carbs: food.carbs,
-      foodId: food.id,
-      amount: 100,
-      unit: 'g',
-    });
+      // FoodRepository.logFoodを削除（useFoodLogStore.addFoodで処理される）
+      
+      // UIの食事ログに追加（これがDBへの保存も行う）
+      addFood({
+        name: food.name,
+        calories: food.calories,
+        protein: food.protein,
+        fat: food.fat,
+        carbs: food.carbs,
+        foodId: food.id,
+        amount: 100,
+        unit: 'g',
+      });
+    } catch (error) {
+      console.error('Error adding food:', error);
+      Alert.alert('エラー', '食材の追加に失敗しました');
+    }
   };
 
   // 食事タイプ選択ハンドラー
@@ -142,7 +162,7 @@ export const NutritionScreen: React.FC = () => {
           onToggleFavorite={toggleFavorite}
           onShare={handleShare}
         />
-        
+
         {/* デバッグコンポーネント（開発時のみ） */}
         {__DEV__ && <DatabaseDebugger />}
       </ScrollView>

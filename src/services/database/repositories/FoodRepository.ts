@@ -135,27 +135,40 @@ class FoodRepository {
     );
   }
 
-  // 新しい食品を追加
+  // 新しい食品を追加（重複チェック付き）
   async addFood(food: Omit<Food, 'created_at'>): Promise<void> {
-    await DatabaseService.runAsync(
-      `INSERT INTO food_db
-       (food_id, name_ja, name_en, barcode, brand, category, p100, f100, c100, kcal100, source, is_favorite)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        food.food_id,
-        food.name_ja,
-        food.name_en || null,
-        food.barcode || null,
-        food.brand || null,
-        food.category,
-        food.p100,
-        food.f100,
-        food.c100,
-        food.kcal100,
-        food.source || 'user',
-        food.is_favorite ? 1 : 0,
-      ]
-    );
+    try {
+      // 既存の食品があるかチェック
+      const existing = await DatabaseService.getFirstAsync(
+        'SELECT food_id FROM food_db WHERE food_id = ?',
+        [food.food_id]
+      );
+
+      if (!existing) {
+        await DatabaseService.runAsync(
+          `INSERT INTO food_db
+           (food_id, name_ja, name_en, barcode, brand, category, p100, f100, c100, kcal100, source, is_favorite)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            food.food_id,
+            food.name_ja,
+            food.name_en || null,
+            food.barcode || null,
+            food.brand || null,
+            food.category,
+            food.p100,
+            food.f100,
+            food.c100,
+            food.kcal100,
+            food.source || 'user',
+            food.is_favorite ? 1 : 0,
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Error adding food to database:', error);
+      // エラーを再スローしない（重複エラーの場合は無視）
+    }
   }
 
   // 食事ログを追加
