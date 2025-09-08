@@ -1,63 +1,31 @@
 import 'react-native-gesture-handler';
-import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
-import * as Font from 'expo-font';
 
-import DatabaseService from './src/services/database/DatabaseService';
 import AppNavigator from './src/navigation/AppNavigator';
-import { colors } from './src/design-system';
+import { LoadingScreen } from './src/components/LoadingScreen';
+import { NotificationPermissionModal } from './src/components/NotificationPermissionModal';
+import { useAppInitialization } from './src/hooks/useAppInitialization';
+import { useNotificationPermission } from './src/hooks/useNotificationPermission';
 
 // スプラッシュスクリーンを保持
 SplashScreen.preventAutoHideAsync();
 
 export default function App() {
-  const [isReady, setIsReady] = useState(false);
+  // カスタムフックでロジックを分離
+  const { isReady } = useAppInitialization();
+  const { showPermissionModal, handleCloseModal, handlePermissionGranted } = useNotificationPermission(isReady);
 
-  useEffect(() => {
-    async function prepare() {
-      try {
-        // フォント読み込み（必要に応じて）
-        // await Font.loadAsync({
-        //   'Roboto-Regular': require('./assets/fonts/Roboto-Regular.ttf'),
-        //   'Roboto-Medium': require('./assets/fonts/Roboto-Medium.ttf'),
-        //   'Roboto-Bold': require('./assets/fonts/Roboto-Bold.ttf'),
-        // });
-
-        // データベース初期化
-        await DatabaseService.initialize();
-
-        // 少し待機（スプラッシュ画面の最小表示時間）
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        setIsReady(true);
-      } catch (error) {
-        console.error('Initialization error:', error);
-      } finally {
-        await SplashScreen.hideAsync();
-      }
-    }
-
-    prepare();
-  }, []);
-
+  // ローディング中はローディング画面を表示
   if (!isReady) {
-    return (
-      <View style={{
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: colors.background.primary
-      }}>
-        <ActivityIndicator size="large" color={colors.primary.main} />
-      </View>
-    );
+    return <LoadingScreen />;
   }
 
+  // メインアプリUIを表示
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
@@ -65,6 +33,12 @@ export default function App() {
           <>
             <StatusBar style="auto" />
             <AppNavigator />
+            
+            <NotificationPermissionModal
+              visible={showPermissionModal}
+              onClose={handleCloseModal}
+              onPermissionGranted={handlePermissionGranted}
+            />
           </>
         </NavigationContainer>
       </SafeAreaProvider>
