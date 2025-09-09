@@ -121,8 +121,8 @@ class NotificationService {
     // DailyTriggerInputの正しい形式
     const trigger: Notifications.DailyTriggerInput = {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: 20,
-      minute: 0,
+      hour: 19,
+      minute: 54,
     };
 
     await this.scheduleLocalNotification(
@@ -257,7 +257,7 @@ class NotificationService {
       enabled,
       proteinReminder: parsed.proteinReminder ?? true,
       workoutReminder: parsed.workoutReminder ?? true,
-      reminderTime: parsed.reminderTime ?? '19:00',
+      reminderTime: parsed.reminderTime ?? '20:00',
     };
   }
 
