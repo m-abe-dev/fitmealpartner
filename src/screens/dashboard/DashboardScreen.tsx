@@ -82,9 +82,9 @@ export const DashboardScreen: React.FC = () => {
       protein: item.protein,
       carbs: item.carbs,
       fat: item.fat,
-      time: new Date().toLocaleTimeString('ja-JP', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      time: new Date().toLocaleTimeString('ja-JP', {
+        hour: '2-digit',
+        minute: '2-digit'
       }),
     })),
   };

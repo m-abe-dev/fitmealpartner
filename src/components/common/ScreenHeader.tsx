@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Bell, Crown } from 'lucide-react-native';
+import { Bell, Crown, Flame } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../../design-system';
 import { NotificationCenter } from './NotificationCenter';
+import { StreakDetailModal } from './StreakDetailModal';
+import StreakService from '../../services/StreakService';
 
 interface ScreenHeaderProps {
   title: string;
@@ -10,8 +12,10 @@ interface ScreenHeaderProps {
   showNotification?: boolean;
   notificationCount?: number;
   showProButton?: boolean;
+  showStreak?: boolean;
   onNotificationPress?: () => void;
   onProButtonPress?: () => void;
+  onStreakPress?: () => void;
   rightComponent?: React.ReactNode;
 }
 
@@ -21,17 +25,63 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   showNotification = true,
   notificationCount,
   showProButton = true,
+  showStreak = true,
   onNotificationPress,
   onProButtonPress,
+  onStreakPress,
   rightComponent,
 }) => {
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
+  const [showStreakModal, setShowStreakModal] = useState(false);
+  const [streakDays, setStreakDays] = useState(0);
+
+  useEffect(() => {
+    if (showStreak) {
+      loadStreakData();
+      // 定期的にストリークデータを更新
+      const interval = setInterval(loadStreakData, 60000); // 1分ごと
+      return () => clearInterval(interval);
+    }
+  }, [showStreak]);
+
+  const loadStreakData = async () => {
+    try {
+      const streak = await StreakService.getStreakDays();
+      setStreakDays(streak);
+
+      // テスト用: 実際のプロダクションでは削除
+      await StreakService.setTestStreak(7);
+      setStreakDays(7);
+    } catch (error) {
+      console.error('Error loading streak:', error);
+    }
+  };
 
   const handleBellPress = () => {
     setShowNotificationCenter(true);
     if (onNotificationPress) {
       onNotificationPress();
     }
+  };
+
+  const handleStreakPress = () => {
+    setShowStreakModal(true);
+    if (onStreakPress) {
+      onStreakPress();
+    }
+  };
+
+  const getStreakColor = () => {
+    if (streakDays >= 30) return colors.status.warning; // ゴールド
+    if (streakDays >= 7) return colors.status.error; // オレンジ
+    return colors.text.secondary; // グレー
+  };
+
+  const getStreakIcon = () => {
+    if (streakDays >= 30) return '🔥'; // ゴールド炎
+    if (streakDays >= 7) return '🔥'; // オレンジ炎
+    if (streakDays >= 3) return '⚡'; // 稲妻
+    return '🔥'; // 基本の炎
   };
 
   return (
@@ -46,6 +96,21 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
             rightComponent
           ) : (
             <>
+              {showStreak && streakDays > 0 && (
+                <TouchableOpacity
+                  style={[styles.streakBadge, {
+                    backgroundColor: getStreakColor() + '15',
+                    borderColor: getStreakColor() + '30',
+                  }]}
+                  onPress={handleStreakPress}
+                >
+                  <Flame size={16} color={getStreakColor()} />
+                  <Text style={[styles.streakText, { color: getStreakColor() }]}>
+                    {streakDays}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
               {showNotification && (
                 <NotificationCenter
                   visible={showNotificationCenter}
@@ -67,6 +132,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
                   )}
                 />
               )}
+
               {showProButton && (
                 <TouchableOpacity
                   style={styles.proButton}
@@ -80,6 +146,13 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
           )}
         </View>
       </View>
+
+      {/* ストリーク詳細モーダル */}
+      <StreakDetailModal
+        visible={showStreakModal}
+        onClose={() => setShowStreakModal(false)}
+        currentStreak={streakDays}
+      />
     </>
   );
 };
@@ -109,7 +182,7 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   iconButton: {
     position: 'relative',
@@ -142,7 +215,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.xs,
     paddingVertical: spacing.xs,
     backgroundColor: colors.primary[50],
     borderRadius: 20,
@@ -152,5 +225,23 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.bold,
     color: colors.primary.main,
     fontWeight: 'bold',
+  },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xxs,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    minHeight: 32,
+    backgroundColor: 'transparent',
+  },
+  streakText: {
+    fontSize: typography.fontSize.sm,
+    fontFamily: typography.fontFamily.bold,
+    fontWeight: 'bold',
+    minWidth: 16,
+    textAlign: 'center',
   },
 });
