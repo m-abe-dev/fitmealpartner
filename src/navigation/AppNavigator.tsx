@@ -4,6 +4,7 @@ import { View, StyleSheet, Alert, Text, TouchableOpacity } from 'react-native';
 import { BarChart3, Dumbbell, UtensilsCrossed, Settings, RefreshCw, Trash2 } from 'lucide-react-native';
 import { colors, typography, spacing } from '../design-system';
 import { OnboardingStorageService } from '../services/OnboardingStorageService';
+import DatabaseService from '../services/database/DatabaseService';
 
 import { DashboardScreen } from '../screens/dashboard/DashboardScreen';
 import { NutritionScreen } from '../screens/nutrition/NutritionScreen';
@@ -31,6 +32,7 @@ export default function AppNavigator() {
   const [isLoading, setIsLoading] = useState(true);
   const [showDevMenu, setShowDevMenu] = useState(false);
   const [showTestNotification, setShowTestNotification] = useState(false);
+  const [dbInfo, setDbInfo] = useState<any>({});
 
   // アプリ起動時にオンボーディング完了状態をチェック
   useEffect(() => {
@@ -88,6 +90,69 @@ export default function AppNavigator() {
   const skipOnboarding = () => {
     setOnboardingComplete(true);
     Alert.alert('スキップ', 'オンボーディングをスキップしました');
+  };
+
+  // データベース情報を取得
+  const checkDatabase = async () => {
+    try {
+      const today = new Date();
+      const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+      const foodLogs = await DatabaseService.getAllAsync(
+        'SELECT * FROM food_log WHERE date = ?',
+        [todayString]
+      );
+
+      const allLogs = await DatabaseService.getAllAsync('SELECT * FROM food_log');
+      const foodDb = await DatabaseService.getAllAsync('SELECT * FROM food_db');
+
+      setDbInfo({
+        todayLogs: foodLogs.length,
+        totalLogs: allLogs.length,
+        foodMaster: foodDb.length,
+        searchDate: todayString,
+        timestamp: new Date().toLocaleTimeString(),
+      });
+
+      Alert.alert('DB情報', 
+        `今日: ${foodLogs.length}件\n` +
+        `全体: ${allLogs.length}件\n` +
+        `食品マスタ: ${foodDb.length}件\n` +
+        `日付: ${todayString}`
+      );
+    } catch (error) {
+      Alert.alert('エラー', 'データベース確認に失敗しました');
+    }
+  };
+
+  // 今日のデータをクリア
+  const clearTodayData = async () => {
+    Alert.alert(
+      '確認',
+      '今日の食事データをすべて削除しますか？',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: '削除',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const today = new Date();
+              const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+              
+              await DatabaseService.runAsync(
+                'DELETE FROM food_log WHERE date = ?',
+                [todayString]
+              );
+              
+              Alert.alert('完了', '今日のデータを削除しました');
+            } catch (error) {
+              Alert.alert('エラー', 'データ削除に失敗しました');
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (isLoading) {
@@ -216,29 +281,58 @@ export default function AppNavigator() {
             activeOpacity={1}
           />
           <View style={styles.devModalContent}>
-            <Text style={styles.devModalTitle}>開発メニュー</Text>
+            <Text style={styles.devModalTitle}>🛠 開発メニュー</Text>
 
-            <TouchableOpacity
-              style={styles.devModalButton}
-              onPress={async () => {
-                await resetOnboarding();
-                setShowDevMenu(false);
-              }}
-            >
-              <Trash2 size={16} color={colors.text.inverse} />
-              <Text style={styles.devModalButtonText}>オンボーディングをリセット</Text>
-            </TouchableOpacity>
+            {/* オンボーディング */}
+            <View style={styles.devSection}>
+              <Text style={styles.devSectionTitle}>オンボーディング</Text>
+              <TouchableOpacity
+                style={styles.devModalButton}
+                onPress={async () => {
+                  await resetOnboarding();
+                  setShowDevMenu(false);
+                }}
+              >
+                <Trash2 size={16} color={colors.text.inverse} />
+                <Text style={styles.devModalButtonText}>リセット</Text>
+              </TouchableOpacity>
+            </View>
 
-            <TouchableOpacity
-              style={[styles.devModalButton, { backgroundColor: '#FFA500' }]}
-              onPress={() => {
-                setShowDevMenu(false);
-                setShowTestNotification(true);
-              }}
-            >
-              <Text style={styles.devModalButtonText}>通知テスト画面</Text>
-            </TouchableOpacity>
+            {/* 通知テスト */}
+            <View style={styles.devSection}>
+              <Text style={styles.devSectionTitle}>通知</Text>
+              <TouchableOpacity
+                style={[styles.devModalButton, { backgroundColor: '#FFA500' }]}
+                onPress={() => {
+                  setShowDevMenu(false);
+                  setShowTestNotification(true);
+                }}
+              >
+                <Text style={styles.devModalButtonText}>通知テスト画面</Text>
+              </TouchableOpacity>
+            </View>
 
+            {/* データベース */}
+            <View style={styles.devSection}>
+              <Text style={styles.devSectionTitle}>データベース</Text>
+              <TouchableOpacity
+                style={[styles.devModalButton, { backgroundColor: '#00A0E9' }]}
+                onPress={async () => {
+                  await checkDatabase();
+                }}
+              >
+                <Text style={styles.devModalButtonText}>DB情報確認</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.devModalButton, { backgroundColor: colors.status.error }]}
+                onPress={clearTodayData}
+              >
+                <Text style={styles.devModalButtonText}>今日のデータ削除</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 閉じるボタン */}
             <TouchableOpacity
               style={[styles.devModalButton, styles.devModalCloseButton]}
               onPress={() => setShowDevMenu(false)}
@@ -327,7 +421,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.95)',
     borderRadius: 10,
     padding: 15,
-    minWidth: 200,
+    minWidth: 240,
+    maxWidth: 300,
+  },
+  devSection: {
+    marginBottom: 15,
+  },
+  devSectionTitle: {
+    color: '#888',
+    fontSize: 12,
+    marginBottom: 5,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   devModalTitle: {
     color: '#fff',
