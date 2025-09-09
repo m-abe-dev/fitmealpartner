@@ -18,12 +18,6 @@ import {
   Check,
   Dumbbell,
   Utensils,
-  TrendingUp,
-  Calendar,
-  Sparkles,
-  CheckCheck,
-  Settings,
-  Star,
 } from 'lucide-react-native';
 import { colors, typography, spacing, radius, shadows } from '../../design-system';
 import { Card } from './Card';

@@ -1,70 +1,114 @@
 import 'react-native-gesture-handler';
-import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import React, { useRef, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
-import * as Font from 'expo-font';
+import * as Notifications from 'expo-notifications';
 
-import DatabaseService from './src/services/database/DatabaseService';
 import AppNavigator from './src/navigation/AppNavigator';
-import { colors } from './src/design-system';
+import { LoadingScreen } from './src/components/LoadingScreen';
+import { NotificationPermissionModal } from './src/components/NotificationPermissionModal';
+import { useAppInitialization } from './src/hooks/useAppInitialization';
+import { useNotificationPermission } from './src/hooks/useNotificationPermission';
+import NotificationService from './src/services/NotificationService';
+import { NotificationData, isNotificationData } from './src/types/notification.types';
 
 // スプラッシュスクリーンを保持
 SplashScreen.preventAutoHideAsync();
 
 export default function App() {
-  const [isReady, setIsReady] = useState(false);
+  const navigationRef = useRef<NavigationContainerRef<any>>(null);
 
+  // カスタムフックでロジックを分離
+  const { isReady } = useAppInitialization();
+  const { showPermissionModal, handleCloseModal, handlePermissionGranted } = useNotificationPermission(isReady);
+
+  // 通知リスナーの設定
   useEffect(() => {
-    async function prepare() {
-      try {
-        // フォント読み込み（必要に応じて）
-        // await Font.loadAsync({
-        //   'Roboto-Regular': require('./assets/fonts/Roboto-Regular.ttf'),
-        //   'Roboto-Medium': require('./assets/fonts/Roboto-Medium.ttf'),
-        //   'Roboto-Bold': require('./assets/fonts/Roboto-Bold.ttf'),
-        // });
+    if (!isReady) return;
 
-        // データベース初期化
-        await DatabaseService.initialize();
+    NotificationService.setupNotificationListeners(
+      (notification) => {
+        // 通知受信時（アプリがフォアグラウンド）
+        console.log('通知受信:', notification.request.content);
+      },
+      (response) => {
+        // 通知タップ時の画面遷移処理
+        console.log('通知タップ:', response.notification.request.content.data);
 
-        // 少し待機（スプラッシュ画面の最小表示時間）
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const rawData = response.notification.request.content.data;
 
-        setIsReady(true);
-      } catch (error) {
-        console.error('Initialization error:', error);
-      } finally {
-        await SplashScreen.hideAsync();
+        if (!rawData || !isNotificationData(rawData)) {
+          console.log('Invalid notification data:', rawData);
+          return;
+        }
+
+        const notificationData = rawData as NotificationData;
+        const screen = notificationData.screen;
+
+        if (screen && navigationRef.current?.isReady()) {
+          console.log(`画面遷移: ${screen}`);
+
+          // タブナビゲーターの画面に遷移
+          switch (screen) {
+            case 'Nutrition':
+              navigationRef.current.navigate('Nutrition', {
+                mealType: notificationData.mealType,
+                proteinGap: notificationData.proteinGap,
+                fromNotification: true,
+              });
+              break;
+            case 'Workout':
+              navigationRef.current.navigate('Workout', {
+                fromNotification: true,
+              });
+              break;
+            case 'Dashboard':
+              navigationRef.current.navigate('Dashboard', {
+                fromNotification: true,
+              });
+              break;
+            case 'Profile':
+              navigationRef.current.navigate('Profile', {
+                fromNotification: true,
+              });
+              break;
+            default:
+              console.log('Unknown screen:', screen);
+          }
+        } else {
+          console.log('Navigation not ready or no screen specified');
+        }
       }
-    }
-
-    prepare();
-  }, []);
-
-  if (!isReady) {
-    return (
-      <View style={{
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: colors.background.primary
-      }}>
-        <ActivityIndicator size="large" color={colors.primary.main} />
-      </View>
     );
+
+    // クリーンアップ関数
+    return () => {
+      NotificationService.removeNotificationListeners();
+    };
+  }, [isReady]);
+
+  // ローディング中はローディング画面を表示
+  if (!isReady) {
+    return <LoadingScreen />;
   }
 
+  // メインアプリUIを表示
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <NavigationContainer>
+        <NavigationContainer ref={navigationRef}>
           <>
             <StatusBar style="auto" />
             <AppNavigator />
+
+            <NotificationPermissionModal
+              visible={showPermissionModal}
+              onClose={handleCloseModal}
+              onPermissionGranted={handlePermissionGranted}
+            />
           </>
         </NavigationContainer>
       </SafeAreaProvider>

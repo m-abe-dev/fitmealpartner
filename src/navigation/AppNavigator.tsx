@@ -4,11 +4,13 @@ import { View, StyleSheet, Alert, Text, TouchableOpacity } from 'react-native';
 import { BarChart3, Dumbbell, UtensilsCrossed, Settings, RefreshCw, Trash2 } from 'lucide-react-native';
 import { colors, typography, spacing } from '../design-system';
 import { OnboardingStorageService } from '../services/OnboardingStorageService';
+import DatabaseService from '../services/database/DatabaseService';
 
 import { DashboardScreen } from '../screens/dashboard/DashboardScreen';
 import { NutritionScreen } from '../screens/nutrition/NutritionScreen';
 import { WorkoutScreen } from '../screens/workout/WorkoutScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
+import { TestNotificationScreen } from '../screens/TestNotificationScreen';
 import { OnboardingNavigator } from './OnboardingNavigator';
 
 const Tab = createBottomTabNavigator();
@@ -29,6 +31,8 @@ export default function AppNavigator() {
   const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showDevMenu, setShowDevMenu] = useState(false);
+  const [showTestNotification, setShowTestNotification] = useState(false);
+  const [dbInfo, setDbInfo] = useState<any>({});
 
   // アプリ起動時にオンボーディング完了状態をチェック
   useEffect(() => {
@@ -88,6 +92,69 @@ export default function AppNavigator() {
     Alert.alert('スキップ', 'オンボーディングをスキップしました');
   };
 
+  // データベース情報を取得
+  const checkDatabase = async () => {
+    try {
+      const today = new Date();
+      const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+      const foodLogs = await DatabaseService.getAllAsync(
+        'SELECT * FROM food_log WHERE date = ?',
+        [todayString]
+      );
+
+      const allLogs = await DatabaseService.getAllAsync('SELECT * FROM food_log');
+      const foodDb = await DatabaseService.getAllAsync('SELECT * FROM food_db');
+
+      setDbInfo({
+        todayLogs: foodLogs.length,
+        totalLogs: allLogs.length,
+        foodMaster: foodDb.length,
+        searchDate: todayString,
+        timestamp: new Date().toLocaleTimeString(),
+      });
+
+      Alert.alert('DB情報', 
+        `今日: ${foodLogs.length}件\n` +
+        `全体: ${allLogs.length}件\n` +
+        `食品マスタ: ${foodDb.length}件\n` +
+        `日付: ${todayString}`
+      );
+    } catch (error) {
+      Alert.alert('エラー', 'データベース確認に失敗しました');
+    }
+  };
+
+  // 今日のデータをクリア
+  const clearTodayData = async () => {
+    Alert.alert(
+      '確認',
+      '今日の食事データをすべて削除しますか？',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: '削除',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const today = new Date();
+              const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+              
+              await DatabaseService.runAsync(
+                'DELETE FROM food_log WHERE date = ?',
+                [todayString]
+              );
+              
+              Alert.alert('完了', '今日のデータを削除しました');
+            } catch (error) {
+              Alert.alert('エラー', 'データ削除に失敗しました');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -115,6 +182,11 @@ export default function AppNavigator() {
         )}
       </View>
     );
+  }
+
+  // 通知テスト画面を表示
+  if (showTestNotification) {
+    return <TestNotificationScreen onBack={() => setShowTestNotification(false)} />;
   }
 
   // オンボーディング完了後のタブナビゲーター
@@ -190,38 +262,84 @@ export default function AppNavigator() {
       />
       </Tab.Navigator>
 
-      {/* 開発メニュー（タブ画面表示時） */}
+      {/* 開発メニューボタン - ヘッダー左上に配置（開発環境のみ） */}
       {__DEV__ && DEV_CONFIG.SHOW_DEV_MENU && (
         <TouchableOpacity
-          style={styles.devFloatingButton}
+          style={styles.devHeaderButton}
           onPress={() => setShowDevMenu(!showDevMenu)}
         >
-          <Text style={styles.devFloatingButtonText}>DEV</Text>
+          <Text style={styles.devHeaderButtonText}>DEV</Text>
         </TouchableOpacity>
       )}
 
-      {/* 開発メニューモーダル */}
-      {__DEV__ && showDevMenu && (
-        <View style={styles.devModal}>
-          <Text style={styles.devModalTitle}>開発メニュー</Text>
-
-          <TouchableOpacity
-            style={styles.devModalButton}
-            onPress={async () => {
-              await resetOnboarding();
-              setShowDevMenu(false);
-            }}
-          >
-            <Trash2 size={16} color={colors.text.inverse} />
-            <Text style={styles.devModalButtonText}>オンボーディングをリセット</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.devModalButton, styles.devModalCloseButton]}
+      {/* 開発メニューモーダル（開発環境のみ） */}
+      {__DEV__ && DEV_CONFIG.SHOW_DEV_MENU && showDevMenu && (
+        <View style={styles.devModalOverlay}>
+          <TouchableOpacity 
+            style={styles.devModalBackground} 
             onPress={() => setShowDevMenu(false)}
-          >
-            <Text style={styles.devModalButtonText}>閉じる</Text>
-          </TouchableOpacity>
+            activeOpacity={1}
+          />
+          <View style={styles.devModalContent}>
+            <Text style={styles.devModalTitle}>🛠 開発メニュー</Text>
+
+            {/* オンボーディング */}
+            <View style={styles.devSection}>
+              <Text style={styles.devSectionTitle}>オンボーディング</Text>
+              <TouchableOpacity
+                style={styles.devModalButton}
+                onPress={async () => {
+                  await resetOnboarding();
+                  setShowDevMenu(false);
+                }}
+              >
+                <Trash2 size={16} color={colors.text.inverse} />
+                <Text style={styles.devModalButtonText}>リセット</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 通知テスト */}
+            <View style={styles.devSection}>
+              <Text style={styles.devSectionTitle}>通知</Text>
+              <TouchableOpacity
+                style={[styles.devModalButton, { backgroundColor: '#FFA500' }]}
+                onPress={() => {
+                  setShowDevMenu(false);
+                  setShowTestNotification(true);
+                }}
+              >
+                <Text style={styles.devModalButtonText}>通知テスト画面</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* データベース */}
+            <View style={styles.devSection}>
+              <Text style={styles.devSectionTitle}>データベース</Text>
+              <TouchableOpacity
+                style={[styles.devModalButton, { backgroundColor: '#00A0E9' }]}
+                onPress={async () => {
+                  await checkDatabase();
+                }}
+              >
+                <Text style={styles.devModalButtonText}>DB情報確認</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.devModalButton, { backgroundColor: colors.status.error }]}
+                onPress={clearTodayData}
+              >
+                <Text style={styles.devModalButtonText}>今日のデータ削除</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 閉じるボタン */}
+            <TouchableOpacity
+              style={[styles.devModalButton, styles.devModalCloseButton]}
+              onPress={() => setShowDevMenu(false)}
+            >
+              <Text style={styles.devModalButtonText}>閉じる</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
     </>
@@ -265,31 +383,56 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-  devFloatingButton: {
+  devHeaderButton: {
     position: 'absolute',
-    bottom: 100,
-    right: 20,
+    top: 50, // SafeAreaを考慮
+    left: 20,
     backgroundColor: 'rgba(255, 0, 0, 0.8)',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
     zIndex: 9999,
   },
-  devFloatingButtonText: {
+  devHeaderButtonText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: 'bold',
   },
-  devModal: {
+  devModalOverlay: {
     position: 'absolute',
-    bottom: 160,
-    right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 9998,
+  },
+  devModalBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  devModalContent: {
+    position: 'absolute',
+    top: 90, // DEVボタンの下に配置
+    left: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
     borderRadius: 10,
     padding: 15,
-    zIndex: 9998,
+    minWidth: 240,
+    maxWidth: 300,
+  },
+  devSection: {
+    marginBottom: 15,
+  },
+  devSectionTitle: {
+    color: '#888',
+    fontSize: 12,
+    marginBottom: 5,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   devModalTitle: {
     color: '#fff',

@@ -6,7 +6,6 @@ import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { colors, typography, spacing, radius, shadows } from '../../design-system';
 
 // Components
-import { NotificationCenter } from './components/NotificationCenter';
 import { Calendar } from './components/Calendar';
 import { TodayResults } from './components/TodayResults';
 import { ExerciseList } from './components/ExerciseList';
