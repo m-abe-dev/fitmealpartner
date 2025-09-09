@@ -94,6 +94,15 @@ class NotificationService {
     data?: any,
     trigger?: Notifications.NotificationTriggerInput
   ): Promise<string> {
+    // 権限をチェック
+    const hasPermission = await this.checkPermissions();
+    if (!hasPermission) {
+      console.error('通知権限がありません。権限をリクエストしてください。');
+      throw new Error('通知権限が必要です');
+    }
+
+    console.log('通知をスケジュール中:', { title, body, data, trigger });
+
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
         title,
@@ -101,10 +110,12 @@ class NotificationService {
         data: data || {},
         sound: true,
         badge: 1,
+        priority: Notifications.AndroidNotificationPriority.HIGH,
       },
       trigger: trigger || null, // nullの場合は即座に通知
     });
 
+    console.log('通知スケジュール成功:', notificationId);
     return notificationId;
   }
 
@@ -118,14 +129,18 @@ class NotificationService {
       return;
     }
 
+    // 現在時刻を確認
+    const now = new Date();
+    console.log('現在時刻:', now.toLocaleString('ja-JP'));
+
     // DailyTriggerInputの正しい形式
     const trigger: Notifications.DailyTriggerInput = {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: 19,
-      minute: 54,
+      hour: 21,
+      minute: 52,
     };
 
-    await this.scheduleLocalNotification(
+    const notificationId = await this.scheduleLocalNotification(
       '🥩 タンパク質摂取リマインダー',
       `あと${Math.round(
         proteinGap
@@ -139,7 +154,18 @@ class NotificationService {
       trigger
     );
 
-    console.log('Protein reminder scheduled for 8 PM');
+    console.log('通知スケジュール完了:', {
+      id: notificationId,
+      時刻: '19:54',
+      タンパク質不足: `${proteinGap}g`,
+    });
+
+    // スケジュール済み通知を確認
+    const scheduled = await this.getAllScheduledNotifications();
+    console.log('スケジュール済み通知数:', scheduled.length);
+    scheduled.forEach(notif => {
+      console.log('通知:', notif.content.title, notif.trigger);
+    });
   }
 
   // タンパク質リマインダーのキャンセル

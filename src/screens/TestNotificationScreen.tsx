@@ -132,7 +132,111 @@ export const TestNotificationScreen: React.FC<TestNotificationScreenProps> = ({ 
     }
   };
 
-  // 8. 画面遷移テスト用通知を送信
+  // 8. 即座タンパク質リマインダーテスト
+  const testImmediateProteinReminder = async () => {
+    try {
+      const trigger: Notifications.TimeIntervalTriggerInput = {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: 10,
+        repeats: false,
+      };
+
+      const id = await NotificationService.scheduleLocalNotification(
+        '🥩 タンパク質リマインダー（10秒後）',
+        'あと30gのタンパク質が必要です！',
+        {
+          type: 'protein_reminder',
+          proteinGap: 30,
+          screen: 'Nutrition',
+          mealType: 'dinner',
+        },
+        trigger
+      );
+
+      addTestResult(`即座タンパク質テスト: 10秒後に通知 (ID: ${id})`);
+      Alert.alert('テスト設定', '10秒後にタンパク質リマインダーが届きます。タップで食事画面に遷移します。');
+    } catch (error) {
+      addTestResult(`エラー: ${error}`);
+    }
+  };
+
+  // 9. 1分後タンパク質リマインダーテスト
+  const testOneMinuteLater = async () => {
+    try {
+      const now = new Date();
+      const testTime = new Date(now.getTime() + 60000); // 1分後
+
+      const trigger: Notifications.DailyTriggerInput = {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: testTime.getHours(),
+        minute: testTime.getMinutes(),
+      };
+
+      const id = await NotificationService.scheduleLocalNotification(
+        '🥩 タンパク質リマインダー（1分後）',
+        'あと30gのタンパク質が必要です！',
+        {
+          type: 'protein_reminder',
+          proteinGap: 30,
+          screen: 'Nutrition',
+          mealType: 'dinner',
+        },
+        trigger
+      );
+
+      const timeString = `${testTime.getHours()}:${String(testTime.getMinutes()).padStart(2, '0')}`;
+      addTestResult(`1分後テスト: ${timeString}に通知 (ID: ${id})`);
+      Alert.alert(
+        'テスト設定完了',
+        `${timeString}に通知が届きます（約1分後）`
+      );
+    } catch (error) {
+      addTestResult(`エラー: ${error}`);
+    }
+  };
+
+  // 10. タンパク質リマインダーの実際スケジュールテスト
+  const testActualProteinReminder = async () => {
+    try {
+      await NotificationService.scheduleProteinReminder(35);
+      addTestResult('実際のタンパク質リマインダーをスケジュールしました');
+      Alert.alert('スケジュール完了', '19:54にタンパク質リマインダーがスケジュールされました');
+    } catch (error) {
+      addTestResult(`エラー: ${error}`);
+    }
+  };
+
+  // 11. 詳細なデバッグ情報を収集
+  const collectDebugInfo = async () => {
+    try {
+      const now = new Date();
+      addTestResult(`=== デバッグ情報 ===`);
+      addTestResult(`現在時刻: ${now.toLocaleString('ja-JP')}`);
+
+      const permissions = await NotificationService.checkPermissions();
+      addTestResult(`通知権限: ${permissions ? '許可済み' : '未許可'}`);
+
+      const scheduled = await NotificationService.getAllScheduledNotifications();
+      addTestResult(`スケジュール済み通知数: ${scheduled.length}件`);
+
+      scheduled.forEach((notif, index) => {
+        addTestResult(`  ${index + 1}. ${notif.content.title}`);
+        if (notif.trigger && 'type' in notif.trigger) {
+          addTestResult(`     トリガー: ${notif.trigger.type}`);
+          if (notif.trigger.type === 'daily') {
+            const dailyTrigger = notif.trigger as any;
+            addTestResult(`     時刻: ${dailyTrigger.hour}:${String(dailyTrigger.minute).padStart(2, '0')}`);
+          }
+        }
+      });
+
+      addTestResult(`=================`);
+    } catch (error) {
+      addTestResult(`デバッグ情報収集エラー: ${error}`);
+    }
+  };
+
+  // 12. 画面遷移テスト用通知を送信
   const sendNavigationTestNotification = async (screen: string, delay: number = 3) => {
     try {
       const trigger: Notifications.TimeIntervalTriggerInput = {
@@ -142,27 +246,27 @@ export const TestNotificationScreen: React.FC<TestNotificationScreenProps> = ({ 
       };
 
       const screenData: Record<string, any> = {
-        'Nutrition': { 
+        'Nutrition': {
           type: 'test',
-          screen: 'Nutrition', 
+          screen: 'Nutrition',
           mealType: 'dinner',
           proteinGap: 25,
           title: '🍽 食事画面へ',
           body: 'タップして食事画面を開く'
         },
-        'Workout': { 
+        'Workout': {
           type: 'test',
           screen: 'Workout',
           title: '💪 筋トレ画面へ',
           body: 'タップして筋トレ画面を開く'
         },
-        'Dashboard': { 
+        'Dashboard': {
           type: 'test',
           screen: 'Dashboard',
           title: '📊 ダッシュボードへ',
           body: 'タップしてダッシュボードを開く'
         },
-        'Profile': { 
+        'Profile': {
           type: 'test',
           screen: 'Profile',
           title: '👤 プロフィールへ',
@@ -171,7 +275,7 @@ export const TestNotificationScreen: React.FC<TestNotificationScreenProps> = ({ 
       };
 
       const data = screenData[screen];
-      
+
       const id = await NotificationService.scheduleLocalNotification(
         data.title,
         data.body,
@@ -226,53 +330,72 @@ export const TestNotificationScreen: React.FC<TestNotificationScreenProps> = ({ 
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>2. 通知テスト</Text>
+          <Text style={styles.sectionTitle}>2. タンパク質リマインダーテスト</Text>
+          <Text style={styles.sectionDescription}>
+            タンパク質不足通知の動作をテストします
+          </Text>
           <Button
-            title="即座に通知を送信"
-            onPress={sendImmediateNotification}
+            title="☀️ 10秒後にタンパク質通知"
+            onPress={testImmediateProteinReminder}
             style={styles.button}
           />
           <Button
-            title="5秒後に通知を送信"
+            title="🕰️ 1分後にタンパク質通知"
             variant="outline"
-            onPress={sendDelayedNotification}
+            onPress={testOneMinuteLater}
             style={styles.button}
           />
           <Button
-            title="タンパク質リマインダー（1分後）"
+            title="📅 現在のタンパク質通知をスケジュール"
             variant="outline"
-            onPress={testProteinReminder}
+            onPress={testActualProteinReminder}
             style={styles.button}
           />
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>3. 画面遷移テスト</Text>
+          <Text style={styles.sectionTitle}>3. 基本通知テスト</Text>
+          <Button
+            title="即座に通知を送信"
+            variant="ghost"
+            onPress={sendImmediateNotification}
+            style={styles.button}
+          />
+          <Button
+            title="5秒後に通知を送信"
+            variant="ghost"
+            onPress={sendDelayedNotification}
+            style={styles.button}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>4. 画面遷移テスト</Text>
           <Text style={styles.sectionDescription}>
             通知をタップすると対応する画面に遷移します
           </Text>
-          
+
           <Button
             title="→ 食事画面へ (3秒後)"
             variant="outline"
             onPress={() => sendNavigationTestNotification('Nutrition', 3)}
             style={styles.button}
           />
-          
+
           <Button
             title="→ 筋トレ画面へ (3秒後)"
             variant="outline"
             onPress={() => sendNavigationTestNotification('Workout', 3)}
             style={styles.button}
           />
-          
+
           <Button
             title="→ ダッシュボードへ (3秒後)"
             variant="outline"
             onPress={() => sendNavigationTestNotification('Dashboard', 3)}
             style={styles.button}
           />
-          
+
           <Button
             title="→ プロフィールへ (3秒後)"
             variant="outline"
@@ -282,7 +405,12 @@ export const TestNotificationScreen: React.FC<TestNotificationScreenProps> = ({ 
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>4. 管理</Text>
+          <Text style={styles.sectionTitle}>5. 管理・デバッグ</Text>
+          <Button
+            title="🔍 詳細デバッグ情報を収集"
+            onPress={collectDebugInfo}
+            style={styles.button}
+          />
           <Button
             title="スケジュール済み通知を確認"
             variant="outline"
