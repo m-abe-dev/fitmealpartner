@@ -134,6 +134,7 @@ class NotificationService {
         type: 'protein_reminder',
         proteinGap,
         screen: 'Nutrition',
+        mealType: 'dinner', // 夕食タブを開く
       },
       trigger
     );
@@ -256,7 +257,7 @@ class NotificationService {
       enabled,
       proteinReminder: parsed.proteinReminder ?? true,
       workoutReminder: parsed.workoutReminder ?? true,
-      reminderTime: parsed.reminderTime ?? '20:00',
+      reminderTime: parsed.reminderTime ?? '19:00',
     };
   }
 

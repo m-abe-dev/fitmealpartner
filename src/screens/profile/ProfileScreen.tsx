@@ -30,7 +30,7 @@ export const ProfileScreen: React.FC = () => {
 
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [showNotificationTest, setShowNotificationTest] = useState(false);
-  
+
   const [deviceConnections] = useState<DeviceConnection[]>([
     { name: 'Apple Watch', type: 'fitness', connected: true, icon: '⌚' },
     { name: 'iPhone ヘルスケア', type: 'health', connected: true, icon: '📱' },
@@ -54,11 +54,6 @@ export const ProfileScreen: React.FC = () => {
         </View>
       </SafeAreaView>
     );
-  }
-
-  // 通知テスト画面を表示
-  if (showNotificationTest) {
-    return <TestNotificationScreen onBack={() => setShowNotificationTest(false)} />;
   }
 
   return (
@@ -97,17 +92,7 @@ export const ProfileScreen: React.FC = () => {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>FitMealPartner v1.0.0</Text>
-          <Text style={styles.footerText}>© 2024 FitMealPartner</Text>
-          
-          {/* 開発用：通知テストボタン */}
-          {__DEV__ && (
-            <TouchableOpacity
-              style={styles.testButton}
-              onPress={() => setShowNotificationTest(true)}
-            >
-              <Text style={styles.testButtonText}>📱 通知テスト</Text>
-            </TouchableOpacity>
-          )}
+          <Text style={styles.footerText}>2025 FitMealPartner</Text>
         </View>
       </ScrollView>
 

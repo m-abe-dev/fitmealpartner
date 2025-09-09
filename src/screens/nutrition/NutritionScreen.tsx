@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Apple } from 'lucide-react-native';
+import { useFocusEffect, useRoute, RouteProp } from '@react-navigation/native';
+import * as Notifications from 'expo-notifications';
 
 import { colors } from '../../design-system';
+import { NotificationData, NavigationParams, RootStackParamList, isNotificationData } from '../../types/notification.types';
 import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { NutritionScoreCard } from './components/NutritionScoreCard';
 import { MealLogCard } from './components/MealLogCard';
@@ -22,7 +25,10 @@ import { useProfileData } from '../../hooks/useProfileData';
 import { MealTab, FoodLogItem } from './types/nutrition.types';
 import FoodRepository from '../../services/database/repositories/FoodRepository';
 
+type NutritionScreenRouteProp = RouteProp<RootStackParamList, 'Nutrition'>;
+
 export const NutritionScreen: React.FC = () => {
+  const route = useRoute<NutritionScreenRouteProp>();
   const [refreshing, setRefreshing] = useState(false);
   const [showAddFood, setShowAddFood] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,10 +61,82 @@ export const NutritionScreen: React.FC = () => {
     { id: 'snack', label: '間食', icon: '🍎' }
   ];
 
+  // 通知から遷移してきた場合の処理
+  useFocusEffect(
+    useCallback(() => {
+      const checkNotificationNavigation = async () => {
+        // route.paramsから通知データをチェック
+        const params = route.params;
+        
+        if (params?.fromNotification && params?.mealType) {
+          // 指定された食事タイプに合わせて遷移
+          const mealType = params.mealType;
+          setSelectedMeal(mealType);
+          setShowAddFood(true); // 食材追加モーダルを開く
+          
+          // タンパク質不足の情報がある場合はアラートで表示
+          if (typeof params.proteinGap === 'number' && params.proteinGap > 0) {
+            setTimeout(() => {
+              Alert.alert(
+                '🍽️ タンパク質不足のお知らせ',
+                `あと${Math.round(params.proteinGap!)}gのタンパク質が必要です。\n\nプロテインや高タンパク食品を摂って目標達成しましょう！`,
+                [
+                  {
+                    text: 'OK',
+                    style: 'default',
+                  },
+                ]
+              );
+            }, 500); // モーダルが開いてからアラートを表示
+          }
+        }
+        
+        // 最後の通知レスポンスをチェック（フォールバック）
+        try {
+          const lastNotificationResponse = await Notifications.getLastNotificationResponseAsync();
+          const notificationData = lastNotificationResponse?.notification.request.content.data;
+          
+          if (notificationData && isNotificationData(notificationData) && notificationData.type === 'protein_reminder') {
+            if (notificationData.mealType && !params?.fromNotification) {
+              const mealType = notificationData.mealType;
+              setSelectedMeal(mealType);
+              setShowAddFood(true);
+              
+              if (typeof notificationData.proteinGap === 'number' && notificationData.proteinGap > 0) {
+                setTimeout(() => {
+                  Alert.alert(
+                    '🍽️ タンパク質不足のお知らせ',
+                    `あと${Math.round(notificationData.proteinGap!)}gのタンパク質が必要です。\n\nプロテインや高タンパク食品を摂って目標達成しましょう！`,
+                    [{ text: 'OK' }]
+                  );
+                }, 500);
+              }
+              
+              // 使用済みの通知レスポンスをクリア（実際のAPIは存在しないためコメントアウト）
+              // await Notifications.clearLastNotificationResponseAsync();
+            }
+          }
+        } catch (error) {
+          console.log('Error checking last notification response:', error);
+        }
+      };
+
+      checkNotificationNavigation();
+    }, [route.params, setSelectedMeal])
+  );
+
   const onRefresh = async () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 1000);
   };
+
+  // 通知データのクリア
+  useEffect(() => {
+    // コンポーネントがアンマウントされる時に通知データをクリア
+    return () => {
+      // クリーンアップ処理が必要であればここに追加
+    };
+  }, []);
 
   // 食材追加ハンドラー
   const handleAddFood = async (food: { id: string; name: string; calories: number; protein: number; fat: number; carbs: number; }) => {

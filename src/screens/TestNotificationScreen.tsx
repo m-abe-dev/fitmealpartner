@@ -132,6 +132,65 @@ export const TestNotificationScreen: React.FC<TestNotificationScreenProps> = ({ 
     }
   };
 
+  // 8. 画面遷移テスト用通知を送信
+  const sendNavigationTestNotification = async (screen: string, delay: number = 3) => {
+    try {
+      const trigger: Notifications.TimeIntervalTriggerInput = {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: delay,
+        repeats: false,
+      };
+
+      const screenData: Record<string, any> = {
+        'Nutrition': { 
+          type: 'test',
+          screen: 'Nutrition', 
+          mealType: 'dinner',
+          proteinGap: 25,
+          title: '🍽 食事画面へ',
+          body: 'タップして食事画面を開く'
+        },
+        'Workout': { 
+          type: 'test',
+          screen: 'Workout',
+          title: '💪 筋トレ画面へ',
+          body: 'タップして筋トレ画面を開く'
+        },
+        'Dashboard': { 
+          type: 'test',
+          screen: 'Dashboard',
+          title: '📊 ダッシュボードへ',
+          body: 'タップしてダッシュボードを開く'
+        },
+        'Profile': { 
+          type: 'test',
+          screen: 'Profile',
+          title: '👤 プロフィールへ',
+          body: 'タップしてプロフィールを開く'
+        },
+      };
+
+      const data = screenData[screen];
+      
+      const id = await NotificationService.scheduleLocalNotification(
+        data.title,
+        data.body,
+        {
+          type: data.type,
+          screen: data.screen,
+          mealType: data.mealType,
+          proteinGap: data.proteinGap,
+        },
+        trigger
+      );
+
+      addTestResult(`画面遷移テスト通知: ${delay}秒後に${screen}へ`);
+      Alert.alert('テスト設定', `${delay}秒後に通知が届きます。タップすると${screen}画面に遷移します`);
+    } catch (error) {
+      addTestResult(`エラー: ${error}`);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -188,7 +247,42 @@ export const TestNotificationScreen: React.FC<TestNotificationScreenProps> = ({ 
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>3. 管理</Text>
+          <Text style={styles.sectionTitle}>3. 画面遷移テスト</Text>
+          <Text style={styles.sectionDescription}>
+            通知をタップすると対応する画面に遷移します
+          </Text>
+          
+          <Button
+            title="→ 食事画面へ (3秒後)"
+            variant="outline"
+            onPress={() => sendNavigationTestNotification('Nutrition', 3)}
+            style={styles.button}
+          />
+          
+          <Button
+            title="→ 筋トレ画面へ (3秒後)"
+            variant="outline"
+            onPress={() => sendNavigationTestNotification('Workout', 3)}
+            style={styles.button}
+          />
+          
+          <Button
+            title="→ ダッシュボードへ (3秒後)"
+            variant="outline"
+            onPress={() => sendNavigationTestNotification('Dashboard', 3)}
+            style={styles.button}
+          />
+          
+          <Button
+            title="→ プロフィールへ (3秒後)"
+            variant="outline"
+            onPress={() => sendNavigationTestNotification('Profile', 3)}
+            style={styles.button}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>4. 管理</Text>
           <Button
             title="スケジュール済み通知を確認"
             variant="outline"
@@ -302,5 +396,11 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     marginBottom: spacing.xs,
     fontFamily: 'monospace',
+  },
+  sectionDescription: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    marginBottom: spacing.sm,
+    fontStyle: 'italic',
   },
 });
