@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { TestNotificationScreen } from '../TestNotificationScreen';
 import { User } from 'lucide-react-native';
 import { colors, typography, spacing } from '../../design-system';
 import { ScreenHeader } from '../../components/common/ScreenHeader';
@@ -28,6 +29,7 @@ export const ProfileScreen: React.FC = () => {
   } = useProfileData();
 
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
+  const [showNotificationTest, setShowNotificationTest] = useState(false);
   
   const [deviceConnections] = useState<DeviceConnection[]>([
     { name: 'Apple Watch', type: 'fitness', connected: true, icon: '⌚' },
@@ -52,6 +54,11 @@ export const ProfileScreen: React.FC = () => {
         </View>
       </SafeAreaView>
     );
+  }
+
+  // 通知テスト画面を表示
+  if (showNotificationTest) {
+    return <TestNotificationScreen onBack={() => setShowNotificationTest(false)} />;
   }
 
   return (
@@ -91,6 +98,16 @@ export const ProfileScreen: React.FC = () => {
         <View style={styles.footer}>
           <Text style={styles.footerText}>FitMealPartner v1.0.0</Text>
           <Text style={styles.footerText}>© 2024 FitMealPartner</Text>
+          
+          {/* 開発用：通知テストボタン */}
+          {__DEV__ && (
+            <TouchableOpacity
+              style={styles.testButton}
+              onPress={() => setShowNotificationTest(true)}
+            >
+              <Text style={styles.testButtonText}>📱 通知テスト</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
 
@@ -142,5 +159,18 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.md,
     color: colors.text.secondary,
     fontFamily: typography.fontFamily.regular,
+  },
+  testButton: {
+    backgroundColor: colors.primary.main,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 8,
+    marginTop: spacing.md,
+  },
+  testButtonText: {
+    color: colors.text.inverse,
+    fontSize: typography.fontSize.sm,
+    fontFamily: typography.fontFamily.medium,
+    textAlign: 'center',
   },
 });

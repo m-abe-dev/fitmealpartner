@@ -320,6 +320,13 @@ class NotificationService {
   > {
     return await Notifications.getAllScheduledNotificationsAsync();
   }
+
+  // スケジュールされた通知の一覧を取得（テスト用）
+  async getAllScheduledNotifications(): Promise<
+    Notifications.NotificationRequest[]
+  > {
+    return await Notifications.getAllScheduledNotificationsAsync();
+  }
 }
 
 export default NotificationService.getInstance();

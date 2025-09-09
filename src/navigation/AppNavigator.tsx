@@ -9,6 +9,7 @@ import { DashboardScreen } from '../screens/dashboard/DashboardScreen';
 import { NutritionScreen } from '../screens/nutrition/NutritionScreen';
 import { WorkoutScreen } from '../screens/workout/WorkoutScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
+import { TestNotificationScreen } from '../screens/TestNotificationScreen';
 import { OnboardingNavigator } from './OnboardingNavigator';
 
 const Tab = createBottomTabNavigator();
@@ -29,6 +30,7 @@ export default function AppNavigator() {
   const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showDevMenu, setShowDevMenu] = useState(false);
+  const [showTestNotification, setShowTestNotification] = useState(false);
 
   // アプリ起動時にオンボーディング完了状態をチェック
   useEffect(() => {
@@ -115,6 +117,11 @@ export default function AppNavigator() {
         )}
       </View>
     );
+  }
+
+  // 通知テスト画面を表示
+  if (showTestNotification) {
+    return <TestNotificationScreen onBack={() => setShowTestNotification(false)} />;
   }
 
   // オンボーディング完了後のタブナビゲーター
@@ -214,6 +221,16 @@ export default function AppNavigator() {
           >
             <Trash2 size={16} color={colors.text.inverse} />
             <Text style={styles.devModalButtonText}>オンボーディングをリセット</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.devModalButton, { backgroundColor: '#FFA500' }]}
+            onPress={() => {
+              setShowDevMenu(false);
+              setShowTestNotification(true);
+            }}
+          >
+            <Text style={styles.devModalButtonText}>通知テスト画面</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
