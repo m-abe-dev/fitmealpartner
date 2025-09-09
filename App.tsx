@@ -20,7 +20,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function App() {
   const navigationRef = useRef<NavigationContainerRef<any>>(null);
-  
+
   // カスタムフックでロジックを分離
   const { isReady } = useAppInitialization();
   const { showPermissionModal, handleCloseModal, handlePermissionGranted } = useNotificationPermission(isReady);
@@ -37,20 +37,20 @@ export default function App() {
       (response) => {
         // 通知タップ時の画面遷移処理
         console.log('通知タップ:', response.notification.request.content.data);
-        
+
         const rawData = response.notification.request.content.data;
-        
+
         if (!rawData || !isNotificationData(rawData)) {
           console.log('Invalid notification data:', rawData);
           return;
         }
-        
+
         const notificationData = rawData as NotificationData;
         const screen = notificationData.screen;
-        
+
         if (screen && navigationRef.current?.isReady()) {
           console.log(`画面遷移: ${screen}`);
-          
+
           // タブナビゲーターの画面に遷移
           switch (screen) {
             case 'Nutrition':
@@ -103,7 +103,7 @@ export default function App() {
           <>
             <StatusBar style="auto" />
             <AppNavigator />
-            
+
             <NotificationPermissionModal
               visible={showPermissionModal}
               onClose={handleCloseModal}

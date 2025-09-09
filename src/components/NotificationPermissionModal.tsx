@@ -23,13 +23,13 @@ export const NotificationPermissionModal: React.FC<NotificationPermissionModalPr
 }) => {
   const handleAllow = async () => {
     const granted = await NotificationService.requestPermissions();
-    
+
     if (granted) {
       onPermissionGranted();
       // デフォルトの通知をスケジュール
       await NotificationService.scheduleProteinReminder(30); // 仮の値
     }
-    
+
     onClose();
   };
 
@@ -54,31 +54,20 @@ export const NotificationPermissionModal: React.FC<NotificationPermissionModalPr
             通知を有効にして{'\n'}目標達成をサポート
           </Text>
 
-          <Text style={styles.description}>
-            タンパク質摂取リマインダーや{'\n'}
-            ワークアウトの時間をお知らせします
-          </Text>
-
           <View style={styles.features}>
             <View style={styles.featureItem}>
               <Text style={styles.featureIcon}>🥩</Text>
-              <Text style={styles.featureText}>
-                毎日20時にタンパク質{'\n'}不足をお知らせ
-              </Text>
+              <Text style={styles.featureText}>毎日20時にタンパク質不足をお知らせ</Text>
             </View>
-            
+
             <View style={styles.featureItem}>
               <Text style={styles.featureIcon}>💪</Text>
-              <Text style={styles.featureText}>
-                トレーニング時間の{'\n'}リマインダー
-              </Text>
+              <Text style={styles.featureText}>トレーニング時間のリマインダー</Text>
             </View>
 
             <View style={styles.featureItem}>
               <Text style={styles.featureIcon}>📊</Text>
-              <Text style={styles.featureText}>
-                目標達成の{'\n'}お祝い通知
-              </Text>
+              <Text style={styles.featureText}>目標達成のお祝い通知</Text>
             </View>
           </View>
 
@@ -89,7 +78,7 @@ export const NotificationPermissionModal: React.FC<NotificationPermissionModalPr
             >
               <Text style={styles.allowButtonText}>通知を許可</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.skipButton}
               onPress={handleSkip}
@@ -144,20 +133,30 @@ const styles = StyleSheet.create({
   features: {
     width: '100%',
     marginBottom: spacing.xl,
-    gap: spacing.md,
+    gap: spacing.sm,
+    backgroundColor: 'rgba(255, 0, 0, 0.05)',
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    paddingHorizontal: spacing.sm,
+    minHeight: 36,
+     width: '100%',
   },
   featureIcon: {
-    fontSize: 24,
+    fontSize: 18,
+    width: 24,
+    textAlign: 'center',
+    marginRight: spacing.sm,
+    // デバッグ用
+    backgroundColor: 'rgba(0, 255, 0, 0.05)',
   },
   featureText: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.secondary,
+    fontSize: 13,
+    color: colors.text.primary, // secondaryからprimaryに変更
     flex: 1,
+    fontFamily: typography.fontFamily.regular,
+    paddingVertical: 2,
   },
   buttons: {
     width: '100%',
