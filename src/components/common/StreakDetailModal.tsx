@@ -78,23 +78,23 @@ export const StreakDetailModal: React.FC<StreakDetailModalProps> = ({
 
       // ワークアウト記録 - カレンダーと同じロジックを使用
       const allWorkouts = await DatabaseService.getAllAsync<any>(
-        `SELECT DISTINCT ws.date 
+        `SELECT DISTINCT ws.date
          FROM workout_session ws
          INNER JOIN workout_set wset ON ws.session_id = wset.session_id
          ORDER BY ws.date`
       );
-      
+
       const weekWorkouts = await DatabaseService.getAllAsync<any>(
-        `SELECT DISTINCT ws.date 
+        `SELECT DISTINCT ws.date
          FROM workout_session ws
          INNER JOIN workout_set wset ON ws.session_id = wset.session_id
          WHERE ws.date >= ?
          ORDER BY ws.date`,
         [weekStart.toISOString().split('T')[0]]
       );
-      
+
       const monthWorkouts = await DatabaseService.getAllAsync<any>(
-        `SELECT DISTINCT ws.date 
+        `SELECT DISTINCT ws.date
          FROM workout_session ws
          INNER JOIN workout_set wset ON ws.session_id = wset.session_id
          WHERE ws.date >= ?
@@ -116,7 +116,7 @@ export const StreakDetailModal: React.FC<StreakDetailModalProps> = ({
           workoutDays: monthWorkouts.length,
         },
       });
-      
+
       console.log('Stats loaded:', {
         totalWorkouts: allWorkouts.length,
         weekWorkouts: weekWorkouts.length,
@@ -196,7 +196,7 @@ export const StreakDetailModal: React.FC<StreakDetailModalProps> = ({
                 </View>
                 <View style={styles.statRow}>
                   <Text style={styles.statLabel}>🍽 食事記録</Text>
-                  <Text style={styles.statValue}>{stats.week.foodDays}/7日</Text>
+                  <Text style={styles.statValue}>{stats.week.foodDays}日</Text>
                 </View>
                 <View style={styles.statRow}>
                   <Text style={styles.statLabel}>💪 筋トレ記録</Text>

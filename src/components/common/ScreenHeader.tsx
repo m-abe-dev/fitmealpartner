@@ -50,8 +50,8 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
       setStreakDays(streak);
 
       // テスト用: 実際のプロダクションでは削除
-      await StreakService.setTestStreak(7);
-      setStreakDays(7);
+      // await StreakService.setTestStreak(7);
+      // setStreakDays(7);
     } catch (error) {
       console.error('Error loading streak:', error);
     }
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.xxs,
   },
   iconButton: {
     position: 'relative',
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   notificationBadge: {
     position: 'absolute',
     top: -2,
-    right: -2,
+    right: 0,
     backgroundColor: colors.status.error,
     borderRadius: radius.full,
     minWidth: 18,
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   proButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.xxs,
     paddingHorizontal: spacing.xs,
     paddingVertical: spacing.xs,
     backgroundColor: colors.primary[50],
