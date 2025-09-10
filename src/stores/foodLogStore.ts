@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { FoodLogItem } from '../screens/nutrition/types/nutrition.types';
 import DatabaseService from '../services/database/DatabaseService';
+import StreakService from '../services/StreakService';
 
 interface FoodLogState {
   foodLog: FoodLogItem[];
@@ -161,6 +162,11 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
       set(state => {
         const updated = [...state.foodLog, newFoodItem];
         return { foodLog: updated };
+      });
+
+      // ストリークを更新（非同期だが待機しない）
+      StreakService.updateStreak().catch(error => {
+        console.error('Failed to update streak:', error);
       });
     } catch (error) {
       throw error;

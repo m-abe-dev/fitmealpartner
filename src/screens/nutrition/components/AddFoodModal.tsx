@@ -273,7 +273,7 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
     try {
       // onAddFoodに処理を委譲（ここではDBに保存しない）
       await onAddFood(food);
-      
+
       // フォームをリセット
       setNewFood({ name: '', protein: 0, fat: 0, carbs: 0 });
       onClose();
@@ -537,7 +537,7 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
                     onPress={() => setShowScanner(true)}
                   >
                     <QrCode size={32} color={colors.primary.main} />
-                    <Text style={styles.scanButtonText}>バーコードをスキャン</Text>
+                    <Text style={styles.scanButtonText}>タップでバーコードをスキャン</Text>
                     <Text style={styles.scanButtonSubtext}>
                       商品のバーコードをカメラで読み取ります
                     </Text>

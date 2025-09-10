@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DatabaseService from '../services/database/DatabaseService';
+import StreakService from '../services/StreakService';
 
 export interface Exercise {
   id: string;
@@ -65,6 +67,9 @@ interface WorkoutStore {
 
   // Goals
   setGoals: (goals: WorkoutGoals) => void;
+  
+  // Data loading
+  loadWorkoutHistory: () => Promise<WorkoutSession[]>;
 
   // Analytics
   getWeeklyStats: () => {
@@ -148,24 +153,56 @@ export const useWorkoutStore = create<WorkoutStore>()(
           },
         })),
 
-      endSession: () =>
-        set(state => {
-          if (!state.currentSession) return state;
+      endSession: () => {
+        const state = get();
+        if (!state.currentSession) return;
 
-          const completedSession = {
-            ...state.currentSession,
-            endTime: new Date(),
-            completed: true,
-            totalVolume: state.currentSession.sets
-              .filter(set => set.completed)
-              .reduce((acc, set) => acc + set.weight * set.reps, 0),
-          };
+        const completedSession = {
+          ...state.currentSession,
+          endTime: new Date(),
+          completed: true,
+          totalVolume: state.currentSession.sets
+            .filter(set => set.completed)
+            .reduce((acc, set) => acc + set.weight * set.reps, 0),
+        };
 
-          return {
-            sessions: [...state.sessions, completedSession],
-            currentSession: null,
-          };
-        }),
+        // 先にストアを更新
+        set({
+          sessions: [...state.sessions, completedSession],
+          currentSession: null,
+        });
+
+        // 非同期でデータベースに保存
+        (async () => {
+          try {
+            await DatabaseService.initialize();
+            
+            const result = await DatabaseService.runAsync(
+              `INSERT INTO workout_session (
+                user_id, date, start_time, end_time, notes, total_volume_kg
+              ) VALUES (?, ?, ?, ?, ?, ?)`,
+              [
+                'user_1',
+                completedSession.date,
+                completedSession.startTime.toISOString(),
+                completedSession.endTime!.toISOString(),
+                completedSession.notes || '',
+                completedSession.totalVolume,
+              ]
+            );
+
+            console.log('Workout session saved to DB with ID:', result.lastInsertRowId);
+
+            // ストリーク更新
+            StreakService.updateStreak().catch(error => {
+              console.error('Failed to update streak:', error);
+            });
+            
+          } catch (error) {
+            console.error('Failed to save workout session:', error);
+          }
+        })();
+      },
 
       updateSession: updates =>
         set(state => ({
@@ -259,6 +296,52 @@ export const useWorkoutStore = create<WorkoutStore>()(
 
       setGoals: goals => set({ goals }),
 
+      loadWorkoutHistory: async () => {
+        try {
+          await DatabaseService.initialize();
+          
+          // デバッグ: データベースの内容を確認
+          const checkSessions = await DatabaseService.getAllAsync<any>(
+            'SELECT * FROM workout_session WHERE user_id = ?',
+            ['user_1']
+          );
+          console.log('DB sessions count:', checkSessions.length);
+          
+          // セットが存在するセッションのみを取得（Calendarと同じロジック）
+          const dbSessions = await DatabaseService.getAllAsync<any>(
+            `SELECT DISTINCT ws.* 
+             FROM workout_session ws
+             INNER JOIN workout_set wset ON ws.session_id = wset.session_id
+             WHERE ws.user_id = ?
+             ORDER BY ws.date DESC`,
+            ['user_1']
+          );
+          
+          console.log('Sessions with sets:', dbSessions.length);
+
+          const sessions: WorkoutSession[] = dbSessions.map(session => ({
+            id: session.session_id.toString(),
+            date: session.date,
+            startTime: new Date(session.start_time),
+            endTime: session.end_time ? new Date(session.end_time) : undefined,
+            notes: session.notes || '',
+            totalVolume: session.total_volume_kg || 0,
+            exercises: [],
+            sets: [],
+            completed: !!session.end_time,
+          }));
+
+          set({ sessions });
+          console.log('Loaded workout sessions:', sessions.length);
+          
+          return sessions; // Promiseで返す
+          
+        } catch (error) {
+          console.error('Failed to load workout history:', error);
+          return [];
+        }
+      },
+
       getWeeklyStats: () => {
         const { sessions } = get();
         const thisWeek = sessions.filter(session => {
@@ -296,8 +379,20 @@ export const useWorkoutStore = create<WorkoutStore>()(
         favoriteExercises: Array.from(state.favoriteExercises),
       }),
       onRehydrateStorage: () => (state: WorkoutStore | undefined) => {
-        if (state && Array.isArray((state as any).favoriteExercises)) {
-          state.favoriteExercises = new Set((state as any).favoriteExercises);
+        console.log('Rehydrating workout store:', state);
+        
+        if (state) {
+          // favoriteExercisesをSetに変換
+          if (Array.isArray((state as any).favoriteExercises)) {
+            state.favoriteExercises = new Set((state as any).favoriteExercises);
+          }
+          
+          // sessionsが配列でない場合は初期化
+          if (!Array.isArray(state.sessions)) {
+            state.sessions = [];
+          }
+          
+          console.log('Sessions after rehydration:', state.sessions);
         }
       },
     }
