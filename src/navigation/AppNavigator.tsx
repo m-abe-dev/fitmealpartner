@@ -114,7 +114,7 @@ export default function AppNavigator() {
         timestamp: new Date().toLocaleTimeString(),
       });
 
-      Alert.alert('DB情報', 
+      Alert.alert('DB情報',
         `今日: ${foodLogs.length}件\n` +
         `全体: ${allLogs.length}件\n` +
         `食品マスタ: ${foodDb.length}件\n` +
@@ -139,12 +139,12 @@ export default function AppNavigator() {
             try {
               const today = new Date();
               const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-              
+
               await DatabaseService.runAsync(
                 'DELETE FROM food_log WHERE date = ?',
                 [todayString]
               );
-              
+
               Alert.alert('完了', '今日のデータを削除しました');
             } catch (error) {
               Alert.alert('エラー', 'データ削除に失敗しました');
@@ -275,8 +275,8 @@ export default function AppNavigator() {
       {/* 開発メニューモーダル（開発環境のみ） */}
       {__DEV__ && DEV_CONFIG.SHOW_DEV_MENU && showDevMenu && (
         <View style={styles.devModalOverlay}>
-          <TouchableOpacity 
-            style={styles.devModalBackground} 
+          <TouchableOpacity
+            style={styles.devModalBackground}
             onPress={() => setShowDevMenu(false)}
             activeOpacity={1}
           />
@@ -308,7 +308,7 @@ export default function AppNavigator() {
                   setShowTestNotification(true);
                 }}
               >
-                <Text style={styles.devModalButtonText}>通知テスト画面</Text>
+                <Text style={styles.devModalButtonText}>通知・Streakテスト画面</Text>
               </TouchableOpacity>
             </View>
 
@@ -323,7 +323,7 @@ export default function AppNavigator() {
               >
                 <Text style={styles.devModalButtonText}>DB情報確認</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={[styles.devModalButton, { backgroundColor: colors.status.error }]}
                 onPress={clearTodayData}

@@ -88,13 +88,61 @@ class StreakService {
     }
   }
 
-  // ストリークをリセット（デバッグ用）
+  // ストリークをリセット（開発用）
   async resetStreak(): Promise<void> {
+    await AsyncStorage.removeItem('currentStreak');
+    await AsyncStorage.removeItem('lastRecordDate');
+    console.log('Streak data cleared');
+  }
+
+  // 実際の記録に基づいてストリークを再計算
+  async recalculateStreak(): Promise<number> {
     try {
-      await AsyncStorage.removeItem('lastRecordDate');
-      await AsyncStorage.removeItem('currentStreak');
+      await DatabaseService.initialize();
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // 今日から遡って連続記録日数を計算
+      let streakCount = 0;
+      let checkDate = new Date(today);
+      
+      while (true) {
+        const dateStr = checkDate.toISOString().split('T')[0];
+        
+        // その日に食事記録があるか確認
+        const foodLogs = await DatabaseService.getAllAsync(
+          'SELECT * FROM food_log WHERE date = ? LIMIT 1',
+          [dateStr]
+        );
+        
+        if (foodLogs.length > 0) {
+          streakCount++;
+          checkDate.setDate(checkDate.getDate() - 1);
+        } else {
+          // 今日の記録がない場合は昨日をチェック
+          if (streakCount === 0 && checkDate.getTime() === today.getTime()) {
+            checkDate.setDate(checkDate.getDate() - 1);
+            continue;
+          }
+          break;
+        }
+        
+        // 安全のため最大365日まで
+        if (streakCount > 365) break;
+      }
+      
+      // 新しい値を保存
+      await AsyncStorage.setItem('currentStreak', streakCount.toString());
+      if (streakCount > 0) {
+        await AsyncStorage.setItem('lastRecordDate', today.toISOString().split('T')[0]);
+      }
+      
+      console.log('Recalculated streak:', streakCount);
+      return streakCount;
     } catch (error) {
-      console.error('Error resetting streak:', error);
+      console.error('Error recalculating streak:', error);
+      return 0;
     }
   }
 

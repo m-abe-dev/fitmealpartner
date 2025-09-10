@@ -13,6 +13,7 @@ import * as Notifications from 'expo-notifications';
 import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
 import NotificationService from '../services/NotificationService';
+import StreakService from '../services/StreakService';
 import { colors, typography, spacing, radius } from '../design-system';
 
 interface TestNotificationScreenProps {
@@ -421,6 +422,39 @@ export const TestNotificationScreen: React.FC<TestNotificationScreenProps> = ({ 
             title="すべての通知をキャンセル"
             variant="ghost"
             onPress={cancelAllNotifications}
+            style={styles.button}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>6. ストリーク管理</Text>
+          <Button
+            title="🔄 ストリークをリセット・再計算"
+            onPress={async () => {
+              try {
+                await StreakService.resetStreak();
+                const newStreak = await StreakService.recalculateStreak();
+                addTestResult(`ストリークリセット完了: ${newStreak}日`);
+                Alert.alert('ストリークリセット', `ストリークを再計算しました: ${newStreak}日`);
+              } catch (error) {
+                addTestResult(`ストリークリセットエラー: ${error}`);
+              }
+            }}
+            style={styles.button}
+          />
+          <Button
+            title="📊 現在のストリーク確認"
+            variant="outline"
+            onPress={async () => {
+              try {
+                const currentStreak = await StreakService.getStreakDays();
+                const lastDate = await StreakService.getLastRecordDate();
+                addTestResult(`現在のストリーク: ${currentStreak}日`);
+                addTestResult(`最終記録日: ${lastDate || 'なし'}`);
+              } catch (error) {
+                addTestResult(`ストリーク確認エラー: ${error}`);
+              }
+            }}
             style={styles.button}
           />
         </View>

@@ -46,14 +46,17 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
 
   const loadStreakData = async () => {
     try {
-      const streak = await StreakService.getStreakDays();
-      setStreakDays(streak);
-
-      // テスト用: 実際のプロダクションでは削除
-      // await StreakService.setTestStreak(7);
-      // setStreakDays(7);
+      // 開発モードでは実際の記録に基づいて再計算
+      if (__DEV__) {
+        const recalculated = await StreakService.recalculateStreak();
+        setStreakDays(recalculated);
+      } else {
+        const streak = await StreakService.getStreakDays();
+        setStreakDays(streak);
+      }
     } catch (error) {
       console.error('Error loading streak:', error);
+      setStreakDays(0);
     }
   };
 
@@ -229,7 +232,7 @@ const styles = StyleSheet.create({
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xxs,
+    gap: spacing.xxxs,
     paddingHorizontal: spacing.xs,
     paddingVertical: spacing.xs,
     borderRadius: radius.full,
