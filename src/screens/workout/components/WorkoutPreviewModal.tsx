@@ -15,6 +15,15 @@ interface WorkoutPreviewModalProps {
   onClose: () => void;
 }
 
+// 日付を現地時間として扱うヘルパー関数
+const getLocalDateString = (year: number, month: number, day: number): string => {
+  const date = new Date(year, month, day);
+  const yearStr = date.getFullYear();
+  const monthStr = String(date.getMonth() + 1).padStart(2, '0');
+  const dayStr = String(date.getDate()).padStart(2, '0');
+  return `${yearStr}-${monthStr}-${dayStr}`;
+};
+
 export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
   isVisible,
   selectedDay,
@@ -36,15 +45,30 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
     try {
       await DatabaseService.initialize();
 
-      const dateString = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
+      // 日付を正しくフォーマット（2桁の0埋め）
+      const monthStr = String(selectedMonth + 1).padStart(2, '0');
+      const dayStr = String(selectedDay).padStart(2, '0');
+      const dateString = `${selectedYear}-${monthStr}-${dayStr}`;
 
-      // セッション情報を取得
+      console.log('🔍 Loading workout for date:', dateString);
+
+      // セットが存在するセッションのみを取得するように修正
       const session = await DatabaseService.getFirstAsync<any>(
-        'SELECT * FROM workout_session WHERE date = ?',
+        `SELECT ws.* 
+         FROM workout_session ws
+         INNER JOIN workout_set wset ON ws.session_id = wset.session_id
+         WHERE date(ws.date) = date(?)
+         GROUP BY ws.session_id
+         HAVING COUNT(wset.set_id) > 0
+         ORDER BY ws.session_id DESC
+         LIMIT 1`,
         [dateString]
       );
 
+      console.log('📋 Session with sets found:', session);
+
       if (!session) {
+        console.log('No session with workout sets found for date:', dateString);
         setWorkoutData(null);
         return;
       }
@@ -59,8 +83,11 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
         [session.session_id]
       );
 
+      console.log('💪 Workout sets found:', workoutSets?.length);
+
       // ワークアウトセットが存在しない場合はnullを設定
       if (!workoutSets || workoutSets.length === 0) {
+        console.log('No workout sets found for session:', session.session_id);
         setWorkoutData(null);
         return;
       }
