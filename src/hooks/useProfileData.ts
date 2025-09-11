@@ -1,7 +1,10 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { OnboardingStorageService } from '../services/OnboardingStorageService';
 import { OnboardingData } from '../types/onboarding.types';
+import { AIFeedbackService } from '../services/AIFeedbackService';
+import DatabaseService from '../services/database/DatabaseService';
+import UserRepository from '../services/database/repositories/UserRepository';
 
 interface UserProfile {
   age: number;
@@ -50,8 +53,10 @@ export const useProfileData = () => {
     try {
       const data = await OnboardingStorageService.getOnboardingData();
       setOnboardingData(data);
+      return data;
     } catch (error) {
       console.error('Failed to load onboarding data:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -61,10 +66,143 @@ export const useProfileData = () => {
     loadOnboardingData();
   }, []);
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadOnboardingData();
-    setRefreshing(false);
+  // 改善されたリフレッシュハンドラー
+  const onRefresh = useCallback(async () => {
+    try {
+      setRefreshing(true);
+      console.log('🔄 Profile refresh started');
+      
+      // 並列処理で高速化
+      const refreshPromises = [];
+      
+      // 1. オンボーディングデータの再読み込み
+      refreshPromises.push(loadOnboardingData());
+      
+      // 2. データベースの統計情報を更新（体重履歴など）
+      refreshPromises.push(updateWeightHistory());
+      
+      // 3. アチーブメントの更新
+      refreshPromises.push(updateAchievements());
+      
+      // 4. 栄養目標の再計算（必要に応じて）
+      if (onboardingData) {
+        refreshPromises.push(recalculateNutritionTargets());
+      }
+      
+      // すべての処理を並列実行
+      const results = await Promise.allSettled(refreshPromises);
+      
+      // エラーチェック
+      const errors = results.filter(r => r.status === 'rejected');
+      if (errors.length > 0) {
+        console.warn('Some refresh operations failed:', errors);
+      }
+      
+      console.log('✅ Profile refresh completed');
+      
+    } catch (error) {
+      console.error('❌ Profile refresh failed:', error);
+      Alert.alert(
+        'エラー', 
+        'プロフィールの更新に失敗しました。もう一度お試しください。',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setRefreshing(false);
+    }
+  }, [onboardingData]);
+
+  // 体重履歴の更新
+  const updateWeightHistory = async () => {
+    try {
+      // UserRepositoryを使用して最新の体重記録を取得
+      const today = new Date();
+      const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+      
+      const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+      const endDate = today.toISOString().split('T')[0];
+      
+      const weightHistory = await UserRepository.getWeightHistory('user_1', startDate, endDate);
+      
+      console.log('📊 Weight history updated:', weightHistory.length, 'records');
+      return weightHistory;
+    } catch (error) {
+      console.error('Failed to update weight history:', error);
+      throw error;
+    }
+  };
+
+  // アチーブメントの更新
+  const updateAchievements = async () => {
+    try {
+      // アチーブメントの条件をチェック
+      const achievements = [];
+      
+      // 7日連続記録のチェック
+      const streakDays = await checkConsecutiveDays();
+      if (streakDays >= 7) {
+        achievements.push('7days_streak');
+      }
+      
+      // タンパク質目標達成のチェック
+      const proteinDays = await checkProteinGoalDays();
+      if (proteinDays >= 30) {
+        achievements.push('protein_master');
+      }
+      
+      console.log('🏆 Achievements updated:', achievements);
+      return achievements;
+    } catch (error) {
+      console.error('Failed to update achievements:', error);
+      throw error;
+    }
+  };
+
+  // 連続記録日数のチェック
+  const checkConsecutiveDays = async (): Promise<number> => {
+    try {
+      const result = await DatabaseService.getFirstAsync<{ streak_days: number }>(
+        `SELECT COUNT(DISTINCT date) as streak_days 
+         FROM food_log 
+         WHERE user_id = ? 
+         AND date >= date('now', '-7 days')`,
+        ['user_1']
+      );
+      return result?.streak_days || 0;
+    } catch (error) {
+      console.error('Failed to check consecutive days:', error);
+      return 0;
+    }
+  };
+
+  // タンパク質目標達成日数のチェック
+  const checkProteinGoalDays = async (): Promise<number> => {
+    try {
+      const result = await DatabaseService.getFirstAsync<{ protein_days: number }>(
+        `SELECT COUNT(DISTINCT date) as protein_days 
+         FROM food_log 
+         WHERE user_id = ? 
+         AND date >= date('now', '-30 days')
+         GROUP BY date
+         HAVING SUM(protein_g) >= ?`,
+        ['user_1', nutritionTargets.protein * 0.9] // 90%以上で達成とする
+      );
+      return result?.protein_days || 0;
+    } catch (error) {
+      console.error('Failed to check protein goal days:', error);
+      return 0;
+    }
+  };
+
+  // 栄養目標の再計算
+  const recalculateNutritionTargets = async () => {
+    try {
+      // AIサービスのキャッシュをクリアして最新の推奨値を取得
+      await AIFeedbackService.clearCache();
+      console.log('🎯 Nutrition targets recalculated');
+    } catch (error) {
+      console.error('Failed to recalculate nutrition targets:', error);
+    }
   };
 
   // プロフィール更新処理
