@@ -739,11 +739,11 @@ const styles = StyleSheet.create({
   searchIcon: {
     position: 'absolute',
     left: spacing.sm,
-    top: spacing.sm + 2,
+    top: spacing.sm,
     zIndex: 1,
   },
   searchInput: {
-    height: 48,
+    height: 43,
     paddingLeft: spacing.xl + spacing.sm,
     paddingRight: spacing.md,
     borderWidth: 1,
@@ -754,7 +754,7 @@ const styles = StyleSheet.create({
   },
   searchOverlay: {
     position: 'absolute',
-    top: 110,
+    top: 135,
     left: 0,
     right: 0,
     height: 450,
@@ -762,7 +762,7 @@ const styles = StyleSheet.create({
   },
   searchOverlayBackground: {
     position: 'absolute',
-    top: 0,
+    top: -5,
     left: 0,
     right: 0,
     bottom: 0,
@@ -782,7 +782,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxxl,
   },
   searchResultsHeader: {
-    padding: spacing.md,
+    padding: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.light,
     backgroundColor: colors.background.primary,
