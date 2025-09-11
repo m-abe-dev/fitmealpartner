@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { FoodLogItem } from '../screens/nutrition/types/nutrition.types';
 import DatabaseService from '../services/database/DatabaseService';
 import StreakService from '../services/StreakService';
+import TimezoneHelper from '../utils/timezone';
 
 interface FoodLogState {
   foodLog: FoodLogItem[];
@@ -16,7 +17,8 @@ interface FoodLogState {
   addFood: (
     food: Omit<FoodLogItem, 'id' | 'meal' | 'time' | 'foodId'> & {
       foodId?: string;
-    }
+    },
+    mealType?: 'breakfast' | 'lunch' | 'dinner' | 'snack'
   ) => Promise<void>;
   updateFood: (updatedFood: FoodLogItem) => Promise<void>;
   deleteFood: (foodId: string) => Promise<void>;
@@ -37,11 +39,8 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
     try {
       await DatabaseService.initialize();
 
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, '0');
-      const day = String(today.getDate()).padStart(2, '0');
-      const todayString = `${year}-${month}-${day}`;
+      // ローカルタイムゾーンでの今日の日付を取得
+      const todayString = TimezoneHelper.getCurrentLocalDate();
 
       await DatabaseService.execAsync(`
         CREATE TABLE IF NOT EXISTS food_favorites (
@@ -65,23 +64,26 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
         [todayString]
       );
 
-      const mappedLogs: FoodLogItem[] = logs.map(log => ({
-        id: log.id.toString(),
-        foodId: log.food_id,
-        name: log.food_name,
-        amount: log.amount_g,
-        unit: 'g',
-        calories: log.kcal,
-        protein: log.protein_g,
-        fat: log.fat_g,
-        carbs: log.carb_g,
-        meal: log.meal_type,
-        time: new Date(log.logged_at).toLocaleTimeString('ja-JP', {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-        isFavorite: favoriteNames.has(log.food_name),
-      }));
+      const mappedLogs: FoodLogItem[] = logs.map(log => {
+        const timeString = log.logged_at
+          ? TimezoneHelper.convertUTCToLocal(log.logged_at)
+          : '--:--';
+
+        return {
+          id: log.id.toString(),
+          foodId: log.food_id,
+          name: log.food_name,
+          amount: log.amount_g,
+          unit: 'g',
+          calories: log.kcal,
+          protein: log.protein_g,
+          fat: log.fat_g,
+          carbs: log.carb_g,
+          meal: log.meal_type,
+          time: timeString,
+          isFavorite: favoriteNames.has(log.food_name),
+        };
+      });
 
       set({ foodLog: mappedLogs, isLoading: false });
     } catch (error) {
@@ -89,8 +91,9 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
     }
   },
 
-  addFood: async food => {
+  addFood: async (food, mealType) => {
     const { selectedMeal } = get();
+    const meal = mealType || selectedMeal;
 
     // foodIdが設定されていない場合は手動入力として一意のIDを生成
     const foodId = food.foodId || `manual_${Date.now()}`;
@@ -125,18 +128,13 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
       ...food,
       id: itemId,
       foodId: foodId,
-      meal: selectedMeal,
-      time: new Date().toLocaleTimeString('ja-JP', {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
+      meal: meal,
+      time: TimezoneHelper.getCurrentLocalTime(),
     };
 
     try {
-      const today = new Date();
-      const dateString = `${today.getFullYear()}-${String(
-        today.getMonth() + 1
-      ).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      // ローカルタイムゾーンでの今日の日付を取得
+      const dateString = TimezoneHelper.getCurrentLocalDate();
 
       const result = await DatabaseService.runAsync(
         `INSERT INTO food_log (
@@ -146,7 +144,7 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
         [
           'user_1',
           dateString,
-          selectedMeal,
+          meal,
           foodId,
           food.name,
           food.amount,
@@ -226,7 +224,6 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
 
       const newFavoriteStatus = !currentFood.isFavorite;
       const actualFoodId = currentFood.foodId;
-
 
       // food_dbテーブルのお気に入り状態を更新
       if (actualFoodId) {

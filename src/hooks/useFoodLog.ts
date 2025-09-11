@@ -9,10 +9,10 @@ export interface UseFoodLogReturn {
   isLoading: boolean;
   setSelectedMeal: (meal: 'breakfast' | 'lunch' | 'dinner' | 'snack') => void;
   setEditingFood: (food: FoodLogItem | null) => void;
-  addFood: (food: Omit<FoodLogItem, 'id' | 'meal' | 'time' | 'foodId'> & { foodId?: string }) => void;
-  updateFood: (updatedFood: FoodLogItem) => void;
-  deleteFood: (foodId: string) => void;
-  toggleFavorite: (foodId: string) => void;
+  addFood: (food: Omit<FoodLogItem, 'id' | 'meal' | 'time' | 'foodId'> & { foodId?: string }) => Promise<void>;
+  updateFood: (updatedFood: FoodLogItem) => Promise<void>;
+  deleteFood: (foodId: string) => Promise<void>;
+  toggleFavorite: (foodId: string) => Promise<void>;
 }
 
 export const useFoodLog = (): UseFoodLogReturn => {

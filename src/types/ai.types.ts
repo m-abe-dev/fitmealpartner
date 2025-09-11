@@ -49,6 +49,7 @@ export interface FeedbackResponse {
     reason: string;
   }>;
   error?: string;
+  fromCache?: boolean;
 }
 
 export interface WorkoutSuggestionResponse {
