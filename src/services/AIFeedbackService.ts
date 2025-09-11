@@ -6,47 +6,107 @@ import {
   WorkoutSuggestionResponse,
 } from '../types/ai.types';
 import { ENV } from '../config/environment';
+import AIResponseCache from './cache/AIResponseCache';
+import { debounce } from 'lodash';
 
 export class AIFeedbackService {
   private static SUPABASE_URL = ENV.supabase.url;
   private static SUPABASE_ANON_KEY = ENV.supabase.anonKey;
+  private static requestCount = 0;
+  private static lastRequestTime = 0;
+  
+  // デバウンス処理（5秒間の遅延）
+  private static debouncedFeedback = debounce(
+    async (nutrition: NutritionData, profile: AIUserProfile) => {
+      return await this.fetchNutritionFeedback(nutrition, profile);
+    },
+    5000
+  );
 
   /**
-   * 栄養フィードバックを取得
+   * 栄養フィードバックを取得（キャッシュ付き）
    */
   static async getNutritionFeedback(
     nutrition: NutritionData,
     profile: AIUserProfile
   ): Promise<FeedbackResponse> {
     try {
-      const response = await fetch(
-        `${this.SUPABASE_URL}/functions/v1/nutrition-feedback`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${this.SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ nutrition, profile }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Response Error:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // レート制限チェック（1分間に5回まで）
+      const now = Date.now();
+      if (now - this.lastRequestTime > 60000) {
+        this.requestCount = 0;
+        this.lastRequestTime = now;
+      }
+      
+      if (this.requestCount >= 5) {
+        console.warn('Rate limit reached, using fallback');
+        return this.getNutritionFallback(nutrition);
       }
 
-      const result = await response.json();
-      console.log('Nutrition feedback received');
+      // キャッシュチェック
+      const cached = await AIResponseCache.get({ nutrition, profile });
+      if (cached) {
+        console.log('Using cached AI response');
+        return { ...cached, fromCache: true };
+      }
 
-      return result;
+      // 前回のリクエストから短時間なら待機
+      if (this.shouldDebounce(nutrition)) {
+        console.log('Debouncing request');
+        const result = await this.debouncedFeedback(nutrition, profile);
+        return result || this.getNutritionFallback(nutrition);
+      }
+
+      // 新規リクエスト
+      this.requestCount++;
+      return await this.fetchNutritionFeedback(nutrition, profile);
     } catch (error) {
       console.error('Error getting nutrition feedback:', error);
-
-      // オフライン時またはエラー時のフォールバック
       return this.getNutritionFallback(nutrition);
     }
+  }
+
+  /**
+   * 実際のAPI呼び出し
+   */
+  private static async fetchNutritionFeedback(
+    nutrition: NutritionData,
+    profile: AIUserProfile
+  ): Promise<FeedbackResponse> {
+    const response = await fetch(
+      `${this.SUPABASE_URL}/functions/v1/nutrition-feedback`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ nutrition, profile }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Response Error:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('Nutrition feedback received from API');
+    
+    // キャッシュに保存
+    await AIResponseCache.set({ nutrition, profile }, result);
+    
+    return result;
+  }
+
+  /**
+   * デバウンスが必要かどうかを判定
+   */
+  private static shouldDebounce(nutrition: NutritionData): boolean {
+    // 目標達成率が80%以上または20%以下ならデバウンス不要（重要な変更）
+    const achievementRate = nutrition.calories / (nutrition.targetCalories || 1);
+    return achievementRate >= 0.2 && achievementRate <= 0.8;
   }
 
   /**
@@ -232,5 +292,38 @@ export class AIFeedbackService {
       console.warn('AI service health check failed:', error);
       return false;
     }
+  }
+
+  /**
+   * キャッシュをクリア
+   */
+  static async clearCache(): Promise<void> {
+    await AIResponseCache.clearAll();
+    this.requestCount = 0;
+    console.log('AI feedback cache cleared');
+  }
+
+  /**
+   * キャッシュ統計情報を取得
+   */
+  static async getCacheStats(): Promise<{ count: number; totalSize: number; oldestEntry: number }> {
+    return await AIResponseCache.getStats();
+  }
+
+  /**
+   * バッチ処理でワークアウト提案を取得（将来実装用）
+   */
+  static async getWorkoutSuggestionBatch(
+    workoutsList: WorkoutData[][],
+    profile: AIUserProfile
+  ): Promise<WorkoutSuggestionResponse[]> {
+    // 複数のワークアウトを一度に処理する場合の実装
+    // 現在は単体処理のみ対応
+    const results = [];
+    for (const workouts of workoutsList) {
+      const result = await this.getWorkoutSuggestion(workouts, profile);
+      results.push(result);
+    }
+    return results;
   }
 }
