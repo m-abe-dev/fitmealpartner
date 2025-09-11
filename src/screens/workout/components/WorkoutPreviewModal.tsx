@@ -54,7 +54,7 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
 
       // セットが存在するセッションのみを取得するように修正
       const session = await DatabaseService.getFirstAsync<any>(
-        `SELECT ws.* 
+        `SELECT ws.*
          FROM workout_session ws
          INNER JOIN workout_set wset ON ws.session_id = wset.session_id
          WHERE date(ws.date) = date(?)
@@ -96,6 +96,10 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
       const exerciseMap = new Map();
       let totalSets = 0;
       let totalVolume = 0;
+      let totalReps = 0;
+      let maxWeight = 0;
+      let totalRMSum = 0;
+      let rmCount = 0;
 
       workoutSets.forEach(set => {
         const exerciseId = set.exercise_id;
@@ -122,18 +126,34 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
         exercise.totalReps += set.reps || 0;
         exercise.maxWeight = Math.max(exercise.maxWeight, set.weight_kg || 0);
 
+        // 全体の統計を更新
         totalSets++;
+        totalReps += set.reps || 0;
+        maxWeight = Math.max(maxWeight, set.weight_kg || 0);
         totalVolume += (set.weight_kg || 0) * (set.reps || 0);
+        
+        // 平均RM計算用（Epley式）
+        if (set.weight_kg && set.reps) {
+          const oneRM = set.weight_kg * (1 + set.reps / 30);
+          totalRMSum += oneRM;
+          rmCount++;
+        }
       });
 
       const exercises = Array.from(exerciseMap.values());
-      const score = Math.round(totalVolume / 100);
+      const exerciseCount = exercises.length;
+      const averageRM = rmCount > 0 ? Math.round(totalRMSum / rmCount) : 0;
 
       setWorkoutData({
         date: selectedDay,
         exercises,
         totalSets,
-        score
+        totalReps,
+        maxWeight,
+        totalVolume: Math.round(totalVolume),
+        exerciseCount,
+        averageRM,
+        score: Math.round(totalVolume / 100)
       });
     } catch (error) {
       console.error('Failed to load workout data:', error);
@@ -151,20 +171,20 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.overlayTouchable}
           activeOpacity={1}
           onPress={onClose}
         />
-        
+
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <View>
+            <View style={styles.modalHeaderContent}>
               <Text style={styles.modalTitle}>
                 {selectedMonth + 1}月{selectedDay}日のワークアウト
               </Text>
               <Text style={styles.modalSubtitle}>
-                スコア: {workoutData?.score} • {workoutData?.totalSets}セット
+                総ボリューム: {workoutData?.totalVolume?.toLocaleString()}kg • {workoutData?.exerciseCount}種目 • {workoutData?.totalSets}セット • 平均RM: {workoutData?.averageRM}kg
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
@@ -240,7 +260,10 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+  },
+  modalHeaderContent: {
+    flex: 1,
   },
   modalTitle: {
     fontSize: typography.fontSize.xl,
@@ -249,8 +272,8 @@ const styles = StyleSheet.create({
   },
   modalSubtitle: {
     fontSize: typography.fontSize.sm,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: spacing.xxxs,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: spacing.xs,
   },
   modalCloseButton: {
     width: 32,
@@ -259,6 +282,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: -2,
   },
   modalBody: {
     flex: 1,
