@@ -20,6 +20,7 @@ interface DropdownSelectorProps {
   onSelect: (value: any) => void;
   placeholder?: string;
   defaultScrollToValue?: number | string;
+  helpText?: string;
 }
 
 export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
@@ -29,6 +30,7 @@ export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
   onSelect,
   placeholder = "選択してください",
   defaultScrollToValue = 65,
+  helpText,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -51,7 +53,13 @@ export const DropdownSelector: React.FC<DropdownSelectorProps> = ({
 
   return (
     <View style={styles.dropdownContainer}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {/* ラベルとヘルプテキストを同じ行に配置 */}
+      {(label || helpText) && (
+        <View style={styles.labelContainer}>
+          {label && <Text style={styles.label}>{label}</Text>}
+          {helpText && <Text style={styles.helpText}>{helpText}</Text>}
+        </View>
+      )}
       <TouchableOpacity
         style={[
           styles.dropdownTrigger,
@@ -110,11 +118,25 @@ const styles = StyleSheet.create({
     marginBottom: 0,
     position: 'relative',
   },
+  labelContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs,
+    gap: spacing.sm,
+  },
   label: {
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
     fontFamily: typography.fontFamily.medium,
-    marginBottom: spacing.xs,
+  },
+  helpText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.tertiary,
+    fontFamily: typography.fontFamily.regular,
+    fontStyle: 'italic',
+    flex: 1,
+    textAlign: 'right',
   },
   dropdownTrigger: {
     flexDirection: 'row',

@@ -100,6 +100,26 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     });
   }, [profileData]);
 
+  // 目標変更時の自動体重調整
+  useEffect(() => {
+    const currentWeight = profile.weight || 70;
+    const currentGoal = profile.goal;
+
+    // 目標が変更された場合の自動調整ロジック
+    if (currentGoal === 'maintain') {
+      // 維持の場合は現在の体重に設定
+      setProfile(prev => ({ ...prev, targetWeight: currentWeight }));
+    } else if (currentGoal === 'cut' && profile.targetWeight && profile.targetWeight >= currentWeight) {
+      // 減量目標なのに目標体重が現在体重以上の場合、適切な値に調整
+      const adjustedWeight = Math.max(30, currentWeight - 5);
+      setProfile(prev => ({ ...prev, targetWeight: adjustedWeight }));
+    } else if (currentGoal === 'bulk' && profile.targetWeight && profile.targetWeight <= currentWeight) {
+      // 増量目標なのに目標体重が現在体重以下の場合、適切な値に調整
+      const adjustedWeight = Math.min(200, currentWeight + 5);
+      setProfile(prev => ({ ...prev, targetWeight: adjustedWeight }));
+    }
+  }, [profile.goal, profile.weight]);
+
   const handleSave = () => {
     // 基本項目のバリデーション
     if (!profile.height || profile.height < 140 || profile.height > 220) {
@@ -141,6 +161,46 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
       if (targetDate < today) {
         Alert.alert('入力エラー', '目標達成日は今日以降の日付を選択してください');
         return;
+      }
+
+      // 極端な体重変化の警告チェック
+      const weightChange = Math.abs(profile.targetWeight - profile.weight);
+      const daysDiff = Math.ceil((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      const weeklyChange = (weightChange * 7) / daysDiff;
+
+      // 週間の推奨体重変化率：減量時0.5-1kg、増量時0.25-0.5kg
+      let warningMessage = '';
+      if (profile.goal === 'cut' && weeklyChange > 1.5) {
+        warningMessage = `設定された目標では週に約${weeklyChange.toFixed(1)}kgの減量が必要です。\n\n推奨される健康的な減量ペースは週0.5〜1kg程度です。\n\n期間を延ばすか、目標体重を調整することをお勧めします。\n\n現在の設定で続けますか？`;
+      } else if (profile.goal === 'bulk' && weeklyChange > 0.8) {
+        warningMessage = `設定された目標では週に約${weeklyChange.toFixed(1)}kgの増量が必要です。\n\n推奨される健康的な増量ペースは週0.25〜0.5kg程度です。\n\n期間を延ばすか、目標体重を調整することをお勧めします。\n\n現在の設定で続けますか？`;
+      } else if (daysDiff < 14 && weightChange > 2) {
+        warningMessage = `2週間未満で${weightChange.toFixed(1)}kgの体重変化は健康上推奨されません。\n\n期間を延ばすか、目標体重を調整することをお勧めします。\n\n現在の設定で続けますか？`;
+      }
+
+      if (warningMessage) {
+        return new Promise((resolve) => {
+          Alert.alert(
+            '体重変化についての注意',
+            warningMessage,
+            [
+              {
+                text: 'キャンセル',
+                style: 'cancel',
+                onPress: () => resolve(false)
+              },
+              {
+                text: '続ける',
+                style: 'default',
+                onPress: () => {
+                  onSave(profile);
+                  onClose();
+                  resolve(true);
+                }
+              }
+            ]
+          );
+        });
       }
     }
 
@@ -188,11 +248,35 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     { value: 'maintain', label: '維持' },
   ];
 
-  // 目標体重のオプション (30kgから200kgまで、0.5kg刻み)
-  const targetWeightOptions = Array.from({ length: 341 }, (_, i) => {
-    const value = 30 + (i * 0.5);
-    return { value, label: `${value}kg` };
-  });
+  // 目標体重のオプションを動的に生成する関数
+  const getTargetWeightOptions = () => {
+    const currentWeight = profile.weight || 70;
+
+    if (profile.goal === 'cut') {
+      // 減量の場合：現在の体重-0.5kgから30kgまで
+      const options = [];
+      for (let weight = currentWeight - 0.5; weight >= 30; weight -= 0.5) {
+        options.push({
+          value: Math.round(weight * 10) / 10,
+          label: `${Math.round(weight * 10) / 10}kg`
+        });
+      }
+      return options;
+    } else if (profile.goal === 'bulk') {
+      // 増量の場合：現在の体重+0.5kgから200kgまで
+      const options = [];
+      for (let weight = currentWeight + 0.5; weight <= 200; weight += 0.5) {
+        options.push({
+          value: Math.round(weight * 10) / 10,
+          label: `${Math.round(weight * 10) / 10}kg`
+        });
+      }
+      return options;
+    } else {
+      // 維持の場合：現在の体重のみ
+      return [{ value: currentWeight, label: `${currentWeight}kg` }];
+    }
+  };
 
 
 
@@ -283,6 +367,11 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                   value={profile.goal || 'maintain'}
                   options={goalOptions}
                   onSelect={(goal) => setProfile(prev => ({ ...prev, goal }))}
+                  helpText={
+                    profile.goal === 'cut' ? '週0.5〜1kg減が推奨' :
+                    profile.goal === 'bulk' ? '週0.25〜0.5kg増が推奨' :
+                    profile.goal === 'maintain' ? '現在の体重を維持' : ''
+                  }
                 />
               </View>
 
@@ -293,8 +382,9 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                     <DropdownSelector
                       label="目標体重 (kg)"
                       value={profile.targetWeight || profile.weight}
-                      options={targetWeightOptions}
+                      options={getTargetWeightOptions()}
                       onSelect={(targetWeight) => setProfile(prev => ({ ...prev, targetWeight }))}
+                      helpText={`現在: ${profile.weight}kg`}
                     />
                   </View>
 
