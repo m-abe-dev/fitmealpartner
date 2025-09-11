@@ -147,7 +147,7 @@ export const useWorkoutScreen = () => {
     const score = stats.sets + stats.reps + stats.averageRM;
     const shareText = `💪 今日のトレーニング (${today_date})\n\n${exercisesList}\n\n📊 Today's Training Volume\n・種目数: ${stats.exercises}\n・セット数: ${stats.sets}\n・総回数: ${stats.reps}\n・平均RM: ${stats.averageRM}\n・スコア: ${score}\n\n#筋トレ #ワークアウト #トレーニング`;
 
-    Alert.alert('シェア', 'トレーニング情報をシェアしました');
+    // Alert.alert('シェア', 'トレーニング情報をシェアしました');
   };
 
   // Navigation handlers
