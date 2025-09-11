@@ -10,6 +10,10 @@ export interface Food {
   unit?: string;
   meal?: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   time?: string;
+  barcode?: string;
+  brand?: string;
+  imageUrl?: string;
+  quantity?: string;
 }
 
 export interface NewFood {

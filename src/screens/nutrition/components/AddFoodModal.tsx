@@ -26,6 +26,7 @@ import { colors, typography, spacing, radius, shadows } from '../../../design-sy
 import { Button } from '../../../components/common/Button';
 import { Badge } from '../../../components/common/Badge';
 import { BarcodeScanner } from '../../../components/common/BarcodeScanner';
+import { ScanResultModal } from '../../../components/common/ScanResultModal';
 import { Food, NewFood, FoodLogItem } from '../types/nutrition.types';
 import FoodDatabaseService from '../../../services/FoodDatabaseService';
 import JapaneseFoodCompositionService from '../../../services/JapaneseFoodCompositionService';
@@ -44,7 +45,6 @@ interface AddFoodModalProps {
   onSearchQueryChange?: (query: string) => void;
 }
 
-
 export const AddFoodModal: React.FC<AddFoodModalProps> = ({
   isVisible,
   onClose,
@@ -60,6 +60,8 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [preventBlur, setPreventBlur] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [showScanResult, setShowScanResult] = useState(false);
+  const [scannedProduct, setScannedProduct] = useState<Food | null>(null);
   const [recentFoods, setRecentFoods] = useState<Food[]>([]);
   const [favoritesFoods, setFavoritesFoods] = useState<Food[]>([]);
 
@@ -226,7 +228,6 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
     }, 500);
   };
 
-
   const selectSearchResult = async (food: Food) => {
     // 即座に検索状態をクリア
     setIsSearchFocused(false);
@@ -317,6 +318,8 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
     setIsSearchFocused(false);
     setActiveTab('manual');
     setShowScanner(false);
+    setShowScanResult(false);
+    setScannedProduct(null);
     onClose();
   };
 
@@ -546,39 +549,11 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
                   <View style={styles.featurePreview}>
                     <Text style={styles.featureTitle}>利用可能な機能:</Text>
                     <Text style={styles.featureItem}>• カメラでバーコードスキャン</Text>
-                    <Text style={styles.featureItem}>• 商品データベースから栄養情報取得</Text>
-                    <Text style={styles.featureItem}>• 日本の食品データベース対応</Text>
+                    <Text style={styles.featureItem}>• Open Food Factsデータベース対応</Text>
+                    <Text style={styles.featureItem}>• 世界の商品情報を自動取得</Text>
                     <Text style={styles.featureItem}>• 分量調整機能</Text>
                   </View>
                 </View>
-              )}
-
-              {/* Barcode Scanner Modal */}
-              {showScanner && (
-                <Modal
-                  visible={showScanner}
-                  animationType="slide"
-                  presentationStyle="fullScreen"
-                >
-                  <BarcodeScanner
-                    onScan={async (barcode) => {
-                      setShowScanner(false);
-                      const foodData = await FoodDatabaseService.searchByBarcode(barcode);
-
-                      if (foodData) {
-                        await onAddFood(foodData);
-                        onClose();
-                      } else {
-                        Alert.alert(
-                          '商品が見つかりません',
-                          'この商品は登録されていません。手動で入力してください。',
-                          [{ text: 'OK', onPress: () => setActiveTab('manual') }]
-                        );
-                      }
-                    }}
-                    onClose={() => setShowScanner(false)}
-                  />
-                </Modal>
               )}
 
               {/* History Section (only show when not favorites or scan tab) */}
@@ -691,6 +666,74 @@ export const AddFoodModal: React.FC<AddFoodModalProps> = ({
             </View>
           </View>
         )}
+
+        {/* Barcode Scanner Modal */}
+        {showScanner && (
+          <Modal
+            visible={showScanner}
+            animationType="slide"
+            presentationStyle="fullScreen"
+          >
+            <BarcodeScanner
+              onScan={async (barcode) => {
+                setShowScanner(false);
+                
+                // Open Food Factsから商品情報を取得
+                const OpenFoodFactsService = (await import('../../../services/OpenFoodFactsService')).default;
+                const foodData = await OpenFoodFactsService.searchByBarcode(barcode);
+                
+                if (foodData) {
+                  setScannedProduct(foodData);
+                  setShowScanResult(true);
+                } else {
+                  Alert.alert(
+                    '商品が見つかりません',
+                    'この商品はデータベースに登録されていません。手動で入力してください。',
+                    [{ text: 'OK', onPress: () => setActiveTab('manual') }]
+                  );
+                }
+              }}
+              onClose={() => setShowScanner(false)}
+            />
+          </Modal>
+        )}
+
+        {/* スキャン結果モーダル */}
+        <ScanResultModal
+          isVisible={showScanResult}
+          product={scannedProduct}
+          onConfirm={async (product, amount) => {
+            try {
+              // モーダルを先に閉じる
+              setShowScanResult(false);
+              setScannedProduct(null);
+              
+              // 調整した食品データを作成
+              const adjustedFood: Food = {
+                ...product,
+                calories: Math.round((product.calories * amount) / 100),
+                protein: Math.round((product.protein * amount) / 100 * 10) / 10,
+                fat: Math.round((product.fat * amount) / 100 * 10) / 10,
+                carbs: Math.round((product.carbs * amount) / 100 * 10) / 10,
+                amount: amount,
+                unit: 'g',
+              };
+              
+              // 食品を追加
+              await onAddFood(adjustedFood);
+              
+              // メインモーダルを閉じる
+              handleClose();
+            } catch (error) {
+              console.error('Error adding scanned food:', error);
+              Alert.alert('エラー', '商品の追加に失敗しました');
+            }
+          }}
+          onCancel={() => {
+            setShowScanResult(false);
+            setScannedProduct(null);
+          }}
+        />
       </View>
     </Modal>
   );
