@@ -12,3 +12,4 @@ export { MacroDisplay, CompactMacroDisplay } from './MacroDisplay';
 export { WorkoutSetItem, WorkoutSetList } from './WorkoutSetItem';
 export { FoodListItem, FoodList } from './FoodListItem';
 export { BarcodeScanner } from './BarcodeScanner';
+export { ScanResultModal } from './ScanResultModal';
