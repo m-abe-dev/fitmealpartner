@@ -27,7 +27,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             onPress={onEditPress}
           >
             <Edit3 size={16} color={colors.text.inverse} />
-            <Text style={styles.profileUpdateText}>更新</Text>
+            <Text style={styles.profileUpdateText}>編集</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.profileInfo}>
