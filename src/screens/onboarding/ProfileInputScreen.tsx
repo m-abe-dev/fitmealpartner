@@ -100,7 +100,10 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
       <OnboardingSection>
           {/* Gender Selection */}
           <View>
-            <Text style={styles.label}>性別</Text>
+            <View style={styles.labelContainer}>
+              <Text style={styles.label}>性別</Text>
+              <Text style={styles.labelNote}>※後で変更できません</Text>
+            </View>
             <View style={styles.segmentedContainer}>
               {[
                 { key: 'male', label: '男性' },
@@ -130,7 +133,10 @@ export const ProfileInputScreen: React.FC<OnboardingStepProps> = ({
 
           {/* Birth Date */}
           <View>
-            <Text style={styles.label}>生年月日</Text>
+            <View style={styles.labelContainer}>
+              <Text style={styles.label}>生年月日</Text>
+              <Text style={styles.labelNote}>※後で変更できません</Text>
+            </View>
             <TouchableOpacity
               style={[
                 styles.dropdownButton,
@@ -194,7 +200,18 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.text.secondary,
     fontFamily: typography.fontFamily.medium,
+  },
+  labelContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
     marginBottom: spacing.xs,
+  },
+  labelNote: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.tertiary,
+    fontFamily: typography.fontFamily.regular,
+    fontStyle: 'italic',
   },
   segmentedContainer: {
     flexDirection: 'row',

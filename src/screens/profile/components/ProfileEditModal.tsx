@@ -28,11 +28,12 @@ import { DropdownSelector } from '../../../components/common/DropdownSelector';
 import { SimpleCalendar } from '../../../components/common/SimpleCalendar';
 
 export interface ProfileData {
-  age: number;
+  age?: number;
   height: number;
   weight: number;
-  gender: 'male' | 'female' | 'other';
+  gender?: 'male' | 'female' | 'other';
   activityLevel: 'sedentary' | 'light' | 'moderate' | 'active' | 'very-active';
+  experience?: 'beginner' | 'intermediate' | 'advanced';
   targetWeight?: number;
   targetDate?: string;
   goal?: 'cut' | 'bulk' | 'maintain';
@@ -87,6 +88,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     targetWeight: profileData.targetWeight || profileData.weight || 70,
     targetDate: profileData.targetDate || getTodayDate(),
     goal: profileData.goal || 'maintain',
+    experience: profileData.experience || 'beginner',
   });
 
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -97,6 +99,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
       targetWeight: profileData.targetWeight || profileData.weight || 70,
       targetDate: profileData.targetDate || getTodayDate(),
       goal: profileData.goal || 'maintain',
+      experience: profileData.experience || 'beginner',
     });
   }, [profileData]);
 
@@ -129,11 +132,6 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
     if (!profile.weight || profile.weight < 30 || profile.weight > 200) {
       Alert.alert('入力エラー', '体重は30〜200kgの間で選択してください');
-      return;
-    }
-
-    if (!profile.gender) {
-      Alert.alert('入力エラー', '性別を選択してください');
       return;
     }
 
@@ -208,15 +206,6 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     onClose();
   };
 
-  const getGenderLabel = (gender: string) => {
-    switch (gender) {
-      case 'male': return '男性';
-      case 'female': return '女性';
-      case 'other': return 'その他';
-      default: return '';
-    }
-  };
-
   const getActivityLabel = (level: string) => {
     switch (level) {
       case 'sedentary': return '座りがち（運動なし）';
@@ -228,18 +217,18 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     }
   };
 
-  const genderOptions = [
-    { value: 'male', label: '男性' },
-    { value: 'female', label: '女性' },
-    { value: 'other', label: 'その他' },
-  ];
-
   const activityOptions = [
     { value: 'sedentary', label: '座りがち（運動なし）' },
     { value: 'light', label: '軽い活動（週1-3回）' },
     { value: 'moderate', label: '中程度（週3-5回）' },
     { value: 'active', label: '活発（週6-7回）' },
     { value: 'very-active', label: '非常に活発（1日2回）' },
+  ];
+
+  const experienceOptions = [
+    { value: 'beginner', label: '初心者（1年未満）' },
+    { value: 'intermediate', label: '中級者（1-3年）' },
+    { value: 'advanced', label: '上級者（3年以上）' },
   ];
 
   const goalOptions = [
@@ -302,14 +291,8 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
         <View style={styles.content}>
           <View style={styles.formContainer}>
-            {/* 年齢（表示のみ）と身長 */}
+            {/* 身長と体重 */}
             <View style={styles.row}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>年齢</Text>
-                <View style={styles.readOnlyContainer}>
-                  <Text style={styles.readOnlyValue}>{profile.age}歳</Text>
-                </View>
-              </View>
               <View style={styles.inputGroup}>
                 <DropdownSelector
                   label="身長 (cm)"
@@ -321,10 +304,6 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                   onSelect={(height) => setProfile(prev => ({ ...prev, height }))}
                 />
               </View>
-            </View>
-
-            {/* 体重と性別 */}
-            <View style={styles.row}>
               <View style={styles.inputGroup}>
                 <DropdownSelector
                   label="体重 (kg)"
@@ -336,23 +315,29 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                   onSelect={(weight) => setProfile(prev => ({ ...prev, weight }))}
                 />
               </View>
-              <View style={styles.inputGroup}>
-                <DropdownSelector
-                  label="性別"
-                  value={profile.gender}
-                  options={genderOptions}
-                  onSelect={(gender) => setProfile(prev => ({ ...prev, gender }))}
-                />
-              </View>
             </View>
 
             {/* 活動レベル */}
-            <View style={styles.fullWidthGroup}>
+            <View style={[styles.fullWidthGroup, { zIndex: 20 }]}>
               <DropdownSelector
                 label="活動レベル"
                 value={profile.activityLevel}
                 options={activityOptions}
                 onSelect={(activityLevel) => setProfile(prev => ({ ...prev, activityLevel }))}
+                helpText="トレーニング頻度の目安"
+              />
+            </View>
+
+            {/* 経験レベル */}
+            <View style={[styles.fullWidthGroup, { zIndex: 10 }]}>
+              <DropdownSelector
+                label="経験レベル"
+                value={profile.experience || 'beginner'}
+                options={experienceOptions}
+                onSelect={(experience) => setProfile(prev => ({ ...prev, experience }))}
+                placeholder="選択してください"
+                defaultScrollToValue="beginner"
+                helpText="トレーニング歴の目安"
               />
             </View>
 
@@ -512,20 +497,6 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     fontFamily: typography.fontFamily.medium,
     marginBottom: spacing.xs,
-  },
-  readOnlyContainer: {
-    height: 48,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.gray[100],
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: radius.md,
-    justifyContent: 'center',
-  },
-  readOnlyValue: {
-    fontSize: typography.fontSize.base,
-    color: colors.text.secondary,
-    fontFamily: typography.fontFamily.regular,
   },
   footer: {
     padding: spacing.lg,
