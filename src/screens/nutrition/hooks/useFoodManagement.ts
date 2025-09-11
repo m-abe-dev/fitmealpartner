@@ -13,10 +13,12 @@ interface Food {
 }
 
 interface UseFoodManagementProps {
-  addFood: (food: Omit<FoodLogItem, 'id' | 'meal' | 'time' | 'foodId'> & { foodId?: string }) => Promise<void>;
+  addFood: (food: Omit<FoodLogItem, 'id' | 'meal' | 'time' | 'foodId'> & { foodId?: string }, mealType?: 'breakfast' | 'lunch' | 'dinner' | 'snack') => Promise<void>;
   updateFood: (updatedFood: FoodLogItem) => Promise<void>;
   deleteFood: (foodId: string) => Promise<void>;
   toggleFavorite: (foodId: string) => Promise<void>;
+  selectedMeal: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  setSelectedMeal: (meal: 'breakfast' | 'lunch' | 'dinner' | 'snack') => void;
 }
 
 export const useFoodManagement = ({
@@ -24,6 +26,8 @@ export const useFoodManagement = ({
   updateFood,
   deleteFood,
   toggleFavorite,
+  selectedMeal,
+  setSelectedMeal,
 }: UseFoodManagementProps) => {
   const [showAddFood, setShowAddFood] = useState(false);
   const [editingFood, setEditingFood] = useState<FoodLogItem | null>(null);
@@ -77,12 +81,12 @@ export const useFoodManagement = ({
         foodId: food.id,
         amount: 100,
         unit: 'g',
-      });
+      }, selectedMeal);
     } catch (error) {
       console.error('Error adding food:', error);
       Alert.alert('エラー', '食材の追加に失敗しました');
     }
-  }, [addFood, registerFoodInDatabase]);
+  }, [addFood, registerFoodInDatabase, selectedMeal]);
 
   const handleEditFood = useCallback((food: FoodLogItem) => {
     setEditingFood(food);
@@ -90,8 +94,9 @@ export const useFoodManagement = ({
   }, []);
 
   const handleSelectMeal = useCallback((mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack') => {
+    setSelectedMeal(mealType);
     setShowAddFood(true);
-  }, []);
+  }, [setSelectedMeal]);
 
   const handleCloseModal = useCallback(() => {
     setShowAddFood(false);

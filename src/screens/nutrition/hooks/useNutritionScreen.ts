@@ -33,6 +33,8 @@ export const useNutritionScreen = () => {
     updateFood,
     deleteFood,
     toggleFavorite,
+    selectedMeal,
+    setSelectedMeal,
   });
 
   // 通知ナビゲーション
