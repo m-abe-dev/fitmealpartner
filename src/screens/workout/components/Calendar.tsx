@@ -43,7 +43,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onDayClick }) => {
 
       // セットが存在するセッションのみを取得
       const sessions = await DatabaseService.getAllAsync<any>(
-        `SELECT DISTINCT ws.date 
+        `SELECT DISTINCT ws.date
          FROM workout_session ws
          INNER JOIN workout_set wset ON ws.session_id = wset.session_id
          WHERE ws.date >= ? AND ws.date <= ?
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   dayCell: {
-    width: screenWidth / 7 - spacing.md * 2 / 7,
+    width: '14.28%',
     height: 32,
     alignItems: 'center',
     justifyContent: 'center',
