@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, RefreshControl, View, Text } from 'react-native';
+import { ScrollView, StyleSheet, View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Activity, TrendingUp } from 'lucide-react-native';
 import { colors, typography, spacing, radius, shadows } from '../../design-system';
 import { ScreenHeader } from '../../components/common/ScreenHeader';
+import { AppRefreshControl } from '../../components/common/AppRefreshControl';
 import { TabBar } from '../../components/common/TabBar';
 
 // Dashboard Components
@@ -163,7 +164,10 @@ export const DashboardScreen: React.FC = () => {
         style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <AppRefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+          />
         }
       >
         {/* スコアセクション */}

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TestNotificationScreen } from '../TestNotificationScreen';
 import { User } from 'lucide-react-native';
 import { colors, typography, spacing } from '../../design-system';
 import { ScreenHeader } from '../../components/common/ScreenHeader';
+import { AppRefreshControl } from '../../components/common/AppRefreshControl';
 import { ProfileEditModal } from './components/ProfileEditModal';
 import { ProfileHeader } from './components/ProfileHeader';
 import { BodyStatsCards } from './components/BodyStatsCards';
@@ -67,7 +68,10 @@ export const ProfileScreen: React.FC = () => {
         style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <AppRefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+          />
         }
       >
         <ProfileHeader

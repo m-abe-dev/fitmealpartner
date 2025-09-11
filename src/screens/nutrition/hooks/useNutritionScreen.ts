@@ -1,16 +1,23 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
+import { Alert } from 'react-native';
 import { useFoodLog } from '../../../hooks/useFoodLog';
 import { useNutritionData } from '../../../hooks/useNutritionData';
 import { useProfileData } from '../../../hooks/useProfileData';
 import { useNotificationNavigation } from './useNotificationNavigation';
 import { useFoodManagement } from './useFoodManagement';
 import { MealTab } from '../types/nutrition.types';
+import { AIFeedbackService } from '../../../services/AIFeedbackService';
+import { useFoodLogStore } from '../../../stores/foodLogStore';
 
 export const useNutritionScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
+  const refreshCountRef = useRef(0);
+
+  // ストア
+  const foodLogStore = useFoodLogStore();
 
   // プロフィールデータから動的な目標値を取得
-  const { nutritionTargets } = useProfileData();
+  const { nutritionTargets, userProfile } = useProfileData();
 
   // 食事ログデータ
   const foodLogHook = useFoodLog();
@@ -48,9 +55,53 @@ export const useNutritionScreen = () => {
 
   // リフレッシュハンドラー
   const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
-  }, []);
+    try {
+      refreshCountRef.current++;
+      console.log(`🔄 Nutrition refresh #${refreshCountRef.current}`);
+      setRefreshing(true);
+      
+      // 1. データベースから最新の食事ログを再読み込み
+      await foodLogStore.loadTodaysFoodLog();
+      
+      // 2. 栄養データがある場合、AIフィードバックを更新
+      if (nutritionData.calories.current > 0) {
+        const aiProfile = {
+          age: userProfile?.age || 30,
+          weight: userProfile?.weight || 70,
+          height: userProfile?.height || 175,
+          goal: userProfile?.goal || 'maintain',
+          activityLevel: 'moderate',
+          gender: userProfile?.gender || 'male',
+        };
+
+        const aiNutritionData = {
+          calories: nutritionData.calories.current,
+          protein: nutritionData.protein.current,
+          carbs: nutritionData.carbs.current,
+          fat: nutritionData.fat.current,
+          targetCalories: nutritionTargets.calories,
+          targetProtein: nutritionTargets.protein,
+          targetCarbs: nutritionTargets.carbs,
+          targetFat: nutritionTargets.fat,
+          meals: foodLog.map(item => ({
+            name: item.name,
+            calories: item.calories,
+            protein: item.protein,
+            carbs: item.carbs,
+            fat: item.fat,
+          })),
+        };
+
+        await AIFeedbackService.getNutritionFeedback(aiNutritionData, aiProfile);
+      }
+      
+    } catch (error) {
+      console.error('Refresh failed:', error);
+      Alert.alert('エラー', 'データの更新に失敗しました');
+    } finally {
+      setRefreshing(false);
+    }
+  }, [nutritionData, foodLog, userProfile, nutritionTargets, foodLogStore]);
 
   // シェアハンドラー
   const handleShare = useCallback(() => {
