@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { ScrollView, Alert } from 'react-native';
 import {
   WorkoutView,
@@ -11,6 +11,7 @@ import { useWorkoutData } from './useWorkoutData';
 
 export const useWorkoutScreen = () => {
   const scrollViewRef = useRef<ScrollView>(null);
+  const refreshCountRef = useRef(0);
 
   // View state
   const [currentView, setCurrentView] = useState<WorkoutView>('main');
@@ -52,10 +53,12 @@ export const useWorkoutScreen = () => {
   //   return workoutHistory.find(workout => workout.date === day) || null;
   // };
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
+    refreshCountRef.current++;
+    console.log(`🔄 Workout refresh #${refreshCountRef.current}`);
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 1000);
-  };
+  }, []);
 
   const toggleExerciseExpansion = (exerciseId: string) => {
     toggleExerciseExpansionData(exerciseId);

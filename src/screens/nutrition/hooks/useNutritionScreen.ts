@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Alert } from 'react-native';
 import { useFoodLog } from '../../../hooks/useFoodLog';
 import { useNutritionData } from '../../../hooks/useNutritionData';
@@ -11,6 +11,7 @@ import { useFoodLogStore } from '../../../stores/foodLogStore';
 
 export const useNutritionScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
+  const refreshCountRef = useRef(0);
 
   // ストア
   const foodLogStore = useFoodLogStore();
@@ -55,6 +56,8 @@ export const useNutritionScreen = () => {
   // リフレッシュハンドラー
   const onRefresh = useCallback(async () => {
     try {
+      refreshCountRef.current++;
+      console.log(`🔄 Nutrition refresh #${refreshCountRef.current}`);
       setRefreshing(true);
       
       // 1. データベースから最新の食事ログを再読み込み

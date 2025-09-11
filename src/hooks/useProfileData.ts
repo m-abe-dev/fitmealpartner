@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Alert } from 'react-native';
 import { OnboardingStorageService } from '../services/OnboardingStorageService';
 import { OnboardingData } from '../types/onboarding.types';
@@ -41,6 +41,7 @@ interface WeightAnalysis {
 
 export const useProfileData = () => {
   const [refreshing, setRefreshing] = useState(false);
+  const refreshCountRef = useRef(0);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [showProfileEditModal, setShowProfileEditModal] = useState(false);
   const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(
@@ -69,8 +70,9 @@ export const useProfileData = () => {
   // 改善されたリフレッシュハンドラー
   const onRefresh = useCallback(async () => {
     try {
+      refreshCountRef.current++;
       setRefreshing(true);
-      console.log('🔄 Profile refresh started');
+      console.log(`🔄 Profile refresh #${refreshCountRef.current} started`);
       
       // 並列処理で高速化
       const refreshPromises = [];

@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Dimensions } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Dumbbell } from 'lucide-react-native';
 import { ScreenHeader } from '../../components/common/ScreenHeader';
+import { AppRefreshControl } from '../../components/common/AppRefreshControl';
 import { colors, typography, spacing, radius, shadows } from '../../design-system';
 
 // Components
@@ -95,7 +96,7 @@ export const WorkoutScreen: React.FC = () => {
         bounces={false} // バウンスを無効化
         overScrollMode="never" // Androidでのオーバースクロールを無効化
         scrollEnabled={true}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        refreshControl={<AppRefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         {/* Calendar View */}
         <Calendar onDayClick={handleDayClick} />

@@ -3,13 +3,13 @@ import {
   View,
   ScrollView,
   StyleSheet,
-  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Apple } from 'lucide-react-native';
 
 import { colors } from '../../design-system';
 import { ScreenHeader } from '../../components/common/ScreenHeader';
+import { AppRefreshControl } from '../../components/common/AppRefreshControl';
 import { NutritionScoreCard } from './components/NutritionScoreCard';
 import { MealLogCard } from './components/MealLogCard';
 import { AddFoodModal } from './components/AddFoodModal';
@@ -56,11 +56,9 @@ export const NutritionScreen: React.FC = () => {
         style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl 
+          <AppRefreshControl 
             refreshing={refreshing} 
             onRefresh={onRefresh}
-            tintColor={colors.primary.main}
-            colors={[colors.primary.main]}
           />
         }
       >

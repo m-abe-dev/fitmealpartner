@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Alert } from 'react-native';
 import { PeriodData, PeriodAIData, ChartData, StatsData } from '../screens/dashboard/types/dashboard.types';
 import { useScoreData } from './useScoreData';
@@ -14,6 +14,7 @@ import { useWorkoutStore } from '../stores/workoutStore';
 
 export const useDashboardScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
+  const refreshCountRef = useRef(0);
   const [activeTab, setActiveTab] = useState('coach');
   const [currentWorkoutPeriod, setCurrentWorkoutPeriod] = useState(0);
   const [currentNutritionPeriod, setCurrentNutritionPeriod] = useState(0);
@@ -41,8 +42,9 @@ export const useDashboardScreen = () => {
   // 改善されたリフレッシュハンドラー
   const onRefresh = useCallback(async () => {
     try {
+      refreshCountRef.current++;
       setRefreshing(true);
-      console.log('🔄 Dashboard refresh started');
+      console.log(`🔄 Dashboard refresh #${refreshCountRef.current} started`);
       
       const refreshPromises = [];
       
