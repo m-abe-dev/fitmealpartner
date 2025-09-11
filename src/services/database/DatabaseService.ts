@@ -13,6 +13,9 @@ class DatabaseService {
       // Expo SDK 53の新しいAPI - openDatabaseAsync を使用
       this.db = await SQLite.openDatabaseAsync('fitmeal.db');
 
+      // パフォーマンス最適化設定
+      await this.optimizePerformance();
+
       // テーブル作成
       await this.createTables();
 
@@ -32,9 +35,6 @@ class DatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     try {
-      // 外部キー制約を有効化
-      await this.db.execAsync('PRAGMA foreign_keys = ON;');
-
       // 1. 食品マスタテーブル
       await this.db.execAsync(`
         CREATE TABLE IF NOT EXISTS food_db (
@@ -78,6 +78,15 @@ class DatabaseService {
 
         CREATE INDEX IF NOT EXISTS idx_food_log_date ON food_log(date);
         CREATE INDEX IF NOT EXISTS idx_food_log_user ON food_log(user_id);
+        
+        -- 複合インデックス：日付とユーザーの組み合わせ（今日の食事を取得する際に高速化）
+        CREATE INDEX IF NOT EXISTS idx_food_log_user_date ON food_log(user_id, date);
+        
+        -- 複合インデックス：日付と食事タイプの組み合わせ（食事タイプ別の取得を高速化）
+        CREATE INDEX IF NOT EXISTS idx_food_log_date_meal ON food_log(date, meal_type);
+        
+        -- 複合インデックス：ログ時刻でのソート用（最近の記録を取得する際に高速化）
+        CREATE INDEX IF NOT EXISTS idx_food_log_user_logged ON food_log(user_id, logged_at DESC);
       `);
 
       // 3. ワークアウトセッションテーブル
@@ -95,6 +104,9 @@ class DatabaseService {
 
         CREATE INDEX IF NOT EXISTS idx_workout_session_date ON workout_session(date);
         CREATE INDEX IF NOT EXISTS idx_workout_session_user ON workout_session(user_id);
+        
+        -- 複合インデックス：ユーザーと日付の組み合わせ
+        CREATE INDEX IF NOT EXISTS idx_workout_user_date ON workout_session(user_id, date);
       `);
 
       // 4. ワークアウトセットテーブル
@@ -162,6 +174,30 @@ class DatabaseService {
       `);
     } catch (error) {
       throw error;
+    }
+  }
+
+  private async optimizePerformance(): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    
+    try {
+      // WALモード有効化（書き込みと読み込みの並行処理を改善）
+      await this.db.execAsync('PRAGMA journal_mode = WAL;');
+      
+      // メモリキャッシュサイズの設定（デフォルト2000から増加）
+      await this.db.execAsync('PRAGMA cache_size = 10000;');
+      
+      // 一時ストレージをメモリに
+      await this.db.execAsync('PRAGMA temp_store = MEMORY;');
+      
+      // 同期モードの調整（パフォーマンス優先）
+      await this.db.execAsync('PRAGMA synchronous = NORMAL;');
+      
+      // 外部キー制約を有効化
+      await this.db.execAsync('PRAGMA foreign_keys = ON;');
+    } catch (error) {
+      console.warn('Database optimization failed:', error);
+      // 最適化の失敗はアプリの動作を止めない
     }
   }
 
@@ -835,6 +871,88 @@ class DatabaseService {
     } catch (error) {
       throw error;
     }
+  }
+
+  // バッチ処理：複数の食品を一度に追加
+  async addMultipleFoodsToLog(foods: Array<{
+    user_id: string;
+    date: string;
+    meal_type: string;
+    food_id: string;
+    food_name: string;
+    amount_g: number;
+    protein_g: number;
+    fat_g: number;
+    carb_g: number;
+    kcal: number;
+  }>): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    
+    await this.runTransaction(async (db) => {
+      const stmt = await db.prepareAsync(
+        `INSERT INTO food_log 
+         (user_id, date, meal_type, food_id, food_name, amount_g, protein_g, fat_g, carb_g, kcal) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      );
+      
+      for (const food of foods) {
+        await stmt.executeAsync([
+          food.user_id,
+          food.date,
+          food.meal_type,
+          food.food_id,
+          food.food_name,
+          food.amount_g,
+          food.protein_g,
+          food.fat_g,
+          food.carb_g,
+          food.kcal
+        ]);
+      }
+      
+      await stmt.finalizeAsync();
+    });
+  }
+
+  // 最近使用した食品を効率的に取得
+  async getRecentFoods(userId: string, limit: number = 20): Promise<any[]> {
+    if (!this.db) throw new Error('Database not initialized');
+    
+    return await this.getAllAsync(
+      `SELECT DISTINCT food_id, food_name, 
+              MAX(logged_at) as last_used,
+              AVG(protein_g) as avg_protein,
+              AVG(fat_g) as avg_fat,
+              AVG(carb_g) as avg_carb,
+              AVG(kcal) as avg_kcal
+       FROM food_log 
+       WHERE user_id = ? 
+         AND date >= date('now', '-30 days')
+       GROUP BY food_id, food_name
+       ORDER BY last_used DESC
+       LIMIT ?`,
+      [userId, limit]
+    );
+  }
+
+  // ユーザーの日別栄養摂取量を効率的に取得
+  async getDailyNutritionStats(userId: string, startDate: string, endDate: string): Promise<any[]> {
+    if (!this.db) throw new Error('Database not initialized');
+    
+    return await this.getAllAsync(
+      `SELECT date,
+              SUM(protein_g) as total_protein,
+              SUM(fat_g) as total_fat,
+              SUM(carb_g) as total_carbs,
+              SUM(kcal) as total_kcal,
+              COUNT(*) as food_count
+       FROM food_log 
+       WHERE user_id = ? 
+         AND date BETWEEN ? AND ?
+       GROUP BY date
+       ORDER BY date DESC`,
+      [userId, startDate, endDate]
+    );
   }
 }
 

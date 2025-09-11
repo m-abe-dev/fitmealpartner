@@ -17,15 +17,19 @@ class StreakService {
   async updateStreak(): Promise<number> {
     try {
       const today = new Date().toISOString().split('T')[0];
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-      
+      const yesterday = new Date(Date.now() - 86400000)
+        .toISOString()
+        .split('T')[0];
+
       // 今日の食事記録があるかチェック
       const todayLogs = await this.checkTodayLogs(today);
-      
+
       if (todayLogs) {
         const lastRecordDate = await AsyncStorage.getItem('lastRecordDate');
-        let currentStreak = parseInt(await AsyncStorage.getItem('currentStreak') || '0');
-        
+        let currentStreak = parseInt(
+          (await AsyncStorage.getItem('currentStreak')) || '0'
+        );
+
         if (lastRecordDate === yesterday) {
           // 連続記録を継続
           currentStreak += 1;
@@ -34,16 +38,16 @@ class StreakService {
           currentStreak = 1;
         }
         // lastRecordDate === today の場合は何もしない（同じ日の複数更新を避ける）
-        
+
         await AsyncStorage.setItem('lastRecordDate', today);
         await AsyncStorage.setItem('currentStreak', currentStreak.toString());
-        
+
         // マイルストーンバッジのチェック
         await this.checkMilestone(currentStreak);
-        
+
         return currentStreak;
       }
-      
+
       return 0;
     } catch (error) {
       console.error('Error updating streak:', error);
@@ -55,11 +59,11 @@ class StreakService {
   private async checkTodayLogs(today: string): Promise<boolean> {
     try {
       const db = await DatabaseService.getDatabase();
-      const result = await db.getAllAsync(
+      const result = (await db.getAllAsync(
         'SELECT COUNT(*) as count FROM food_log WHERE date = ?',
         [today]
-      ) as any[];
-      
+      )) as any[];
+
       return result[0]?.count > 0;
     } catch (error) {
       console.error('Error checking today logs:', error);
@@ -99,23 +103,23 @@ class StreakService {
   async recalculateStreak(): Promise<number> {
     try {
       await DatabaseService.initialize();
-      
+
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       // 今日から遡って連続記録日数を計算
       let streakCount = 0;
       let checkDate = new Date(today);
-      
+
       while (true) {
         const dateStr = checkDate.toISOString().split('T')[0];
-        
+
         // その日に食事記録があるか確認
         const foodLogs = await DatabaseService.getAllAsync(
           'SELECT * FROM food_log WHERE date = ? LIMIT 1',
           [dateStr]
         );
-        
+
         if (foodLogs.length > 0) {
           streakCount++;
           checkDate.setDate(checkDate.getDate() - 1);
@@ -127,18 +131,20 @@ class StreakService {
           }
           break;
         }
-        
+
         // 安全のため最大365日まで
         if (streakCount > 365) break;
       }
-      
+
       // 新しい値を保存
       await AsyncStorage.setItem('currentStreak', streakCount.toString());
       if (streakCount > 0) {
-        await AsyncStorage.setItem('lastRecordDate', today.toISOString().split('T')[0]);
+        await AsyncStorage.setItem(
+          'lastRecordDate',
+          today.toISOString().split('T')[0]
+        );
       }
-      
-      console.log('Recalculated streak:', streakCount);
+
       return streakCount;
     } catch (error) {
       console.error('Error recalculating streak:', error);
@@ -149,7 +155,7 @@ class StreakService {
   // マイルストーンバッジのチェック
   private async checkMilestone(streakDays: number): Promise<void> {
     const milestones = [3, 7, 14, 30, 60, 100];
-    
+
     for (const milestone of milestones) {
       if (streakDays === milestone) {
         // バッジ獲得の通知やローカルストレージへの保存
@@ -164,8 +170,10 @@ class StreakService {
   private async saveMilestone(milestone: number): Promise<void> {
     try {
       const existingMilestones = await AsyncStorage.getItem('milestones');
-      const milestones = existingMilestones ? JSON.parse(existingMilestones) : [];
-      
+      const milestones = existingMilestones
+        ? JSON.parse(existingMilestones)
+        : [];
+
       if (!milestones.includes(milestone)) {
         milestones.push(milestone);
         await AsyncStorage.setItem('milestones', JSON.stringify(milestones));

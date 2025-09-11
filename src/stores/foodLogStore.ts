@@ -65,18 +65,9 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
       );
 
       const mappedLogs: FoodLogItem[] = logs.map(log => {
-        // デバッグ用ログ
-        if (__DEV__) {
-          console.log('Raw logged_at:', log.logged_at);
-        }
-        
-        const timeString = log.logged_at 
-          ? TimezoneHelper.convertUTCToLocal(log.logged_at) 
+        const timeString = log.logged_at
+          ? TimezoneHelper.convertUTCToLocal(log.logged_at)
           : '--:--';
-          
-        if (__DEV__) {
-          console.log('Converted time:', timeString);
-        }
 
         return {
           id: log.id.toString(),
@@ -233,7 +224,6 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
 
       const newFavoriteStatus = !currentFood.isFavorite;
       const actualFoodId = currentFood.foodId;
-
 
       // food_dbテーブルのお気に入り状態を更新
       if (actualFoodId) {
