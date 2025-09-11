@@ -56,7 +56,12 @@ export const NutritionScreen: React.FC = () => {
         style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            tintColor={colors.primary.main}
+            colors={[colors.primary.main]}
+          />
         }
       >
         {/* 栄養進歩カード */}
