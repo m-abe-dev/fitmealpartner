@@ -6,12 +6,33 @@ import ScoreAggregationService from '../services/ScoreAggregationService';
 
 // WorkoutスコアをTodayResultsと同じロジックで計算するヘルパー
 const calculateWorkoutScore = (exercises: Exercise[]): number => {
+  console.log('📊 useScoreData - Calculating score for exercises:', {
+    count: exercises.length,
+    exercises: exercises.map(e => ({
+      id: e.id,
+      name: e.name,
+      sets: e.sets.length,
+      type: e.type,
+      setDetails: e.sets.map(s => ({
+        weight: s.weight,
+        reps: s.reps,
+        rm: (s as any).rm,
+        time: s.time,
+        distance: s.distance
+      }))
+    }))
+  });
+
   const hasStrength = exercises.some(ex => ex.type !== 'cardio');
   const hasCardio = exercises.some(ex => ex.type === 'cardio');
 
-  if (!hasStrength && !hasCardio) return 0;
+  if (!hasStrength && !hasCardio) {
+    console.log('📊 useScoreData - No exercises found, returning 0');
+    return 0;
+  }
 
   // ヘルパー関数
+  const clamp = (n: number, min = 0, max = 1) => Math.max(min, Math.min(max, n));
   const softSaturate = (x: number, k: number) =>
     1 - Math.exp(-x / Math.max(k, 1));
 
@@ -38,6 +59,12 @@ const calculateWorkoutScore = (exercises: Exercise[]): number => {
     const strength = exercises.filter(ex => ex.type !== 'cardio');
     const totalSets = strength.reduce((t, ex) => t + ex.sets.length, 0);
     if (totalSets === 0) return 0;
+
+    console.log('📊 useScoreData - Strength calculation:', {
+      strengthExercises: strength.length,
+      totalSets,
+      exercises: strength.map(e => ({ name: e.name, sets: e.sets.length }))
+    });
 
     // Sets Score (40点満点)
     const setsScore = 40 * softSaturate(totalSets, 12);
@@ -76,33 +103,95 @@ const calculateWorkoutScore = (exercises: Exercise[]): number => {
       varietyScore = 8;
     }
 
-    return Math.round(setsScore + volumeScore + varietyScore);
+    const totalScore = Math.round(setsScore + volumeScore + varietyScore);
+    console.log('📊 useScoreData - Strength scores:', {
+      setsScore: Math.round(setsScore),
+      volumeScore: Math.round(volumeScore),
+      varietyScore: Math.round(varietyScore),
+      totalScore,
+      avgRm,
+      eqVolume,
+      targetVolume
+    });
+
+    return totalScore;
   };
 
   const cardioScoreFromExercises = () => {
     const cardio = exercises.filter(ex => ex.type === 'cardio');
-    const totalTime = cardio.reduce(
-      (t, ex) => t + ex.sets.reduce((st, s) => st + (s.time || 0), 0),
-      0
-    );
-    if (totalTime === 0) return 0;
+    if (cardio.length === 0) return 0;
 
-    const timeScore = 70 * softSaturate(totalTime, 30);
-    const varietyScore = 30 * Math.min(1, cardio.length / 3);
-    return Math.round(timeScore + varietyScore);
+    console.log('📊 useScoreData - Cardio calculation:', {
+      cardioExercises: cardio.length,
+      exercises: cardio.map(e => ({ name: e.name, sets: e.sets.length }))
+    });
+
+    type Agg = { time: number; weighted: number };
+    const agg = cardio.reduce<Agg>((acc, ex) => {
+      ex.sets.forEach(s => {
+        const minutes = s.time ?? 0;          // 分
+        const km = s.distance ?? 0;           // km
+        if (minutes <= 0) return;
+        // 強度係数: pace基準（安全な範囲でクリップ）
+        const pace = km > 0 ? minutes / km : null; // min/km
+        // 6:00/km => 1.0, 4:00/km => 1.5, 12:00/km => 0.5
+        const intensity = pace ? clamp(6 / pace, 0.5, 2) : 1.0;
+        acc.time += minutes;
+        acc.weighted += minutes * intensity;
+      });
+      return acc;
+    }, { time: 0, weighted: 0 });
+
+    if (agg.time <= 0) return 0;
+
+    const avgIntensity = agg.weighted / agg.time;
+    const eqLoad = agg.time * avgIntensity; // 「強度付き時間」
+
+    const DAILY_TARGET_MIN = 30; // デイリー目安
+    const s1 = 70 * clamp(eqLoad / DAILY_TARGET_MIN, 0, 1);
+    const s2 = 30 * clamp(avgIntensity / 1.2, 0, 1); // 1.2相当で満点寄せ
+
+    const totalScore = Math.round(s1 + s2);
+
+    console.log('📊 useScoreData - Cardio scores:', {
+      totalTime: agg.time,
+      avgIntensity: Math.round(avgIntensity * 100) / 100,
+      eqLoad: Math.round(eqLoad * 100) / 100,
+      s1: Math.round(s1),
+      s2: Math.round(s2),
+      totalScore
+    });
+
+    return totalScore;
   };
 
-  if (!hasStrength) return cardioScoreFromExercises();
-  if (!hasCardio) return strengthScoreFromExercises();
+  let finalScore: number;
 
-  const sStrength = strengthScoreFromExercises();
-  const sCardio = cardioScoreFromExercises();
-  const best = Math.max(sStrength, sCardio);
-  const weaker = Math.min(sStrength, sCardio);
-  const bonus = 0.25 * Math.max(0, weaker - 50);
+  if (!hasStrength) {
+    finalScore = cardioScoreFromExercises();
+  } else if (!hasCardio) {
+    finalScore = strengthScoreFromExercises();
+  } else {
+    const sStrength = strengthScoreFromExercises();
+    const sCardio = cardioScoreFromExercises();
+    const best = Math.max(sStrength, sCardio);
+    const weaker = Math.min(sStrength, sCardio);
+    const bonus = 0.25 * Math.max(0, weaker - 50);
+    finalScore = Math.min(100, Math.round(best + bonus));
 
-  return Math.min(100, Math.round(best + bonus));
-};
+    console.log('📊 useScoreData - Combined score calculation:', {
+      sStrength,
+      sCardio,
+      best,
+      weaker,
+      bonus: Math.round(bonus * 100) / 100,
+      finalScore
+    });
+  }
+
+  console.log('📊 useScoreData - Final score:', finalScore);
+  return finalScore;
+};;
 
 // スコア重み付け計算関数
 const calculateScoreWeights = (activityLevel: string): { nutrition: number, training: number } => {
