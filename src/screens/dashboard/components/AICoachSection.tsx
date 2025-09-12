@@ -40,7 +40,49 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
     }
   }, [foodLog.length, workoutHistory?.length]);
 
+  // 昨日の栄養データを取得する関数
+  const getYesterdayNutritionData = async () => {
+    try {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayDateString = yesterday.toISOString().split('T')[0];
+      
+      // 昨日の食事ログを取得（実装は useFoodLog に依存）
+      // 実際の実装では、日付でフィルタリングした foodLog を使用
+      const yesterdayLogs = foodLog.filter(log => 
+        log.date === yesterdayDateString
+      );
+      
+      if (yesterdayLogs.length === 0) return null;
+      
+      // 昨日の栄養素を集計
+      const yesterdayTotals = yesterdayLogs.reduce(
+        (totals, log) => ({
+          protein: totals.protein + (log.protein_g || 0),
+          calories: totals.calories + (log.kcal || 0),
+          carbs: totals.carbs + (log.carb_g || 0),
+          fat: totals.fat + (log.fat_g || 0)
+        }),
+        { protein: 0, calories: 0, carbs: 0, fat: 0 }
+      );
+      
+      return {
+        ...yesterdayTotals,
+        targetProtein: nutritionTargets.protein,
+        targetCalories: nutritionTargets.calories,
+        achievement: Math.round((yesterdayTotals.protein / nutritionTargets.protein) * 100),
+        gap: Math.max(0, nutritionTargets.protein - yesterdayTotals.protein)
+      };
+    } catch (error) {
+      console.error('Error getting yesterday data:', error);
+      return null;
+    }
+  };
+
   const fetchAIFeedback = async () => {
+    // 昨日のデータを取得
+    const yesterdayData = await getYesterdayNutritionData();
+    
     const aiNutritionData = {
       calories: nutritionData.calories.current,
       protein: nutritionData.protein.current,
@@ -59,14 +101,37 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
       }))
     };
 
-    await refreshNutritionFeedback(aiNutritionData, {
+    const aiProfile = {
       weight: userProfile?.weight || 70,
       age: userProfile?.age || 25,
       goal: userProfile?.goal || 'maintain',
       gender: userProfile?.gender || 'male',
       height: userProfile?.height || 175,
       activityLevel: 'moderate' as const
-    });
+    };
+
+    // 追加コンテキストの準備
+    const additionalContext = {
+      mealCount: foodLog.length,
+      yesterdayData
+    };
+
+    try {
+      const response = await AIFeedbackService.getNutritionFeedback(
+        aiNutritionData, 
+        aiProfile,
+        additionalContext
+      );
+      if (response.success && response.feedback) {
+        // AIFeedbackServiceから直接レスポンスを取得した場合の処理
+        // refreshNutritionFeedback は useAIFeedback フックの関数を使用
+        await refreshNutritionFeedback(aiNutritionData, aiProfile);
+      }
+    } catch (error) {
+      console.error('Error fetching AI feedback:', error);
+      // フォールバック: 基本的なrefreshを実行
+      await refreshNutritionFeedback(aiNutritionData, aiProfile);
+    }
   };
 
   const fetchWorkoutSuggestion = async () => {
