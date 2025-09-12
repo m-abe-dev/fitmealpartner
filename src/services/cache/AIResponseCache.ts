@@ -18,7 +18,7 @@ class AIResponseCache {
    */
   private async generateCacheKey(data: any): Promise<string> {
     try {
-      // 重要な栄養データのみを使用してキーを生成
+      // 重要な栄養データと言語設定を使用してキーを生成
       const relevantData = {
         calories: data.nutrition?.calories ? Math.round(data.nutrition.calories / 50) * 50 : 0, // 50kcal単位で丸める
         protein: data.nutrition?.protein ? Math.round(data.nutrition.protein / 5) * 5 : 0,     // 5g単位で丸める
@@ -26,6 +26,7 @@ class AIResponseCache {
         fat: data.nutrition?.fat ? Math.round(data.nutrition.fat / 5) * 5 : 0,             // 5g単位で丸める
         goal: data.profile?.goal || 'maintain',
         targetCalories: data.nutrition?.targetCalories ? Math.round(data.nutrition.targetCalories / 100) * 100 : 0, // 100kcal単位
+        language: data.language || 'en', // 言語設定を追加
       };
       
       const jsonString = JSON.stringify(relevantData);

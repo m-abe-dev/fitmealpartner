@@ -8,12 +8,49 @@ import {
 import { ENV } from '../config/environment';
 import AIResponseCache from './cache/AIResponseCache';
 import { debounce } from 'lodash';
+import * as Localization from 'expo-localization';
 
 export class AIFeedbackService {
   private static SUPABASE_URL = ENV.supabase.url;
   private static SUPABASE_ANON_KEY = ENV.supabase.anonKey;
   private static requestCount = 0;
   private static lastRequestTime = 0;
+  
+  
+  /**
+   * デバイスの言語設定を取得
+   */
+  private static getDeviceLanguage(): string {
+    try {
+      const locales = Localization.getLocales();
+      
+      if (locales && locales.length > 0) {
+        const locale = locales[0];
+        
+        // languageTagから言語を判定（例: "ja-JP", "en-US"）
+        const languageTag = locale.languageTag || '';
+        
+        if (languageTag.startsWith('ja')) {
+          return 'ja';
+        } else if (languageTag.startsWith('en')) {
+          return 'en';
+        }
+        
+        // languageCodeで判定
+        const languageCode = locale.languageCode || '';
+        
+        if (languageCode === 'ja') {
+          return 'ja';
+        } else if (languageCode === 'en') {
+          return 'en';
+        }
+      }
+    } catch (error) {
+      console.error('Error getting device language:', error);
+    }
+    
+    return 'en'; // デフォルトは英語
+  }
   
   // デバウンス処理（5秒間の遅延）
   private static debouncedFeedback = debounce(
@@ -43,16 +80,17 @@ export class AIFeedbackService {
         return this.getNutritionFallback(nutrition);
       }
 
-      // キャッシュチェック
-      const cached = await AIResponseCache.get({ nutrition, profile });
+      // 言語設定を取得
+      const language = this.getDeviceLanguage();
+
+      // キャッシュチェック（言語情報も含める）
+      const cached = await AIResponseCache.get({ nutrition, profile, language });
       if (cached) {
-        console.log('Using cached AI response');
         return { ...cached, fromCache: true };
       }
 
       // 前回のリクエストから短時間なら待機
       if (this.shouldDebounce(nutrition)) {
-        console.log('Debouncing request');
         const result = await this.debouncedFeedback(nutrition, profile);
         return result || this.getNutritionFallback(nutrition);
       }
@@ -73,6 +111,11 @@ export class AIFeedbackService {
     nutrition: NutritionData,
     profile: AIUserProfile
   ): Promise<FeedbackResponse> {
+    // デバイスの言語設定を取得
+    const language = this.getDeviceLanguage();
+    
+    const requestBody = { nutrition, profile, language };
+    
     const response = await fetch(
       `${this.SUPABASE_URL}/functions/v1/nutrition-feedback`,
       {
@@ -81,7 +124,7 @@ export class AIFeedbackService {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${this.SUPABASE_ANON_KEY}`,
         },
-        body: JSON.stringify({ nutrition, profile }),
+        body: JSON.stringify(requestBody),
       }
     );
 
@@ -92,10 +135,9 @@ export class AIFeedbackService {
     }
 
     const result = await response.json();
-    console.log('Nutrition feedback received from API');
     
-    // キャッシュに保存
-    await AIResponseCache.set({ nutrition, profile }, result);
+    // キャッシュに保存（言語情報も含める）
+    await AIResponseCache.set({ nutrition, profile, language }, result);
     
     return result;
   }
@@ -117,7 +159,10 @@ export class AIFeedbackService {
     profile: AIUserProfile
   ): Promise<WorkoutSuggestionResponse> {
     try {
-      console.log('Requesting workout suggestion...');
+      // デバイスの言語設定を取得
+      const language = this.getDeviceLanguage();
+
+      const requestBody = { recentWorkouts, profile, language };
 
       const response = await fetch(
         `${this.SUPABASE_URL}/functions/v1/workout-suggestion`,
@@ -127,7 +172,7 @@ export class AIFeedbackService {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${this.SUPABASE_ANON_KEY}`,
           },
-          body: JSON.stringify({ recentWorkouts, profile }),
+          body: JSON.stringify(requestBody),
         }
       );
 
@@ -138,7 +183,6 @@ export class AIFeedbackService {
       }
 
       const result = await response.json();
-      console.log('Workout suggestion received');
 
       return result;
     } catch (error) {
@@ -155,6 +199,7 @@ export class AIFeedbackService {
   private static getNutritionFallback(
     nutrition: NutritionData
   ): FeedbackResponse {
+    const language = this.getDeviceLanguage();
     const proteinGap = Math.max(0, nutrition.targetProtein - nutrition.protein);
     const calorieGap = Math.max(
       0,
@@ -163,7 +208,7 @@ export class AIFeedbackService {
     const proteinAchievement =
       (nutrition.protein / nutrition.targetProtein) * 100;
 
-    let feedback = '栄養記録お疲れ様です！';
+    let feedback = language === 'en' ? 'Keep up the great work with tracking!' : '栄養記録お疲れ様です！';
     const suggestions: string[] = [];
     const actionItems: Array<{
       priority: 'high' | 'medium' | 'low';
@@ -172,37 +217,75 @@ export class AIFeedbackService {
     }> = [];
 
     if (proteinGap > 20) {
-      feedback = `タンパク質が約${Math.round(proteinGap)}g不足しています。`;
-      suggestions.push(
-        'サラダチキン（約25g）を追加',
-        'プロテインドリンク（約20g）を飲む',
-        '卵2個（約12g）をプラス'
-      );
-      actionItems.push({
-        priority: 'high',
-        action: 'サラダチキンまたはプロテインを摂取',
-        reason: '筋肉の維持・成長に必要',
-      });
+      if (language === 'en') {
+        feedback = `You're about ${Math.round(proteinGap)}g short on protein.`;
+        suggestions.push(
+          'Add chicken breast (about 25g protein per 100g)',
+          'Protein shake or Greek yogurt (15-20g)',
+          'Include eggs or tofu (10-15g protein)'
+        );
+        actionItems.push({
+          priority: 'high',
+          action: 'Add protein-rich foods to your next meal',
+          reason: 'Support muscle recovery and growth',
+        });
+      } else {
+        feedback = `タンパク質が約${Math.round(proteinGap)}g不足しています。`;
+        suggestions.push(
+          'サラダチキン（約25g）を追加',
+          'プロテインドリンク（約20g）を飲む',
+          '卵2個（約12g）をプラス'
+        );
+        actionItems.push({
+          priority: 'high',
+          action: 'サラダチキンまたはプロテインを摂取',
+          reason: '筋肉の維持・成長に必要',
+        });
+      }
     } else if (proteinAchievement >= 80) {
-      feedback = 'タンパク質の摂取量は良好です！';
-      suggestions.push(
-        '水分補給を忘れずに',
-        'バランスの良い食事を継続',
-        '食事の時間も意識してみましょう'
-      );
+      if (language === 'en') {
+        feedback = 'Your protein intake looks good!';
+        suggestions.push(
+          'Keep staying hydrated',
+          'Continue your balanced diet',
+          'Consider meal timing for optimal results'
+        );
+      } else {
+        feedback = 'タンパク質の摂取量は良好です！';
+        suggestions.push(
+          '水分補給を忘れずに',
+          'バランスの良い食事を継続',
+          '食事の時間も意識してみましょう'
+        );
+      }
     } else {
-      suggestions.push(
-        'タンパク質をもう少し増やしましょう',
-        'カロリーバランスも確認してみてください'
-      );
+      if (language === 'en') {
+        suggestions.push(
+          'Try adding a bit more protein',
+          'Check your calorie balance as well'
+        );
+      } else {
+        suggestions.push(
+          'タンパク質をもう少し増やしましょう',
+          'カロリーバランスも確認してみてください'
+        );
+      }
     }
 
     if (calorieGap > 300) {
-      actionItems.push({
-        priority: 'medium',
-        action: 'おにぎりやバナナなどでエネルギー補給',
-        reason: '基礎代謝の維持',
-      });
+      if (language === 'en') {
+        actionItems.push({
+          priority: 'medium',
+          action: 'Add healthy snacks like nuts or fruits for energy',
+          reason: 'Maintain your metabolism',
+        });
+      } else {
+        actionItems.push({
+          priority: 'medium',
+          action: 'おにぎりやバナナなどでエネルギー補給',
+          reason: '基礎代謝の維持',
+        });
+      }
     }
 
     return {
@@ -210,7 +293,7 @@ export class AIFeedbackService {
       feedback,
       suggestions,
       actionItems,
-      error: 'ネットワーク接続を確認してください',
+      error: language === 'en' ? 'Please check your network connection' : 'ネットワーク接続を確認してください',
     };
   }
 
@@ -220,6 +303,7 @@ export class AIFeedbackService {
   private static getWorkoutFallback(
     recentWorkouts: WorkoutData[]
   ): WorkoutSuggestionResponse {
+    const language = this.getDeviceLanguage();
     // 最近のワークアウトから使用頻度の低い筋群を特定
     const muscleGroups = ['chest', 'back', 'shoulders', 'arms', 'legs', 'core'];
     const workoutHistory = recentWorkouts.flatMap(w =>
@@ -234,29 +318,55 @@ export class AIFeedbackService {
     const targetMuscles =
       underused.length > 0 ? underused.slice(0, 2) : ['chest', 'arms'];
 
-    return {
-      success: false,
-      nextWorkout: {
-        targetMuscleGroups: targetMuscles,
-        recommendedExercises: [
-          {
-            name: 'プッシュアップ',
-            sets: 3,
-            reps: '10-15',
-            notes: '自重で基本的な胸筋トレーニング',
-          },
-          {
-            name: 'プランク',
-            sets: 3,
-            reps: '30秒',
-            notes: 'コア強化の基本種目',
-          },
-        ],
-        estimatedDuration: 30,
-      },
-      feedback: 'オフライン時の基本的なワークアウト提案です。',
-      error: 'AI提案機能が利用できません',
-    };
+    if (language === 'en') {
+      return {
+        success: false,
+        nextWorkout: {
+          targetMuscleGroups: targetMuscles,
+          recommendedExercises: [
+            {
+              name: 'Push-ups',
+              sets: 3,
+              reps: '10-15',
+              notes: 'Basic chest exercise using body weight',
+            },
+            {
+              name: 'Plank',
+              sets: 3,
+              reps: '30 seconds',
+              notes: 'Core strengthening exercise',
+            },
+          ],
+          estimatedDuration: 30,
+        },
+        feedback: 'Basic workout suggestions for offline mode.',
+        error: 'AI suggestion feature is temporarily unavailable',
+      };
+    } else {
+      return {
+        success: false,
+        nextWorkout: {
+          targetMuscleGroups: targetMuscles,
+          recommendedExercises: [
+            {
+              name: 'プッシュアップ',
+              sets: 3,
+              reps: '10-15',
+              notes: '自重で基本的な胸筋トレーニング',
+            },
+            {
+              name: 'プランク',
+              sets: 3,
+              reps: '30秒',
+              notes: 'コア強化の基本種目',
+            },
+          ],
+          estimatedDuration: 30,
+        },
+        feedback: 'オフライン時の基本的なワークアウト提案です。',
+        error: 'AI提案機能が利用できません',
+      };
+    }
   }
 
   /**

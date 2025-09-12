@@ -3,29 +3,45 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { generateAIResponse } from '../_shared/openai-client.ts';
 import { NutritionData, UserProfile, FeedbackResponse } from '../_shared/types.ts';
 
-serve(async (req) => {
-  // CORS対応
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+// 言語別のプロンプトを定義
+const getSystemPrompt = (language: string) => {
+  if (language === 'en') {
+    return `
+You are an experienced fitness nutrition coach.
+Analyze the user's nutritional intake and provide specific, actionable advice in English.
+
+Important Guidelines:
+1. Recommend healthy and balanced approaches
+2. Avoid extreme restrictions or unhealthy methods
+3. Suggest commonly available foods globally (focus on food types rather than specific brands)
+4. Maintain a positive and encouraging tone
+5. Acknowledge achievements
+6. Prioritize immediate actions to supplement lacking nutrients
+7. Be concise and clear
+
+Response must be in the following JSON format:
+{
+  "feedback": "Overall feedback (100-150 characters)",
+  "suggestions": ["Suggestion 1 with specific foods", "Suggestion 2", "Suggestion 3"],
+  "actionItems": [
+    {
+      "priority": "high/medium/low",
+      "action": "Specific action with food examples",
+      "reason": "Reason"
+    }
+  ]
+}
+
+Food Suggestions:
+- Protein: Chicken breast, fish, eggs, Greek yogurt, beans, tofu
+- Carbs: Brown rice, oatmeal, whole grain bread, fruits, sweet potatoes
+- Healthy fats: Nuts, avocado, olive oil, seeds
+- Quick energy: Bananas, energy bars, dried fruits, nuts
+`;
   }
-
-  try {
-    const { nutrition, profile }: { nutrition: NutritionData; profile: UserProfile } = 
-      await req.json();
-
-    // 栄養素の達成率を計算
-    const proteinAchievement = (nutrition.protein / nutrition.targetProtein) * 100;
-    const carbsAchievement = (nutrition.carbs / nutrition.targetCarbs) * 100;
-    const fatAchievement = (nutrition.fat / nutrition.targetFat) * 100;
-    const caloriesAchievement = (nutrition.calories / nutrition.targetCalories) * 100;
-
-    // 不足量の計算
-    const proteinGap = Math.max(0, nutrition.targetProtein - nutrition.protein);
-    const calorieGap = Math.max(0, nutrition.targetCalories - nutrition.calories);
-    const carbGap = Math.max(0, nutrition.targetCarbs - nutrition.carbs);
-
-    // システムプロンプト（日本語で応答するように指示）
-    const systemPrompt = `
+  
+  // 日本語（デフォルト）
+  return `
 あなたは経験豊富なフィットネス栄養コーチです。
 ユーザーの栄養摂取状況を分析し、具体的で実行可能なアドバイスを日本語で提供してください。
 
@@ -57,9 +73,40 @@ serve(async (req) => {
 - 健康的な脂質：ナッツ類、アボカド、オリーブオイル、種子類
 - クイックエネルギー：バナナ、エナジーバー、ドライフルーツ、ナッツ
 `;
+};
 
-    // ユーザープロンプト（日本語）
-    const userPrompt = `
+const getUserPrompt = (nutrition: any, profile: any, language: string) => {
+  const proteinAchievement = (nutrition.protein / nutrition.targetProtein) * 100;
+  const carbsAchievement = (nutrition.carbs / nutrition.targetCarbs) * 100;
+  const fatAchievement = (nutrition.fat / nutrition.targetFat) * 100;
+  const caloriesAchievement = (nutrition.calories / nutrition.targetCalories) * 100;
+  const proteinGap = Math.max(0, nutrition.targetProtein - nutrition.protein);
+
+  if (language === 'en') {
+    return `
+User Information:
+- Goal: ${profile.goal}
+- Age: ${profile.age}, Weight: ${profile.weight}kg, Gender: ${profile.gender}
+
+Today's Nutrition:
+- Calories: ${nutrition.calories}kcal / Target ${nutrition.targetCalories}kcal (${caloriesAchievement.toFixed(0)}%)
+- Protein: ${nutrition.protein}g / Target ${nutrition.targetProtein}g (${proteinAchievement.toFixed(0)}%) Gap: ${proteinGap}g
+- Carbs: ${nutrition.carbs}g / Target ${nutrition.targetCarbs}g (${carbsAchievement.toFixed(0)}%)
+- Fat: ${nutrition.fat}g / Target ${nutrition.targetFat}g (${fatAchievement.toFixed(0)}%)
+
+Meals:
+${nutrition.meals.map((m: any) => `- ${m.name}: ${m.calories}kcal (P:${m.protein}g C:${m.carbs}g F:${m.fat}g)`).join('\n')}
+
+Current time is ${new Date().getHours()}:00.
+
+Please provide practical suggestions to supplement lacking nutrients for the remaining time.
+Focus on commonly available foods globally.
+If protein is significantly lacking (>20g), prioritize protein-rich foods.
+`;
+  }
+  
+  // 日本語（デフォルト）
+  return `
 ユーザー情報：
 - 目標: ${profile.goal === 'cut' ? '減量' : profile.goal === 'bulk' ? '増量' : '維持'}
 - 年齢: ${profile.age}歳, 体重: ${profile.weight}kg, 性別: ${profile.gender === 'male' ? '男性' : profile.gender === 'female' ? '女性' : 'その他'}
@@ -71,7 +118,7 @@ serve(async (req) => {
 - 脂質: ${nutrition.fat}g / 目標${nutrition.targetFat}g (${fatAchievement.toFixed(0)}%)
 
 食事内容：
-${nutrition.meals.map(m => `- ${m.name}: ${m.calories}kcal (P:${m.protein}g C:${m.carbs}g F:${m.fat}g)`).join('\n')}
+${nutrition.meals.map((m: any) => `- ${m.name}: ${m.calories}kcal (P:${m.protein}g C:${m.carbs}g F:${m.fat}g)`).join('\n')}
 
 現在時刻は${new Date().getHours()}時です。
 
@@ -79,6 +126,35 @@ ${nutrition.meals.map(m => `- ${m.name}: ${m.calories}kcal (P:${m.protein}g C:${
 世界中で入手可能な一般的な食材を使った提案を心がけてください。
 タンパク質が大幅に不足（20g以上）している場合は、タンパク質豊富な食材を優先してください。
 `;
+};
+
+serve(async (req) => {
+  // CORS対応
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const body = await req.json();
+    const { nutrition, profile, language = 'ja' }: { 
+      nutrition: NutritionData; 
+      profile: UserProfile;
+      language?: string;
+    } = body;
+
+    // 栄養素の達成率を計算
+    const proteinAchievement = (nutrition.protein / nutrition.targetProtein) * 100;
+    const carbsAchievement = (nutrition.carbs / nutrition.targetCarbs) * 100;
+    const fatAchievement = (nutrition.fat / nutrition.targetFat) * 100;
+    const caloriesAchievement = (nutrition.calories / nutrition.targetCalories) * 100;
+
+    // 不足量の計算
+    const proteinGap = Math.max(0, nutrition.targetProtein - nutrition.protein);
+    const calorieGap = Math.max(0, nutrition.targetCalories - nutrition.calories);
+    const carbGap = Math.max(0, nutrition.targetCarbs - nutrition.carbs);
+
+    const systemPrompt = getSystemPrompt(language);
+    const userPrompt = getUserPrompt(nutrition, profile, language);
 
     const aiResponse = await generateAIResponse(systemPrompt, userPrompt, 600);
     
@@ -93,7 +169,7 @@ ${nutrition.meals.map(m => `- ${m.name}: ${m.calories}kcal (P:${m.protein}g C:${
 
     const response: FeedbackResponse = {
       success: true,
-      feedback: parsedResponse.feedback || '栄養バランスを分析しました',
+      feedback: parsedResponse.feedback || (language === 'en' ? 'Analyzed nutrition balance' : '栄養バランスを分析しました'),
       suggestions: parsedResponse.suggestions || [],
       actionItems: parsedResponse.actionItems || []
     };
@@ -105,10 +181,74 @@ ${nutrition.meals.map(m => `- ${m.name}: ${m.calories}kcal (P:${m.protein}g C:${
   } catch (error) {
     console.error('Error in nutrition-feedback:', error);
     
-    // フォールバック定型文（日本語）
-    const { nutrition } = await req.json().catch(() => ({ nutrition: null }));
+    // フォールバック処理も言語対応
+    const { nutrition, language = 'ja' } = await req.json().catch(() => ({ 
+      nutrition: null,
+      language: 'ja' 
+    }));
     
-    let fallbackFeedback = '栄養バランスを確認中です。記録を継続して目標達成を目指しましょう！';
+
+    const fallbackData = language === 'en' ? {
+      feedback: 'Analyzing nutrition balance. Keep tracking to achieve your goals!',
+      proteinShortage: (gap: number) => `You're about ${Math.round(gap)}g short on protein. Add high-protein foods.`,
+      suggestions: [
+        'Add chicken breast (about 25g protein per 100g)',
+        'Protein shake or Greek yogurt (15-20g)',
+        'Include eggs or tofu (10-15g protein)'
+      ],
+      calorieShortage: [
+        'Banana with nut butter',
+        'Whole grain bread with avocado',
+        'Mixed nuts and dried fruits'
+      ],
+      defaultSuggestions: [
+        'Focus on protein-rich foods for nutrition',
+        'Stay hydrated (aim for 2L daily)',
+        'Consistent tracking is key to success'
+      ],
+      action: {
+        priority: 'high' as const,
+        action: 'Add protein-rich foods to your next meal',
+        reason: 'Support muscle recovery and growth'
+      },
+      defaultAction: {
+        priority: 'medium' as const,
+        action: 'Focus on protein in your next meal',
+        reason: 'Improve nutrition balance'
+      },
+      error: 'AI analysis temporarily unavailable'
+    } : {
+      feedback: '栄養バランスを確認中です。記録を継続して目標達成を目指しましょう！',
+      proteinShortage: (gap: number) => `タンパク質が約${Math.round(gap)}g不足しています。高タンパク食材で補いましょう。`,
+      suggestions: [
+        '鶏胸肉を追加（100gあたり約25gのタンパク質）',
+        'プロテインシェイクまたはギリシャヨーグルト（15-20g）',
+        '卵や豆腐を活用（10-15gのタンパク質）'
+      ],
+      calorieShortage: [
+        'バナナとナッツバター',
+        '全粒粉パンとアボカド',
+        'ミックスナッツとドライフルーツ'
+      ],
+      defaultSuggestions: [
+        'タンパク質を含む食品で栄養補給',
+        '水分補給を忘れずに（1日2L目安）',
+        '食事記録の継続が成功への第一歩'
+      ],
+      action: {
+        priority: 'high' as const,
+        action: 'タンパク質豊富な食材を次の食事に追加',
+        reason: '筋肉の回復と成長をサポート'
+      },
+      defaultAction: {
+        priority: 'medium' as const,
+        action: '次の食事でタンパク質を意識',
+        reason: '栄養バランスの改善'
+      },
+      error: 'AI分析が一時的に利用できません'
+    };
+
+    let fallbackFeedback = fallbackData.feedback;
     
     // 型を明示的に指定
     const fallbackSuggestions: string[] = [];
@@ -123,41 +263,23 @@ ${nutrition.meals.map(m => `- ${m.name}: ${m.calories}kcal (P:${m.protein}g C:${
       const calorieGap = Math.max(0, nutrition.targetCalories - nutrition.calories);
 
       if (proteinGap > 20) {
-        fallbackFeedback = `タンパク質が約${Math.round(proteinGap)}g不足しています。高タンパク食材で補いましょう。`;
-        fallbackSuggestions.push(
-          '鶏胸肉を追加（100gあたり約25gのタンパク質）',
-          'プロテインシェイクまたはギリシャヨーグルト（15-20g）',
-          '卵や豆腐を活用（10-15gのタンパク質）'
-        );
-        fallbackActions.push({
-          priority: 'high',
-          action: 'タンパク質豊富な食材を次の食事に追加',
-          reason: '筋肉の回復と成長をサポート'
-        });
+        fallbackFeedback = fallbackData.proteinShortage(proteinGap);
+        fallbackSuggestions.push(...fallbackData.suggestions);
+        fallbackActions.push(fallbackData.action);
       } else if (calorieGap > 200) {
-        fallbackFeedback = 'カロリーがやや不足気味です。バランスよく栄養補給しましょう。';
-        fallbackSuggestions.push(
-          'バナナとナッツバター',
-          '全粒粉パンとアボカド',
-          'ミックスナッツとドライフルーツ'
-        );
+        fallbackFeedback = language === 'en' 
+          ? 'Calories are slightly low. Let\'s balance your nutrition.' 
+          : 'カロリーがやや不足気味です。バランスよく栄養補給しましょう。';
+        fallbackSuggestions.push(...fallbackData.calorieShortage);
       }
     }
 
     if (fallbackSuggestions.length === 0) {
-      fallbackSuggestions.push(
-        'タンパク質を含む食品で栄養補給',
-        '水分補給を忘れずに（1日2L目安）',
-        '食事記録の継続が成功への第一歩'
-      );
+      fallbackSuggestions.push(...fallbackData.defaultSuggestions);
     }
 
     if (fallbackActions.length === 0) {
-      fallbackActions.push({
-        priority: 'medium',
-        action: '次の食事でタンパク質を意識',
-        reason: '栄養バランスの改善'
-      });
+      fallbackActions.push(fallbackData.defaultAction);
     }
 
     const fallbackResponse: FeedbackResponse = {
@@ -165,7 +287,7 @@ ${nutrition.meals.map(m => `- ${m.name}: ${m.calories}kcal (P:${m.protein}g C:${
       feedback: fallbackFeedback,
       suggestions: fallbackSuggestions,
       actionItems: fallbackActions,
-      error: 'AI分析が一時的に利用できません'
+      error: fallbackData.error
     };
 
     return new Response(JSON.stringify(fallbackResponse), {
