@@ -48,6 +48,11 @@ export interface FeedbackResponse {
     action: string;
     reason: string;
   }>;
+  context?: {
+    timeOfDay: 'morning' | 'midday' | 'afternoon' | 'evening';
+    mealCount: number;
+    hasYesterdayData: boolean;
+  };
   error?: string;
 }
 

@@ -3,31 +3,45 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { generateAIResponse } from '../_shared/openai-client.ts';
 import { NutritionData, UserProfile, FeedbackResponse } from '../_shared/types.ts';
 
-// 言語別のプロンプトを定義
-const getSystemPrompt = (language: string) => {
+// 拡張されたシステムプロンプト（時間帯と文脈を考慮）
+const getEnhancedSystemPrompt = (language: string, context: any) => {
+  const { currentHour, mealCount, hasYesterdayData, yesterdayAchievement } = context;
   if (language === 'en') {
     return `
-You are an experienced fitness nutrition coach.
-Analyze the user's nutritional intake and provide specific, actionable advice in English.
+You are an experienced fitness nutrition coach providing context-aware feedback.
 
-Important Guidelines:
-1. Recommend healthy and balanced approaches
-2. Avoid extreme restrictions or unhealthy methods
-3. Suggest commonly available foods globally (focus on food types rather than specific brands)
-4. Maintain a positive and encouraging tone
-5. Acknowledge achievements
-6. Prioritize immediate actions to supplement lacking nutrients
-7. Be concise and clear
+Current Context:
+- Time: ${currentHour}:00
+- Meals logged today: ${mealCount}
+- Yesterday's performance: ${hasYesterdayData ? `${yesterdayAchievement}% achieved` : 'No data'}
 
-Response must be in the following JSON format:
+Feedback Guidelines:
+1. TIME-BASED ADVICE:
+   - Morning (6-10): Focus on starting strong, setting daily foundation
+   - Midday (11-14): Assess progress, adjust afternoon strategy
+   - Afternoon (15-18): Plan dinner to meet remaining targets
+   - Evening (19-22): Focus on completion or damage control
+
+2. MEAL PROGRESSION:
+   - 0 meals: Reference yesterday's data if available, provide morning start guidance
+   - 1 meal: Analyze breakfast quality, project daily needs
+   - 2 meals: Mid-day checkpoint, calculate dinner requirements precisely
+   - 3+ meals: Focus on fine-tuning or next day preparation
+
+3. YESTERDAY'S INFLUENCE:
+   - If perfect (>95%): "Yesterday was perfect! Keep the momentum"
+   - If lacking: "Yesterday's gap - compensate today"
+   - If over: "Yesterday's excess - moderate today"
+
+Response format:
 {
-  "feedback": "Overall feedback (100-150 characters)",
-  "suggestions": ["Suggestion 1 with specific foods", "Suggestion 2", "Suggestion 3"],
+  "feedback": "Contextual main message (100-150 chars)",
+  "suggestions": ["Time-appropriate suggestion 1", "Suggestion 2", "Suggestion 3"],
   "actionItems": [
     {
       "priority": "high/medium/low",
-      "action": "Specific action with food examples",
-      "reason": "Reason"
+      "action": "Specific time-sensitive action",
+      "reason": "Why this matters now"
     }
   ]
 }
@@ -42,27 +56,42 @@ Food Suggestions:
   
   // 日本語（デフォルト）
   return `
-あなたは経験豊富なフィットネス栄養コーチです。
-ユーザーの栄養摂取状況を分析し、具体的で実行可能なアドバイスを日本語で提供してください。
+あなたは経験豊富なフィットネス栄養コーチです。時間帯と状況に応じた的確なアドバイスを提供してください。
 
-重要なガイドライン：
-1. 健康的でバランスの取れたアプローチを推奨
-2. 極端な制限や不健康な方法は避ける
-3. 世界中で入手可能な一般的な食材を提案（特定のブランド名ではなく食材の種類を中心に）
-4. ポジティブで励みになるトーンを保つ
-5. 達成できた部分も認める
-6. 不足栄養素を補う即座のアクションを優先
-7. 簡潔で分かりやすく
+現在の状況：
+- 現在時刻: ${currentHour}時
+- 今日の食事回数: ${mealCount}回
+- 昨日の達成率: ${hasYesterdayData ? `${yesterdayAchievement}%` : 'データなし'}
 
-レスポンスは必ず以下の形式のJSONで返してください：
+フィードバックガイドライン：
+1. 時間帯別アドバイス：
+   - 朝 (6-10時): 「朝のタンパク質は吸収率が高い。目標の25%以上を狙いましょう」
+   - 昼 (11-14時): 「午後のエネルギー確保。進捗確認と午後の戦略調整」
+   - 午後 (15-18時): 「夕食で目標達成への道筋を。残り必要量を正確に計算」
+   - 夜 (19-22時): 「消化の良いタンパク質源で仕上げ。明日への準備も」
+
+2. 食事回数による分析：
+   - 0食: ${hasYesterdayData ? '昨日のデータを参考に朝食の重要性を強調' : '朝食から良いスタートを'}
+   - 1食: 朝食の質を評価し、残り2食での配分を提案
+   - 2食: 中間チェックポイント。夕食で必要な栄養素を正確に提示
+   - 3食以上: 微調整または翌日への準備
+
+3. 昨日との比較：
+   ${hasYesterdayData ? `
+   - 完璧達成時 (>95%): 「昨日はPFCバランス完璧！今日も同じペースで」
+   - 不足時: 「昨日のタンパク質不足分、今日の朝食でリカバリー」
+   - 過剰時: 「昨日の脂質オーバー分、今日は控えめに」
+   ` : ''}
+
+レスポンス形式：
 {
-  "feedback": "全体的なフィードバック（100-150文字）",
-  "suggestions": ["提案1（具体的な食材名を含む）", "提案2", "提案3"],
+  "feedback": "時間と状況に応じたメインメッセージ（100-150文字）",
+  "suggestions": ["時間帯に適した提案1", "提案2", "提案3"],
   "actionItems": [
     {
       "priority": "high/medium/low",
-      "action": "具体的なアクション（食材例も含む）",
-      "reason": "理由"
+      "action": "今すぐ実行可能な具体的アクション",
+      "reason": "なぜ今これが重要か"
     }
   ]
 }
@@ -75,57 +104,83 @@ Food Suggestions:
 `;
 };
 
-const getUserPrompt = (nutrition: any, profile: any, language: string) => {
+const getEnhancedUserPrompt = (nutrition: any, profile: any, context: any, language: string) => {
+  const { currentHour, mealCount, yesterdayData } = context;
+  const timeOfDay = currentHour < 10 ? 'morning' : currentHour < 14 ? 'midday' : currentHour < 18 ? 'afternoon' : 'evening';
   const proteinAchievement = (nutrition.protein / nutrition.targetProtein) * 100;
-  const carbsAchievement = (nutrition.carbs / nutrition.targetCarbs) * 100;
-  const fatAchievement = (nutrition.fat / nutrition.targetFat) * 100;
-  const caloriesAchievement = (nutrition.calories / nutrition.targetCalories) * 100;
   const proteinGap = Math.max(0, nutrition.targetProtein - nutrition.protein);
+  const remainingHours = Math.max(0, 22 - currentHour);
 
   if (language === 'en') {
     return `
 User Information:
 - Goal: ${profile.goal}
-- Age: ${profile.age}, Weight: ${profile.weight}kg, Gender: ${profile.gender}
+- Age: ${profile.age}, Weight: ${profile.weight}kg
 
-Today's Nutrition:
-- Calories: ${nutrition.calories}kcal / Target ${nutrition.targetCalories}kcal (${caloriesAchievement.toFixed(0)}%)
-- Protein: ${nutrition.protein}g / Target ${nutrition.targetProtein}g (${proteinAchievement.toFixed(0)}%) Gap: ${proteinGap}g
-- Carbs: ${nutrition.carbs}g / Target ${nutrition.targetCarbs}g (${carbsAchievement.toFixed(0)}%)
-- Fat: ${nutrition.fat}g / Target ${nutrition.targetFat}g (${fatAchievement.toFixed(0)}%)
+Current Status (${timeOfDay}):
+- Time: ${currentHour}:00 (${remainingHours} hours until bedtime)
+- Meals consumed: ${mealCount} ${mealCount === 0 ? '(no meals yet - focus on starting strong)' : ''}
+- Protein: ${nutrition.protein}g / ${nutrition.targetProtein}g (${proteinAchievement.toFixed(0)}%)
+- Remaining protein needed: ${proteinGap}g
 
-Meals:
-${nutrition.meals.map((m: any) => `- ${m.name}: ${m.calories}kcal (P:${m.protein}g C:${m.carbs}g F:${m.fat}g)`).join('\n')}
+${yesterdayData ? `
+Yesterday's Performance:
+- Protein: ${yesterdayData.protein}g / ${yesterdayData.targetProtein}g
+- Achievement: ${yesterdayData.achievement}%
+- ${yesterdayData.achievement > 95 ? 'Perfect execution!' : `Gap: ${yesterdayData.gap}g`}
+` : ''}
 
-Current time is ${new Date().getHours()}:00.
+Meals Today:
+${nutrition.meals.map((m: any) => `- ${m.name}: ${m.calories}kcal (P:${m.protein}g)`).join('\n')}
 
-Please provide practical suggestions to supplement lacking nutrients for the remaining time.
-Focus on commonly available foods globally.
-If protein is significantly lacking (>20g), prioritize protein-rich foods.
-`;
+${mealCount === 0 ? 
+  'No meals logged yet. Provide morning motivation and concrete first meal suggestions.' :
+  mealCount === 1 ? 
+  'One meal logged. Analyze breakfast quality and plan remaining day.' :
+  mealCount === 2 ?
+  'Two meals logged. Calculate precise dinner requirements.' :
+  'Multiple meals logged. Focus on fine-tuning or next day prep.'
+}
+
+Provide time-appropriate, actionable advice considering remaining hours and meal opportunities.`;
   }
   
   // 日本語（デフォルト）
   return `
 ユーザー情報：
 - 目標: ${profile.goal === 'cut' ? '減量' : profile.goal === 'bulk' ? '増量' : '維持'}
-- 年齢: ${profile.age}歳, 体重: ${profile.weight}kg, 性別: ${profile.gender === 'male' ? '男性' : profile.gender === 'female' ? '女性' : 'その他'}
+- 年齢: ${profile.age}歳, 体重: ${profile.weight}kg
 
-今日の栄養摂取状況：
-- カロリー: ${nutrition.calories}kcal / 目標${nutrition.targetCalories}kcal (${caloriesAchievement.toFixed(0)}%)
-- タンパク質: ${nutrition.protein}g / 目標${nutrition.targetProtein}g (${proteinAchievement.toFixed(0)}%) 不足${proteinGap}g
-- 炭水化物: ${nutrition.carbs}g / 目標${nutrition.targetCarbs}g (${carbsAchievement.toFixed(0)}%)
-- 脂質: ${nutrition.fat}g / 目標${nutrition.targetFat}g (${fatAchievement.toFixed(0)}%)
+現在の状況（${
+  timeOfDay === 'morning' ? '朝' : 
+  timeOfDay === 'midday' ? '昼' : 
+  timeOfDay === 'afternoon' ? '午後' : '夜'
+}）：
+- 時刻: ${currentHour}時（就寝まで約${remainingHours}時間）
+- 食事回数: ${mealCount}回 ${mealCount === 0 ? '（まだ食事なし - 良いスタートを切ることが重要）' : ''}
+- タンパク質: ${nutrition.protein}g / ${nutrition.targetProtein}g (${proteinAchievement.toFixed(0)}%)
+- 残り必要量: ${proteinGap}g
 
-食事内容：
-${nutrition.meals.map((m: any) => `- ${m.name}: ${m.calories}kcal (P:${m.protein}g C:${m.carbs}g F:${m.fat}g)`).join('\n')}
+${yesterdayData ? `
+昨日の実績：
+- タンパク質: ${yesterdayData.protein}g / ${yesterdayData.targetProtein}g
+- 達成率: ${yesterdayData.achievement}%
+- ${yesterdayData.achievement > 95 ? '完璧な達成！' : `不足: ${yesterdayData.gap}g`}
+` : ''}
 
-現在時刻は${new Date().getHours()}時です。
+今日の食事：
+${nutrition.meals.map((m: any) => `- ${m.name}: ${m.calories}kcal (P:${m.protein}g)`).join('\n')}
 
-残りの時間で不足栄養素を補うための実用的な提案をしてください。
-世界中で入手可能な一般的な食材を使った提案を心がけてください。
-タンパク質が大幅に不足（20g以上）している場合は、タンパク質豊富な食材を優先してください。
-`;
+${mealCount === 0 ? 
+  '食事記録なし。朝の動機付けと具体的な朝食提案を提供。' :
+  mealCount === 1 ? 
+  '朝食済み。朝食の質を評価し、残りの食事計画を提案。' :
+  mealCount === 2 ?
+  '2食済み。夕食で必要な栄養素を正確に計算して提示。' :
+  '複数食済み。微調整または翌日への準備に焦点。'
+}
+
+残り時間と食事機会を考慮した、時間帯に適したアクションを提案してください。`;
 };
 
 serve(async (req) => {
@@ -136,25 +191,33 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { nutrition, profile, language = 'ja' }: { 
+    const { 
+      nutrition, 
+      profile, 
+      language = 'ja',
+      yesterdayData,  // 新規: 昨日のデータ
+      mealCount = 0   // 新規: 今日の食事回数
+    }: { 
       nutrition: NutritionData; 
       profile: UserProfile;
       language?: string;
+      yesterdayData?: any;
+      mealCount?: number;
     } = body;
 
-    // 栄養素の達成率を計算
-    const proteinAchievement = (nutrition.protein / nutrition.targetProtein) * 100;
-    const carbsAchievement = (nutrition.carbs / nutrition.targetCarbs) * 100;
-    const fatAchievement = (nutrition.fat / nutrition.targetFat) * 100;
-    const caloriesAchievement = (nutrition.calories / nutrition.targetCalories) * 100;
+    // コンテキスト情報の準備
+    const currentHour = new Date().getHours();
+    const context = {
+      currentHour,
+      mealCount,
+      yesterdayData,
+      hasYesterdayData: !!yesterdayData,
+      yesterdayAchievement: yesterdayData?.achievement || 0
+    };
 
-    // 不足量の計算
-    const proteinGap = Math.max(0, nutrition.targetProtein - nutrition.protein);
-    const calorieGap = Math.max(0, nutrition.targetCalories - nutrition.calories);
-    const carbGap = Math.max(0, nutrition.targetCarbs - nutrition.carbs);
-
-    const systemPrompt = getSystemPrompt(language);
-    const userPrompt = getUserPrompt(nutrition, profile, language);
+    // 拡張されたプロンプトを使用
+    const systemPrompt = getEnhancedSystemPrompt(language, context);
+    const userPrompt = getEnhancedUserPrompt(nutrition, profile, context, language);
 
     const aiResponse = await generateAIResponse(systemPrompt, userPrompt, 600);
     
@@ -171,7 +234,14 @@ serve(async (req) => {
       success: true,
       feedback: parsedResponse.feedback || (language === 'en' ? 'Analyzed nutrition balance' : '栄養バランスを分析しました'),
       suggestions: parsedResponse.suggestions || [],
-      actionItems: parsedResponse.actionItems || []
+      actionItems: parsedResponse.actionItems || [],
+      context: {
+        timeOfDay: context.currentHour < 10 ? 'morning' : 
+                   context.currentHour < 14 ? 'midday' : 
+                   context.currentHour < 18 ? 'afternoon' : 'evening',
+        mealCount: context.mealCount,
+        hasYesterdayData: context.hasYesterdayData
+      }
     };
 
     return new Response(JSON.stringify(response), {
@@ -182,9 +252,10 @@ serve(async (req) => {
     console.error('Error in nutrition-feedback:', error);
     
     // フォールバック処理も言語対応
-    const { nutrition, language = 'ja' } = await req.json().catch(() => ({ 
+    const { nutrition, language = 'ja', mealCount = 0 } = await req.json().catch(() => ({ 
       nutrition: null,
-      language: 'ja' 
+      language: 'ja',
+      mealCount: 0
     }));
     
 
@@ -287,6 +358,11 @@ serve(async (req) => {
       feedback: fallbackFeedback,
       suggestions: fallbackSuggestions,
       actionItems: fallbackActions,
+      context: {
+        timeOfDay: 'morning',
+        mealCount: mealCount,
+        hasYesterdayData: false
+      },
       error: fallbackData.error
     };
 

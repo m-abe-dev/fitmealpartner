@@ -54,8 +54,15 @@ export class AIFeedbackService {
   
   // デバウンス処理（5秒間の遅延）
   private static debouncedFeedback = debounce(
-    async (nutrition: NutritionData, profile: AIUserProfile) => {
-      return await this.fetchNutritionFeedback(nutrition, profile);
+    async (
+      nutrition: NutritionData, 
+      profile: AIUserProfile,
+      additionalContext?: {
+        yesterdayData?: any;
+        mealCount?: number;
+      }
+    ) => {
+      return await this.fetchNutritionFeedback(nutrition, profile, additionalContext);
     },
     5000
   );
@@ -65,7 +72,11 @@ export class AIFeedbackService {
    */
   static async getNutritionFeedback(
     nutrition: NutritionData,
-    profile: AIUserProfile
+    profile: AIUserProfile,
+    additionalContext?: {
+      yesterdayData?: any;
+      mealCount?: number;
+    }
   ): Promise<FeedbackResponse> {
     try {
       // レート制限チェック（1分間に5回まで）
@@ -91,13 +102,13 @@ export class AIFeedbackService {
 
       // 前回のリクエストから短時間なら待機
       if (this.shouldDebounce(nutrition)) {
-        const result = await this.debouncedFeedback(nutrition, profile);
+        const result = await this.debouncedFeedback(nutrition, profile, additionalContext);
         return result || this.getNutritionFallback(nutrition);
       }
 
       // 新規リクエスト
       this.requestCount++;
-      return await this.fetchNutritionFeedback(nutrition, profile);
+      return await this.fetchNutritionFeedback(nutrition, profile, additionalContext);
     } catch (error) {
       console.error('Error getting nutrition feedback:', error);
       return this.getNutritionFallback(nutrition);
@@ -109,12 +120,21 @@ export class AIFeedbackService {
    */
   private static async fetchNutritionFeedback(
     nutrition: NutritionData,
-    profile: AIUserProfile
+    profile: AIUserProfile,
+    additionalContext?: {
+      yesterdayData?: any;
+      mealCount?: number;
+    }
   ): Promise<FeedbackResponse> {
     // デバイスの言語設定を取得
     const language = this.getDeviceLanguage();
     
-    const requestBody = { nutrition, profile, language };
+    const requestBody = { 
+      nutrition, 
+      profile, 
+      language,
+      ...additionalContext  // 昨日のデータと食事回数を追加
+    };
     
     const response = await fetch(
       `${this.SUPABASE_URL}/functions/v1/nutrition-feedback`,
