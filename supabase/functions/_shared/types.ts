@@ -13,7 +13,22 @@ export interface NutritionData {
     protein: number;
     carbs: number;
     fat: number;
+    mealType?: string;
   }>;
+  mealsByType?: {
+    hasBreakfast: boolean;
+    hasLunch: boolean;
+    hasDinner: boolean;
+    hasSnack: boolean;
+    breakfastProtein: number;
+    lunchProtein: number;
+    dinnerProtein: number;
+    snackProtein: number;
+    breakfastCalories: number;
+    lunchCalories: number;
+    dinnerCalories: number;
+    snackCalories: number;
+  };
 }
 
 export interface WorkoutData {
@@ -49,7 +64,7 @@ export interface FeedbackResponse {
     reason: string;
   }>;
   context?: {
-    timeOfDay: 'morning' | 'midday' | 'afternoon' | 'evening';
+    timeOfDay: 'morning' | 'midday' | 'afternoon' | 'evening' | 'any';
     mealCount: number;
     hasYesterdayData: boolean;
   };

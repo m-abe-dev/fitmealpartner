@@ -7,126 +7,121 @@ import {
   FeedbackResponse,
 } from '../_shared/types.ts';
 
-// 拡張されたシステムプロンプト（時間帯と文脈を考慮）
+// 食事タイプベースのシステムプロンプト
 const getEnhancedSystemPrompt = (language: string, context: any) => {
-  const { currentHour, mealCount, hasYesterdayData, yesterdayAchievement } =
-    context;
+  const { mealCount, hasYesterdayData, yesterdayAchievement, mealTypeData } = context;
 
   if (language === 'en') {
     return `
 You are an experienced fitness nutrition coach providing comprehensive, encouraging feedback.
 
 Current Context:
-- Time: ${currentHour}:00
 - Meals logged today: ${mealCount}
-- Yesterday's performance: ${
-      hasYesterdayData ? `${yesterdayAchievement}% achieved` : 'No data'
-    }
+- Yesterday's performance: ${hasYesterdayData ? `${yesterdayAchievement}% achieved` : 'No data'}
+
+IMPORTANT INSTRUCTIONS:
+Base your advice on MEAL TYPES (breakfast/lunch/dinner/snacks) rather than current time.
+Users may log meals later, so avoid time-based judgments.
+
+Meal Type Strategy:
+- Breakfast not logged: "Breakfast is the foundation. Aim for 20g+ protein"
+- Only breakfast logged: "Evaluate breakfast quality and plan lunch/dinner distribution"
+- Breakfast + lunch logged: "Analyze two meals and suggest dinner adjustments"
+- All meals logged: "Overall daily evaluation and tomorrow's improvements"
 
 Feedback Structure (Must include all 4 elements):
-1. [STATUS EVALUATION] Current strengths and improvement areas
-   - Strengths: "Excellent 30g protein at breakfast!" "On track for daily goal"
-   - Areas: "40g protein needed, but dinner can easily cover this"
+1. [STATUS EVALUATION] Current strengths and improvement areas based on logged meal types
+   - Strengths: "Excellent 30g protein at breakfast!" "Good meal distribution"
+   - Areas: "Missing lunch - opportunity for midday protein boost"
 
 2. [NUMERICAL ANALYSIS] Clear target gaps and achievement rates
-   - Achievement percentage, remaining needs, time availability
+   - Achievement percentage, remaining needs, unlogged meal opportunities
 
-3. [CONCRETE SUGGESTIONS] Immediately actionable advice
-   - Immediate, preparatory, and habit-building suggestions
+3. [CONCRETE SUGGESTIONS] Meal-type specific actionable advice
+   - For unlogged meals: specific food and amount suggestions
+   - For improvement: better meal composition
 
 4. [MOTIVATION] Positive encouragement and progress recognition
    - Yesterday comparison, progress acknowledgment, achievability emphasis
 
-Time-based Strategy:
-- Morning (6-10): "Foundation setting, breakfast importance, daily outlook"
-- Midday (11-14): "Progress assessment, afternoon strategy, achievement building"
-- Afternoon (15-18): "Final adjustments, specific dinner planning"
-- Evening (19-22): "Daily wrap-up, tomorrow preparation, today's reflection"
-
 Response format:
 {
-  "feedback": "[EVALUATION] achievement% achieved! strengths. improvements. [MOTIVATION] encouragement (120-160 chars)",
+  "feedback": "[EVALUATION] achievement% achieved! meal-type analysis. [MOTIVATION] encouragement (120-160 chars)",
   "suggestions": [
-    "[IMMEDIATE] specific food and amount",
-    "[PREPARE] next meal suggestion",
-    "[HABIT] long-term improvement"
+    "[FOR BREAKFAST] specific suggestion (if not logged)",
+    "[FOR LUNCH] specific suggestion (if not logged)",
+    "[FOR DINNER] specific suggestion (if not logged)"
   ],
   "actionItems": [
     {
       "priority": "high",
-      "action": "[NOW] specific action",
+      "action": "[UNLOGGED MEAL] specific action",
       "reason": "[BENEFIT] expected result"
     }
   ]
 }
 
-Example Patterns:
-- On track: "85% achieved! 30g from breakfast - excellent start. Need 20g more for dinner completion. 5g improvement from yesterday - steady progress!"
-- Behind: "40% achieved, but no worries! Dinner opportunity ahead. 40g needed but 150g chicken breast covers it. Yesterday's dinner comeback was amazing!"
-
 Food Suggestions:
 - Protein: Chicken breast, fish, eggs, Greek yogurt, beans, tofu
 - Carbs: Brown rice, oatmeal, whole grain bread, fruits, sweet potatoes
 - Healthy fats: Nuts, avocado, olive oil, seeds
-- Quick energy: Bananas, energy bars, dried fruits, nuts
 `;
   }
 
   // 日本語（デフォルト）
   return `
-あなたは経験豊富なフィットネス栄養コーチです。励ましと具体的指導を組み合わせたフィードバックを提供してください。
+あなたは経験豊富なフィットネス栄養コーチです。
 
 現在の状況：
-- 現在時刻: ${currentHour}時
-- 今日の食事回数: ${mealCount}回
+- 記録された食事回数: ${mealCount}回
 - 昨日の達成率: ${hasYesterdayData ? `${yesterdayAchievement}%` : 'データなし'}
 
+重要な指示：
+記録時間ではなく、食事タイプ（朝食/昼食/夕食/間食）に基づいてアドバイスしてください。
+ユーザーは後から食事を入力することがあるため、現在時刻での判断は避けてください。
+
+食事タイプ別の戦略：
+- 朝食未記録: 「朝食は1日の基礎。タンパク質20g以上を目標に」
+- 朝食のみ記録: 「朝食の評価と、昼夕での配分戦略」
+- 朝昼記録済み: 「2食の分析と夕食での調整方法」
+- 3食記録済み: 「1日の総評と明日への改善点」
+
 フィードバック構成（必ず4要素を含める）：
-1. 【状態評価】現在の良い点と改善点を具体的に
-   - 良い点：「朝食のタンパク質30g素晴らしい！」「このペースなら目標達成確実」
-   - 改善点：「タンパク質40g不足ですが、夕食で十分リカバリー可能」
+1. 【状態評価】記録された食事の良い点と改善点
+   - 良い点：「朝食のタンパク質30g素晴らしい！」「バランス良い配分」
+   - 改善点：「昼食未記録 - 中間で栄養補給の機会」
 
 2. 【数値分析】目標との差分を明確に
-   - 達成率、残り必要量、時間的余裕を具体的に
+   - 達成率、残り必要量、未記録食事での機会
 
-3. 【具体的提案】今すぐ実行可能なアクション
-   - 即効性、準備型、習慣化の3段階で提案
+3. 【具体的提案】食事タイプ別の具体的アドバイス
+   - 未記録食事用：具体的な食材と量の提案
+   - 改善用：より良い食事構成の提案
 
 4. 【励まし】前向きなモチベーション維持コメント
    - 昨日との比較、進歩の認識、達成可能性の強調
 
-時間帯別戦略：
-- 朝 (6-10時): 「1日の基礎作り、朝食の重要性と今後の見通し」
-- 昼 (11-14時): 「中間評価と午後戦略、達成感の醸成」
-- 午後 (15-18時): 「最終調整期、具体的な夕食計画」
-- 夜 (19-22時): 「1日の締めくくり、明日への準備と今日の振り返り」
-
 レスポンス形式：
 {
-  "feedback": "【評価】達成率○○%！良い点。改善点。【励まし】モチベーションコメント（120-160文字）",
+  "feedback": "【評価】達成率○○%！食事タイプ別分析。【励まし】モチベーションコメント（120-160文字）",
   "suggestions": [
-    "【即効性】具体的な食材と量",
-    "【準備型】次の食事の提案",
-    "【習慣化】長期的な改善提案"
+    "【朝食向け】具体的な提案（朝食未記録の場合）",
+    "【昼食向け】具体的な提案（昼食未記録の場合）",
+    "【夕食向け】具体的な提案（夕食未記録の場合）"
   ],
   "actionItems": [
     {
       "priority": "high",
-      "action": "【今すぐ】具体的アクション",
+      "action": "【未記録の食事】具体的アクション",
       "reason": "【効果】期待される結果"
     }
   ]
 }
 
-例文パターン：
-- 順調時: 「達成率85%！朝食で30g確保、素晴らしいスタートです。残り20gを夕食でクリア。昨日より朝食が5g改善、着実に前進しています！」
-- 遅れ気味: 「達成率40%、でも大丈夫！まだ夕食があります。40g不足ですが鶏胸肉150gで一気にリカバリー可能。昨日も夕食で逆転しましたね！」
-
 食材の提案例：
 - タンパク質源：鶏胸肉、魚、卵、ギリシャヨーグルト、豆類、豆腐、納豆
 - 炭水化物源：玄米、オートミール、全粒粉パン、果物、さつまいも
 - 健康的な脂質：ナッツ類、アボカド、オリーブオイル、種子類
-- クイックエネルギー：バナナ、エナジーバー、ドライフルーツ、ナッツ
 `;
 };
 
@@ -136,19 +131,10 @@ const getEnhancedUserPrompt = (
   context: any,
   language: string
 ) => {
-  const { currentHour, mealCount, yesterdayData } = context;
-  const timeOfDay =
-    currentHour < 10
-      ? 'morning'
-      : currentHour < 14
-      ? 'midday'
-      : currentHour < 18
-      ? 'afternoon'
-      : 'evening';
+  const { mealCount, yesterdayData, mealTypeData } = context;
   const proteinAchievement =
     (nutrition.protein / nutrition.targetProtein) * 100;
   const proteinGap = Math.max(0, nutrition.targetProtein - nutrition.protein);
-  const remainingHours = Math.max(0, 22 - currentHour);
 
   if (language === 'en') {
     return `
@@ -156,18 +142,14 @@ User Information:
 - Goal: ${profile.goal}
 - Age: ${profile.age}, Weight: ${profile.weight}kg
 
-Current Status (${timeOfDay}):
-- Time: ${currentHour}:00 (${remainingHours} hours until bedtime)
-- Meals consumed: ${mealCount} ${
-      mealCount === 0 ? '(no meals yet - focus on starting strong)' : ''
+Current Status:
+- Meals logged: ${mealCount} ${
+      mealCount === 0 ? '(no meals yet - clean slate for optimal nutrition)' : ''
     }
 - Protein: ${nutrition.protein}g / ${
       nutrition.targetProtein
     }g (${proteinAchievement.toFixed(0)}%)
 - Remaining protein needed: ${proteinGap}g
-- Average protein per remaining meal: ${
-      mealCount < 3 ? Math.round(proteinGap / (3 - mealCount)) : 0
-    }g
 
 ${
   yesterdayData
@@ -202,7 +184,7 @@ ${
     ? nutrition.meals
         .map(
           (m: any, index: number) =>
-            `- Meal ${index + 1}: ${m.name} (P:${m.protein}g${
+            `- ${m.mealType || 'Meal'} ${index + 1}: ${m.name} (P:${m.protein}g${
               m.protein >= 20
                 ? ' ✓ Good!'
                 : m.protein >= 10
@@ -214,18 +196,34 @@ ${
     : 'No meals logged yet - clean slate for optimal nutrition!'
 }
 
+Meal Type Analysis:
+${mealTypeData ? `
+- Breakfast: ${mealTypeData.hasBreakfast ? `${mealTypeData.breakfastProtein}g protein, ${mealTypeData.breakfastCalories}kcal ${mealTypeData.breakfastProtein >= 20 ? '✓ Good!' : '⚠️ Low'}` : 'Not recorded'}
+- Lunch: ${mealTypeData.hasLunch ? `${mealTypeData.lunchProtein}g protein, ${mealTypeData.lunchCalories}kcal ${mealTypeData.lunchProtein >= 30 ? '✓ Good!' : '⚠️ Low'}` : 'Not recorded'}
+- Dinner: ${mealTypeData.hasDinner ? `${mealTypeData.dinnerProtein}g protein, ${mealTypeData.dinnerCalories}kcal` : 'Not recorded'}
+- Snacks: ${mealTypeData.hasSnack ? `${mealTypeData.snackProtein}g protein, ${mealTypeData.snackCalories}kcal` : 'Not recorded'}
+
+Feedback Context:
+${!mealTypeData.hasBreakfast ? 
+  'Breakfast not logged: Foundation of the day is missing. Morning meals are crucial for metabolism.' : ''}
+${mealTypeData.hasBreakfast && !mealTypeData.hasLunch ? 
+  'Breakfast logged: Good foundation. Time to build on this success with strategic lunch.' : ''}
+${mealTypeData.hasBreakfast && mealTypeData.hasLunch && !mealTypeData.hasDinner ? 
+  'Breakfast & lunch logged: Strong morning and midday. Perfect setup to complete the day with dinner.' : ''}
+` : 'Meal type data not available.'}
+
 Context for Feedback:
 ${
   mealCount === 0
-    ? "MORNING START: User hasn't eaten yet. Focus on motivation, foundation-setting, and concrete breakfast suggestions with protein targets."
+    ? "NO MEALS LOGGED: Focus on motivation, foundation-setting, and meal type specific suggestions. Start with breakfast recommendations."
     : mealCount === 1
-    ? 'MID-DAY CHECKPOINT: Analyze breakfast quality, celebrate successes, plan strategic lunch/dinner distribution.'
+    ? 'ONE MEAL LOGGED: Analyze the logged meal quality, celebrate successes, suggest for remaining meal types.'
     : mealCount === 2
-    ? 'FINAL STRETCH: Two meals down. Calculate precise dinner requirements. Build confidence about achievability.'
-    : "DAY COMPLETION: Multiple meals logged. Focus on fine-tuning, next-day preparation, and celebrating today's efforts."
+    ? 'TWO MEALS LOGGED: Analyze meal distribution, calculate remaining requirements, suggest for unlogged meal types.'
+    : "MULTIPLE MEALS LOGGED: Comprehensive daily analysis, evaluate meal type distribution, suggest improvements."
 }
 
-Provide comprehensive 4-element feedback (evaluation, analysis, suggestions, motivation) considering time constraints and meal opportunities.`;
+Provide comprehensive 4-element feedback (evaluation, analysis, suggestions, motivation) focusing on meal types and distribution.`;
   }
 
   // 日本語（デフォルト）
@@ -236,26 +234,14 @@ Provide comprehensive 4-element feedback (evaluation, analysis, suggestions, mot
   }
 - 年齢: ${profile.age}歳, 体重: ${profile.weight}kg
 
-現在の状況（${
-    timeOfDay === 'morning'
-      ? '朝'
-      : timeOfDay === 'midday'
-      ? '昼'
-      : timeOfDay === 'afternoon'
-      ? '午後'
-      : '夜'
-  }）：
-- 時刻: ${currentHour}時（就寝まで約${remainingHours}時間）
-- 食事回数: ${mealCount}回 ${
-    mealCount === 0 ? '（まだ食事なし - 良いスタートを切ることが重要）' : ''
+現在の状況：
+- 記録済み食事回数: ${mealCount}回 ${
+    mealCount === 0 ? '（食事未記録 - 最適な栄養摂取のチャンス）' : ''
   }
 - タンパク質: ${nutrition.protein}g / ${
     nutrition.targetProtein
   }g (${proteinAchievement.toFixed(0)}%)
 - 残り必要量: ${proteinGap}g
-- 残り食事1回あたり平均: ${
-    mealCount < 3 ? Math.round(proteinGap / (3 - mealCount)) : 0
-  }g
 
 ${
   yesterdayData
@@ -288,7 +274,10 @@ ${
     ? nutrition.meals
         .map(
           (m: any, index: number) =>
-            `- 食事${index + 1}: ${m.name} (P:${m.protein}g${
+            `- ${m.mealType === 'breakfast' ? '朝食' : 
+                m.mealType === 'lunch' ? '昼食' : 
+                m.mealType === 'dinner' ? '夕食' : 
+                m.mealType === 'snack' ? '間食' : '食事'}${index + 1}: ${m.name} (P:${m.protein}g${
               m.protein >= 20
                 ? ' ✓ 良好！'
                 : m.protein >= 10
@@ -300,18 +289,34 @@ ${
     : '食事記録なし - 最適な栄養摂取のチャンス！'
 }
 
+食事タイプ別分析：
+${mealTypeData ? `
+- 朝食: ${mealTypeData.hasBreakfast ? `タンパク質${mealTypeData.breakfastProtein}g、${mealTypeData.breakfastCalories}kcal ${mealTypeData.breakfastProtein >= 20 ? '✓ 良好' : '⚠️ 不足'}` : '未記録'}
+- 昼食: ${mealTypeData.hasLunch ? `タンパク質${mealTypeData.lunchProtein}g、${mealTypeData.lunchCalories}kcal ${mealTypeData.lunchProtein >= 30 ? '✓ 良好' : '⚠️ 不足'}` : '未記録'}
+- 夕食: ${mealTypeData.hasDinner ? `タンパク質${mealTypeData.dinnerProtein}g、${mealTypeData.dinnerCalories}kcal` : '未記録'}
+- 間食: ${mealTypeData.hasSnack ? `タンパク質${mealTypeData.snackProtein}g、${mealTypeData.snackCalories}kcal` : '未記録'}
+
+フィードバック文脈：
+${!mealTypeData.hasBreakfast ? 
+  '朝食未記録: 朝食は1日の基礎となる重要な食事です。' : ''}
+${mealTypeData.hasBreakfast && !mealTypeData.hasLunch ? 
+  '朝食記録済み: 昼食で中間目標を達成しましょう。' : ''}
+${mealTypeData.hasBreakfast && mealTypeData.hasLunch && !mealTypeData.hasDinner ? 
+  '朝昼記録済み: 夕食で今日の目標を完成させましょう。' : ''}
+` : '食事タイプデータが利用できません。'}
+
 フィードバック文脈：
 ${
   mealCount === 0
-    ? '朝のスタート: まだ食事なし。動機付け、基礎作り、具体的な朝食提案とタンパク質目標に焦点。'
+    ? '食事未記録: 動機付け、基礎作り、食事タイプ別の具体的提案に焦点。まず朝食から提案。'
     : mealCount === 1
-    ? '中間チェック: 朝食の質を分析、成功を祝い、昼食・夕食の戦略的配分を計画。'
+    ? '1食記録済み: 記録済み食事の質を分析、成功を祝い、残り食事タイプへの提案。'
     : mealCount === 2
-    ? '最終調整: 2食完了。夕食での正確な必要量を計算。達成可能性への自信を構築。'
-    : '1日完遂: 複数食記録済み。微調整、翌日準備、今日の努力を讃える。'
+    ? '2食記録済み: 食事配分を分析、残り必要量を計算、未記録食事タイプへの提案。'
+    : '複数食記録済み: 包括的な日次分析、食事タイプ別配分の評価、改善提案。'
 }
 
-4要素構成（評価・分析・提案・励まし）で、時間的制約と食事機会を考慮した包括的フィードバックを提供してください。`;
+4要素構成（評価・分析・提案・励まし）で、食事タイプと配分に焦点を当てた包括的フィードバックを提供してください。`;
 };
 
 serve(async req => {
@@ -328,20 +333,21 @@ serve(async req => {
       language = 'ja',
       yesterdayData, // 新規: 昨日のデータ
       mealCount = 0, // 新規: 今日の食事回数
+      mealTypeData, // 新規: 食事タイプ別データ
     }: {
       nutrition: NutritionData;
       profile: UserProfile;
       language?: string;
       yesterdayData?: any;
       mealCount?: number;
+      mealTypeData?: any;
     } = body;
 
     // コンテキスト情報の準備
-    const currentHour = new Date().getHours();
     const context = {
-      currentHour,
       mealCount,
       yesterdayData,
+      mealTypeData,
       hasYesterdayData: !!yesterdayData,
       yesterdayAchievement: yesterdayData?.achievement || 0,
     };
@@ -376,14 +382,7 @@ serve(async req => {
       suggestions: parsedResponse.suggestions || [],
       actionItems: parsedResponse.actionItems || [],
       context: {
-        timeOfDay:
-          context.currentHour < 10
-            ? 'morning'
-            : context.currentHour < 14
-            ? 'midday'
-            : context.currentHour < 18
-            ? 'afternoon'
-            : 'evening',
+        timeOfDay: 'any', // 食事タイプベースなので時間帯は関係なし
         mealCount: context.mealCount,
         hasYesterdayData: context.hasYesterdayData,
       },
@@ -524,7 +523,7 @@ serve(async req => {
       suggestions: fallbackSuggestions,
       actionItems: fallbackActions,
       context: {
-        timeOfDay: 'morning',
+        timeOfDay: 'any',
         mealCount: mealCount,
         hasYesterdayData: false,
       },

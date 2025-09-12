@@ -76,6 +76,7 @@ export class AIFeedbackService {
     additionalContext?: {
       yesterdayData?: any;
       mealCount?: number;
+      mealTypeData?: any;
     }
   ): Promise<FeedbackResponse> {
     try {
@@ -124,6 +125,7 @@ export class AIFeedbackService {
     additionalContext?: {
       yesterdayData?: any;
       mealCount?: number;
+      mealTypeData?: any;
     }
   ): Promise<FeedbackResponse> {
     // デバイスの言語設定を取得
@@ -133,7 +135,9 @@ export class AIFeedbackService {
       nutrition, 
       profile, 
       language,
-      ...additionalContext  // 昨日のデータと食事回数を追加
+      mealCount: additionalContext?.mealCount || 0,
+      yesterdayData: additionalContext?.yesterdayData || null,
+      mealTypeData: additionalContext?.mealTypeData || null
     };
     
     const response = await fetch(

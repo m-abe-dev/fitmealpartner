@@ -10,6 +10,7 @@ import { useProfileData } from '../../../hooks/useProfileData';
 import { useNutritionData } from '../../../hooks/useNutritionData';
 import { useWorkoutData } from '../../../hooks/useWorkoutData';
 import { AIFeedbackService } from '../../../services/AIFeedbackService';
+import DatabaseService from '../../../services/database/DatabaseService';
 
 interface AICoachSectionProps {
   currentAIData: PeriodAIData;
@@ -20,13 +21,13 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
   const [expandedWorkout, setExpandedWorkout] = useState(true);
   const [workoutSuggestion, setWorkoutSuggestion] = useState<any>(null);
   const [isLoadingWorkout, setIsLoadingWorkout] = useState(false);
-  
+
   // AI栄養フィードバック用のフック
   const { nutritionFeedback, isLoading: isLoadingNutrition, refreshNutritionFeedback } = useAIFeedback();
   const { foodLog } = useFoodLog();
   const { nutritionTargets, userProfile } = useProfileData();
   const { nutritionData } = useNutritionData(foodLog, nutritionTargets);
-  
+
   // ワークアウトデータ
   const { workoutHistory } = useWorkoutData();
 
@@ -41,48 +42,64 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
   }, [foodLog.length, workoutHistory?.length]);
 
   // 昨日の栄養データを取得する関数
-  const getYesterdayNutritionData = async () => {
+  const  getYesterdayNutritionData = async () => {
     try {
+      // DatabaseServiceが初期化されているか確認
+      if (!DatabaseService.isReady()) {
+        await DatabaseService.initialize();
+      }
+
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayDateString = yesterday.toISOString().split('T')[0];
-      
-      // 昨日の食事ログを取得（実装は useFoodLog に依存）
-      // 実際の実装では、日付でフィルタリングした foodLog を使用
-      const yesterdayLogs = foodLog.filter(log => 
-        log.date === yesterdayDateString
-      );
-      
-      if (yesterdayLogs.length === 0) return null;
-      
-      // 昨日の栄養素を集計
-      const yesterdayTotals = yesterdayLogs.reduce(
-        (totals, log) => ({
-          protein: totals.protein + (log.protein_g || 0),
-          calories: totals.calories + (log.kcal || 0),
-          carbs: totals.carbs + (log.carb_g || 0),
-          fat: totals.fat + (log.fat_g || 0)
-        }),
-        { protein: 0, calories: 0, carbs: 0, fat: 0 }
-      );
-      
+
+      // データベースから昨日のデータを直接取得
+      const yesterdayData = await DatabaseService.getFirstAsync(
+        `SELECT
+          SUM(protein_g) as protein,
+          SUM(kcal) as calories,
+          SUM(carb_g) as carbs,
+          SUM(fat_g) as fat
+         FROM food_log
+         WHERE date = ?`,
+        [yesterdayDateString]
+      ) as {
+        protein: number | null;
+        calories: number | null;
+        carbs: number | null;
+        fat: number | null;
+      } | null;
+
+      if (!yesterdayData || yesterdayData.calories === null) return null;
+
       return {
-        ...yesterdayTotals,
+        protein: yesterdayData.protein || 0,
+        calories: yesterdayData.calories || 0,
+        carbs: yesterdayData.carbs || 0,
+        fat: yesterdayData.fat || 0,
         targetProtein: nutritionTargets.protein,
         targetCalories: nutritionTargets.calories,
-        achievement: Math.round((yesterdayTotals.protein / nutritionTargets.protein) * 100),
-        gap: Math.max(0, nutritionTargets.protein - yesterdayTotals.protein)
+        achievement: Math.round(((yesterdayData.protein || 0) / nutritionTargets.protein) * 100),
+        gap: Math.max(0, nutritionTargets.protein - (yesterdayData.protein || 0))
       };
     } catch (error) {
       console.error('Error getting yesterday data:', error);
       return null;
     }
-  };
+  };;
 
   const fetchAIFeedback = async () => {
     // 昨日のデータを取得
     const yesterdayData = await getYesterdayNutritionData();
-    
+
+    // 食事タイプ別に集計
+    const mealsByType = {
+      breakfast: foodLog.filter(item => item.meal === 'breakfast'),
+      lunch: foodLog.filter(item => item.meal === 'lunch'),
+      dinner: foodLog.filter(item => item.meal === 'dinner'),
+      snack: foodLog.filter(item => item.meal === 'snack')
+    };
+
     const aiNutritionData = {
       calories: nutritionData.calories.current,
       protein: nutritionData.protein.current,
@@ -97,8 +114,23 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
         calories: item.calories,
         protein: item.protein,
         carbs: item.carbs,
-        fat: item.fat
-      }))
+        fat: item.fat,
+        mealType: item.meal // 食事タイプを追加
+      })),
+      mealsByType: {
+        hasBreakfast: mealsByType.breakfast.length > 0,
+        hasLunch: mealsByType.lunch.length > 0,
+        hasDinner: mealsByType.dinner.length > 0,
+        hasSnack: mealsByType.snack.length > 0,
+        breakfastProtein: mealsByType.breakfast.reduce((sum, m) => sum + (m.protein || 0), 0),
+        lunchProtein: mealsByType.lunch.reduce((sum, m) => sum + (m.protein || 0), 0),
+        dinnerProtein: mealsByType.dinner.reduce((sum, m) => sum + (m.protein || 0), 0),
+        snackProtein: mealsByType.snack.reduce((sum, m) => sum + (m.protein || 0), 0),
+        breakfastCalories: mealsByType.breakfast.reduce((sum, m) => sum + (m.calories || 0), 0),
+        lunchCalories: mealsByType.lunch.reduce((sum, m) => sum + (m.calories || 0), 0),
+        dinnerCalories: mealsByType.dinner.reduce((sum, m) => sum + (m.calories || 0), 0),
+        snackCalories: mealsByType.snack.reduce((sum, m) => sum + (m.calories || 0), 0)
+      }
     };
 
     const aiProfile = {
@@ -113,12 +145,13 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
     // 追加コンテキストの準備
     const additionalContext = {
       mealCount: foodLog.length,
-      yesterdayData
+      yesterdayData,
+      mealTypeData: aiNutritionData.mealsByType
     };
 
     try {
       const response = await AIFeedbackService.getNutritionFeedback(
-        aiNutritionData, 
+        aiNutritionData,
         aiProfile,
         additionalContext
       );
@@ -189,7 +222,7 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
                 <Text style={styles.feedbackTitle}>栄養分析</Text>
               </View>
               <View style={styles.headerRight}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={fetchAIFeedback}
                   disabled={isLoadingNutrition}
                   style={styles.refreshButton}
@@ -231,14 +264,14 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
                 {nutritionFeedback.actionItems.length > 0 && (
                   <View style={styles.priorityActions}>
                     {nutritionFeedback.actionItems.map((item, index) => (
-                      <View 
-                        key={index} 
+                      <View
+                        key={index}
                         style={[
                           styles.priorityItem,
-                          { borderLeftColor: item.priority === 'high' 
-                            ? colors.status.error 
-                            : item.priority === 'medium' 
-                            ? colors.status.warning 
+                          { borderLeftColor: item.priority === 'high'
+                            ? colors.status.error
+                            : item.priority === 'medium'
+                            ? colors.status.warning
                             : colors.status.success }
                         ]}
                       >
@@ -266,7 +299,7 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
             <Text style={styles.feedbackTitle}>次回ワークアウト提案</Text>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={fetchWorkoutSuggestion}
               disabled={isLoadingWorkout}
               style={styles.refreshButton}
