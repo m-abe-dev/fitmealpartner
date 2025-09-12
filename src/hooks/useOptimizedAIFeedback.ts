@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { AIFeedbackService } from '../services/AIFeedbackService';
 import AIResponseCache from '../services/cache/AIResponseCache';
-import { NutritionData, AIUserProfile, FeedbackResponse } from '../types/ai.types';
+import { NutritionData, UserProfile, FeedbackResponse } from '../types/ai.types';
 
 interface UseOptimizedAIFeedbackOptions {
   autoRefresh?: boolean;
@@ -23,7 +23,7 @@ export const useOptimizedAIFeedback = (options: UseOptimizedAIFeedbackOptions = 
 
   const lastRequestRef = useRef<string>('');
   const requestCountRef = useRef(0);
-  const lastSuccessfulDataRef = useRef<{ nutrition: NutritionData; profile: AIUserProfile } | null>(null);
+  const lastSuccessfulDataRef = useRef<{ nutrition: NutritionData; profile: UserProfile } | null>(null);
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   /**
@@ -31,7 +31,7 @@ export const useOptimizedAIFeedback = (options: UseOptimizedAIFeedbackOptions = 
    */
   const getFeedback = useCallback(async (
     nutrition: NutritionData,
-    profile: AIUserProfile,
+    profile: UserProfile,
     force: boolean = false
   ): Promise<FeedbackResponse | null> => {
     try {
@@ -87,7 +87,7 @@ export const useOptimizedAIFeedback = (options: UseOptimizedAIFeedbackOptions = 
   /**
    * 自動リフレッシュの設定
    */
-  const setupAutoRefresh = useCallback((nutrition: NutritionData, profile: AIUserProfile) => {
+  const setupAutoRefresh = useCallback((nutrition: NutritionData, profile: UserProfile) => {
     if (!autoRefresh) return;
 
     if (refreshIntervalRef.current) {
@@ -136,7 +136,7 @@ export const useOptimizedAIFeedback = (options: UseOptimizedAIFeedbackOptions = 
   /**
    * フィードバックを強制更新
    */
-  const forceRefresh = useCallback(async (nutrition: NutritionData, profile: AIUserProfile) => {
+  const forceRefresh = useCallback(async (nutrition: NutritionData, profile: UserProfile) => {
     return await getFeedback(nutrition, profile, true);
   }, [getFeedback]);
 

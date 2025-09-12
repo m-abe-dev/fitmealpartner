@@ -1,6 +1,6 @@
 import {
   NutritionData,
-  AIUserProfile,
+  UserProfile,
   FeedbackResponse,
   WorkoutData,
   WorkoutSuggestionResponse,
@@ -56,7 +56,7 @@ export class AIFeedbackService {
   private static debouncedFeedback = debounce(
     async (
       nutrition: NutritionData, 
-      profile: AIUserProfile,
+      profile: UserProfile,
       additionalContext?: {
         yesterdayData?: any;
         mealCount?: number;
@@ -72,7 +72,7 @@ export class AIFeedbackService {
    */
   static async getNutritionFeedback(
     nutrition: NutritionData,
-    profile: AIUserProfile,
+    profile: UserProfile,
     additionalContext?: {
       yesterdayData?: any;
       mealCount?: number;
@@ -121,7 +121,7 @@ export class AIFeedbackService {
    */
   private static async fetchNutritionFeedback(
     nutrition: NutritionData,
-    profile: AIUserProfile,
+    profile: UserProfile,
     additionalContext?: {
       yesterdayData?: any;
       mealCount?: number;
@@ -180,7 +180,7 @@ export class AIFeedbackService {
    */
   static async getWorkoutSuggestion(
     recentWorkouts: WorkoutData[],
-    profile: AIUserProfile
+    profile: UserProfile
   ): Promise<WorkoutSuggestionResponse> {
     try {
       // デバイスの言語設定を取得
@@ -449,7 +449,7 @@ export class AIFeedbackService {
    */
   static async getWorkoutSuggestionBatch(
     workoutsList: WorkoutData[][],
-    profile: AIUserProfile
+    profile: UserProfile
   ): Promise<WorkoutSuggestionResponse[]> {
     // 複数のワークアウトを一度に処理する場合の実装
     // 現在は単体処理のみ対応

@@ -1,5 +1,3 @@
-// 共通型定義を参照
-// 注意: 実際の環境では相対パスまたはシンボリックリンクで参照する必要があります
 export interface NutritionData {
   calories: number;
   protein: number;

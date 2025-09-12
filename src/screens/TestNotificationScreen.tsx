@@ -15,7 +15,7 @@ import { Card } from '../components/common/Card';
 import NotificationService from '../services/NotificationService';
 import StreakService from '../services/StreakService';
 import { AIFeedbackService } from '../services/AIFeedbackService';
-import { NutritionData, AIUserProfile } from '../types/ai.types';
+import { NutritionData, UserProfile } from '../types/ai.types';
 import { colors, typography, spacing, radius } from '../design-system';
 
 interface TestNotificationScreenProps {

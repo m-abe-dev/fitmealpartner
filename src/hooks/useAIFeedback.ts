@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { AIFeedbackService } from '../services/AIFeedbackService';
 import { 
   NutritionData, 
-  AIUserProfile, 
+  UserProfile, 
   FeedbackResponse, 
   WorkoutData, 
   WorkoutSuggestionResponse,
@@ -23,7 +23,7 @@ export const useAIFeedback = () => {
    */
   const getNutritionFeedback = useCallback(async (
     nutrition: NutritionData,
-    profile: AIUserProfile
+    profile: UserProfile
   ): Promise<FeedbackResponse | null> => {
     setState(prev => ({ ...prev, isLoading: true, error: undefined }));
     
@@ -57,7 +57,7 @@ export const useAIFeedback = () => {
    */
   const getWorkoutSuggestion = useCallback(async (
     recentWorkouts: WorkoutData[],
-    profile: AIUserProfile
+    profile: UserProfile
   ): Promise<WorkoutSuggestionResponse | null> => {
     setState(prev => ({ ...prev, isLoading: true, error: undefined }));
     
@@ -116,7 +116,7 @@ export const useAIFeedback = () => {
    */
   const refreshNutritionFeedback = useCallback(async (
     nutrition: NutritionData,
-    profile: AIUserProfile,
+    profile: UserProfile,
     forceRefresh: boolean = false
   ): Promise<FeedbackResponse | null> => {
     // フォースリフレッシュでない場合、キャッシュをチェック
