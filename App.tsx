@@ -9,9 +9,7 @@ import * as Notifications from 'expo-notifications';
 
 import AppNavigator from './src/navigation/AppNavigator';
 import { LoadingScreen } from './src/components/LoadingScreen';
-import { NotificationPermissionModal } from './src/components/NotificationPermissionModal';
 import { useAppInitialization } from './src/hooks/useAppInitialization';
-import { useNotificationPermission } from './src/hooks/useNotificationPermission';
 import NotificationService from './src/services/NotificationService';
 import { NotificationData, isNotificationData } from './src/types/notification.types';
 
@@ -20,10 +18,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function App() {
   const navigationRef = useRef<NavigationContainerRef<any>>(null);
-
-  // カスタムフックでロジックを分離
   const { isReady } = useAppInitialization();
-  const { showPermissionModal, handleCloseModal, handlePermissionGranted } = useNotificationPermission(isReady);
 
   // 通知リスナーの設定
   useEffect(() => {
@@ -100,16 +95,8 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <NavigationContainer ref={navigationRef}>
-          <>
-            <StatusBar style="auto" />
-            <AppNavigator />
-
-            <NotificationPermissionModal
-              visible={showPermissionModal}
-              onClose={handleCloseModal}
-              onPermissionGranted={handlePermissionGranted}
-            />
-          </>
+          <StatusBar style="auto" />
+          <AppNavigator />
         </NavigationContainer>
       </SafeAreaProvider>
     </GestureHandlerRootView>

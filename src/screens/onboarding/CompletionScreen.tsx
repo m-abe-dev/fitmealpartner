@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,11 @@ import { colors, typography, spacing, radius } from '../../design-system';
 import { OnboardingStepProps } from '../../types/onboarding.types';
 import { OnboardingLayout } from '../../components/common/OnboardingLayout';
 import { OnboardingSection } from '../../components/common/OnboardingSection';
+import { NotificationPermissionModal } from '../../components/NotificationPermissionModal';
+import NotificationService from '../../services/NotificationService';
 
 export function CompletionScreen({ onNext, onBack, currentData }: OnboardingStepProps) {
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
   const calculateNutritionTargets = () => {
     if (!currentData?.profile || !currentData?.goal || !currentData?.workoutHabits) {
       return null;
@@ -100,6 +103,19 @@ export function CompletionScreen({ onNext, onBack, currentData }: OnboardingStep
   };
 
   const handleStartJourney = () => {
+    setShowNotificationModal(true);
+  };
+
+  const handleNotificationModalClose = () => {
+    setShowNotificationModal(false);
+    onNext({ completedAt: new Date() });
+  };
+
+  const handleNotificationPermissionGranted = async () => {
+    const targetProtein = nutritionTargets?.protein || 100;
+    await NotificationService.scheduleProteinReminder(targetProtein);
+    
+    setShowNotificationModal(false);
     onNext({ completedAt: new Date() });
   };
 
@@ -188,6 +204,13 @@ export function CompletionScreen({ onNext, onBack, currentData }: OnboardingStep
           </Text>
         </View>
       </OnboardingSection>
+
+      {/* 通知許可モーダル */}
+      <NotificationPermissionModal
+        visible={showNotificationModal}
+        onClose={handleNotificationModalClose}
+        onPermissionGranted={handleNotificationPermissionGranted}
+      />
     </OnboardingLayout>
   );
 }
