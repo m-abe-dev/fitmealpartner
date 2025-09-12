@@ -67,16 +67,8 @@ export default function AppNavigator() {
 
   const handleOnboardingComplete = (data: any) => {
     console.log('Onboarding completed with data:', data);
-    Alert.alert(
-      '登録完了！',
-      'プロフィール設定が完了しました。',
-      [
-        {
-          text: 'OK',
-          onPress: () => setOnboardingComplete(true),
-        },
-      ]
-    );
+    // Alertを削除し、直接状態を更新
+    setOnboardingComplete(true);
   };
 
   // 開発用: オンボーディングデータをリセット
