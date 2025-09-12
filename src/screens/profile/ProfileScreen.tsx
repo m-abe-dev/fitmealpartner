@@ -68,8 +68,8 @@ export const ProfileScreen: React.FC = () => {
         style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <AppRefreshControl 
-            refreshing={refreshing} 
+          <AppRefreshControl
+            refreshing={refreshing}
             onRefresh={onRefresh}
           />
         }
@@ -113,6 +113,7 @@ export const ProfileScreen: React.FC = () => {
           targetWeight: userProfile.targetWeight,
           targetDate: userProfile.targetDate,
           goal: userProfile.goal,
+          experience: userProfile.experience
         }}
         onSave={handleProfileSave}
       />

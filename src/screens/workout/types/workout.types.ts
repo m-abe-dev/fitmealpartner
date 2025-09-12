@@ -45,9 +45,14 @@ export interface WorkoutDay {
     totalSets: number;
     totalReps: number;
     maxWeight: number;
-    targetMuscles?: string[]; // 追加
+    targetMuscles?: string[];
   }[];
   totalSets: number;
+  totalReps: number;
+  maxWeight: number;
+  totalVolume: number;
+  exerciseCount: number;
+  averageRM: number;
   score: number;
 }
 

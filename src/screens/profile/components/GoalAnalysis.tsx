@@ -170,6 +170,7 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.lg,
     color: colors.text.primary,
     fontFamily: typography.fontFamily.bold,
+    fontWeight: "bold"
   },
   goalProgress: {
     gap: spacing.sm,

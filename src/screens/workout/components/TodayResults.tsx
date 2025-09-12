@@ -48,6 +48,20 @@ export const TodayResults: React.FC<TodayResultsProps> = ({
     return Math.round(sum / rmsWithValues.length);
   };
 
+  // 総ボリューム計算関数を追加
+  const getTotalVolume = () => {
+    const strengthExercises = exercises.filter(ex => ex.type !== 'cardio');
+    let totalVolume = 0;
+    
+    strengthExercises.forEach(exercise => {
+      exercise.sets.forEach(set => {
+        totalVolume += (set.weight || 0) * (set.reps || 0);
+      });
+    });
+    
+    return Math.round(totalVolume);
+  };
+
   const getTotalTime = () => {
     const cardioExercises = exercises.filter(ex => ex.type === 'cardio');
     return cardioExercises.reduce(
@@ -244,7 +258,12 @@ export const TodayResults: React.FC<TodayResultsProps> = ({
           {/* 筋トレ統計 */}
           {hasStrengthExercises() && (
             <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>💪 筋力トレーニング</Text>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>💪 筋力トレーニング</Text>
+                <Text style={styles.volumeText}>
+                  総ボリューム: {getTotalVolume().toLocaleString()}kg
+                </Text>
+              </View>
               <View style={styles.statsGrid}>
                 <View style={[styles.statCard, { backgroundColor: colors.primary[50] }]}>
                   <Text style={[styles.statValue, { color: colors.primary.main }]}>
@@ -339,11 +358,21 @@ const styles = StyleSheet.create({
   sectionContainer: {
     marginBottom: spacing.md,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
   sectionTitle: {
     fontSize: typography.fontSize.base,
     color: colors.text.primary,
     fontFamily: typography.fontFamily.bold,
-    marginBottom: spacing.sm,
+  },
+  volumeText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.secondary,
+    fontFamily: typography.fontFamily.medium,
   },
   statsGrid: {
     flexDirection: 'row',

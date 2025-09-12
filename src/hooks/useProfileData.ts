@@ -12,6 +12,7 @@ interface UserProfile {
   weight: number;
   gender: 'male' | 'female' | 'other';
   activityLevel: 'sedentary' | 'light' | 'moderate' | 'active' | 'very-active';
+  experience?: 'beginner' | 'intermediate' | 'advanced';
   targetWeight: number;
   targetDate?: string;
   goal: 'cut' | 'bulk' | 'maintain';
@@ -239,6 +240,7 @@ export const useProfileData = () => {
         workoutHabits: {
           ...onboardingData.workoutHabits,
           activityLevel: updatedProfile.activityLevel,
+          experience: updatedProfile.experience || 'beginner',
         },
       };
 
@@ -264,6 +266,7 @@ export const useProfileData = () => {
         weight: 65,
         gender: 'male',
         activityLevel: 'moderate',
+        experience: 'beginner',
         targetWeight: 65,
         targetDate: undefined,
         goal: 'maintain',
@@ -299,6 +302,7 @@ export const useProfileData = () => {
       weight: profile.weight,
       gender: profile.gender,
       activityLevel: workoutHabits.activityLevel,
+      experience: workoutHabits.experience,
       targetWeight: goal.targetWeight || profile.weight,
       targetDate: goal.targetDate,
       goal: goal.goal,

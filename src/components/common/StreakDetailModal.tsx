@@ -192,7 +192,7 @@ export const StreakDetailModal: React.FC<StreakDetailModalProps> = ({
               <View style={styles.statCard}>
                 <View style={styles.statHeader}>
                   <Calendar size={20} color={colors.status.success} />
-                  <Text style={styles.statTitle}>今週の記録</Text>
+                  <Text style={styles.statTitle}>7日間の記録</Text>
                 </View>
                 <View style={styles.statRow}>
                   <Text style={styles.statLabel}>🍽 食事記録</Text>

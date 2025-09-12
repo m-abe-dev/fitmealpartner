@@ -25,39 +25,74 @@ export const Calendar: React.FC<CalendarProps> = ({ onDayClick }) => {
     // 月が変わった時は一旦クリア
     setWorkoutDays([]);
     loadWorkoutDays();
+    debugSessions();
   }, [selectedMonth, selectedYear]);
+
+  // デバッグ用：全セッションの状態を確認
+  const debugSessions = async () => {
+    try {
+      const allSessions = await DatabaseService.getAllAsync(
+        `SELECT ws.session_id, 
+                ws.date, 
+                COUNT(wset.set_id) as set_count
+         FROM workout_session ws
+         LEFT JOIN workout_set wset ON ws.session_id = wset.session_id
+         WHERE date(ws.date) >= date('2025-09-01')
+         GROUP BY ws.session_id
+         ORDER BY ws.date DESC`
+      );
+      console.log('🔍 All September sessions:', allSessions);
+    } catch (error) {
+      console.error('Failed to debug sessions:', error);
+    }
+  };
 
   const loadWorkoutDays = async () => {
     try {
       await DatabaseService.initialize();
 
-      // 選択月のワークアウト日を取得
-      const startDate = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
-      const endDate = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-31`;
+      // 月の日付を正しくフォーマット（2桁の0埋め）
+      const monthStr = String(selectedMonth + 1).padStart(2, '0');
+      const startDate = `${selectedYear}-${monthStr}-01`;
+      
+      // 月末日を正確に計算
+      const lastDay = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+      const endDate = `${selectedYear}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
 
+      console.log('📅 Loading workout days for:', { startDate, endDate });
 
-      // データベースの全体状況確認
-      const checkAllSessions = await DatabaseService.getAllAsync<any>(
-        'SELECT * FROM workout_session LIMIT 10'
+      // データベースの日付形式を確認するデバッグコード
+      const debugDates = await DatabaseService.getAllAsync<any>(
+        `SELECT session_id, date, datetime(date) as formatted_date 
+         FROM workout_session 
+         ORDER BY date DESC 
+         LIMIT 10`
       );
+      console.log('🗓️ Recent workout dates:', debugDates);
 
-      // セットが存在するセッションのみを取得
+      // LEFT JOINに変更し、セットが存在するセッションのみをフィルタ
       const sessions = await DatabaseService.getAllAsync<any>(
-        `SELECT DISTINCT ws.date 
+        `SELECT DISTINCT date(ws.date) as date, 
+                COUNT(wset.set_id) as set_count
          FROM workout_session ws
-         INNER JOIN workout_set wset ON ws.session_id = wset.session_id
-         WHERE ws.date >= ? AND ws.date <= ?
+         LEFT JOIN workout_set wset ON ws.session_id = wset.session_id
+         WHERE date(ws.date) >= date(?) AND date(ws.date) <= date(?)
+         GROUP BY date(ws.date)
+         HAVING COUNT(wset.set_id) > 0
          ORDER BY ws.date`,
         [startDate, endDate]
       );
 
+      console.log('📊 Found sessions with sets:', sessions);
 
-      // セッションが存在する場合のみ日付を抽出
       if (sessions && sessions.length > 0) {
         const days = sessions.map(session => {
-          const day = parseInt(session.date.split('-')[2]);
+          const dateParts = session.date.split('-');
+          const day = parseInt(dateParts[2], 10);
+          console.log(`Date: ${session.date} => Day: ${day}, Sets: ${session.set_count}`);
           return day;
         });
+        console.log('📌 Workout days:', days);
         setWorkoutDays(days);
       } else {
         setWorkoutDays([]);
@@ -232,7 +267,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   dayCell: {
-    width: screenWidth / 7 - spacing.md * 2 / 7,
+    width: '14.28%',
     height: 32,
     alignItems: 'center',
     justifyContent: 'center',

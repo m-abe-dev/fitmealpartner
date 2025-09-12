@@ -15,6 +15,15 @@ interface WorkoutPreviewModalProps {
   onClose: () => void;
 }
 
+// 日付を現地時間として扱うヘルパー関数
+const getLocalDateString = (year: number, month: number, day: number): string => {
+  const date = new Date(year, month, day);
+  const yearStr = date.getFullYear();
+  const monthStr = String(date.getMonth() + 1).padStart(2, '0');
+  const dayStr = String(date.getDate()).padStart(2, '0');
+  return `${yearStr}-${monthStr}-${dayStr}`;
+};
+
 export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
   isVisible,
   selectedDay,
@@ -36,15 +45,30 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
     try {
       await DatabaseService.initialize();
 
-      const dateString = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
+      // 日付を正しくフォーマット（2桁の0埋め）
+      const monthStr = String(selectedMonth + 1).padStart(2, '0');
+      const dayStr = String(selectedDay).padStart(2, '0');
+      const dateString = `${selectedYear}-${monthStr}-${dayStr}`;
 
-      // セッション情報を取得
+      console.log('🔍 Loading workout for date:', dateString);
+
+      // セットが存在するセッションのみを取得するように修正
       const session = await DatabaseService.getFirstAsync<any>(
-        'SELECT * FROM workout_session WHERE date = ?',
+        `SELECT ws.*
+         FROM workout_session ws
+         INNER JOIN workout_set wset ON ws.session_id = wset.session_id
+         WHERE date(ws.date) = date(?)
+         GROUP BY ws.session_id
+         HAVING COUNT(wset.set_id) > 0
+         ORDER BY ws.session_id DESC
+         LIMIT 1`,
         [dateString]
       );
 
+      console.log('📋 Session with sets found:', session);
+
       if (!session) {
+        console.log('No session with workout sets found for date:', dateString);
         setWorkoutData(null);
         return;
       }
@@ -59,8 +83,11 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
         [session.session_id]
       );
 
+      console.log('💪 Workout sets found:', workoutSets?.length);
+
       // ワークアウトセットが存在しない場合はnullを設定
       if (!workoutSets || workoutSets.length === 0) {
+        console.log('No workout sets found for session:', session.session_id);
         setWorkoutData(null);
         return;
       }
@@ -69,6 +96,10 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
       const exerciseMap = new Map();
       let totalSets = 0;
       let totalVolume = 0;
+      let totalReps = 0;
+      let maxWeight = 0;
+      let totalRMSum = 0;
+      let rmCount = 0;
 
       workoutSets.forEach(set => {
         const exerciseId = set.exercise_id;
@@ -95,18 +126,34 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
         exercise.totalReps += set.reps || 0;
         exercise.maxWeight = Math.max(exercise.maxWeight, set.weight_kg || 0);
 
+        // 全体の統計を更新
         totalSets++;
+        totalReps += set.reps || 0;
+        maxWeight = Math.max(maxWeight, set.weight_kg || 0);
         totalVolume += (set.weight_kg || 0) * (set.reps || 0);
+        
+        // 平均RM計算用（Epley式）
+        if (set.weight_kg && set.reps) {
+          const oneRM = set.weight_kg * (1 + set.reps / 30);
+          totalRMSum += oneRM;
+          rmCount++;
+        }
       });
 
       const exercises = Array.from(exerciseMap.values());
-      const score = Math.round(totalVolume / 100);
+      const exerciseCount = exercises.length;
+      const averageRM = rmCount > 0 ? Math.round(totalRMSum / rmCount) : 0;
 
       setWorkoutData({
         date: selectedDay,
         exercises,
         totalSets,
-        score
+        totalReps,
+        maxWeight,
+        totalVolume: Math.round(totalVolume),
+        exerciseCount,
+        averageRM,
+        score: Math.round(totalVolume / 100)
       });
     } catch (error) {
       console.error('Failed to load workout data:', error);
@@ -124,20 +171,20 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.overlayTouchable}
           activeOpacity={1}
           onPress={onClose}
         />
-        
+
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <View>
+            <View style={styles.modalHeaderContent}>
               <Text style={styles.modalTitle}>
                 {selectedMonth + 1}月{selectedDay}日のワークアウト
               </Text>
               <Text style={styles.modalSubtitle}>
-                スコア: {workoutData?.score} • {workoutData?.totalSets}セット
+                総ボリューム: {workoutData?.totalVolume?.toLocaleString()}kg • {workoutData?.exerciseCount}種目 • {workoutData?.totalSets}セット • 平均RM: {workoutData?.averageRM}kg
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
@@ -213,7 +260,10 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+  },
+  modalHeaderContent: {
+    flex: 1,
   },
   modalTitle: {
     fontSize: typography.fontSize.xl,
@@ -222,8 +272,8 @@ const styles = StyleSheet.create({
   },
   modalSubtitle: {
     fontSize: typography.fontSize.sm,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: spacing.xxxs,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: spacing.xs,
   },
   modalCloseButton: {
     width: 32,
@@ -232,6 +282,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: -2,
   },
   modalBody: {
     flex: 1,
