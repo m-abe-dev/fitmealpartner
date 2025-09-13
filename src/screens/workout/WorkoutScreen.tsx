@@ -75,7 +75,7 @@ export const WorkoutScreen: React.FC = () => {
 
   // Main view
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScreenHeader
         title="今日の筋トレ"
         icon={<Dumbbell size={20} color={colors.primary.main} />}

@@ -46,7 +46,7 @@ export const NutritionScreen: React.FC = () => {
   } = useNutritionScreen();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScreenHeader
         title="今日の食事"
         icon={<Apple size={24} color={colors.primary.main} />}

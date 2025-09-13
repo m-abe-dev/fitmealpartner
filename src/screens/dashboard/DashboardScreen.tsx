@@ -153,7 +153,7 @@ export const DashboardScreen: React.FC = () => {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScreenHeader
         title="ダッシュボード"
         icon={<Activity size={24} color={colors.primary.main} />}
