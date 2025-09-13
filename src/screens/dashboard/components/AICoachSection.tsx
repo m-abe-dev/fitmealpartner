@@ -93,19 +93,15 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
     const checkLanguageChange = () => {
       const detectedLanguage = getDeviceLanguage();
       if (currentLanguage !== detectedLanguage) {
-        console.log(`Language changed from ${currentLanguage} to ${detectedLanguage}`);
         setCurrentLanguage(detectedLanguage);
         
         // 言語変更時のキャッシュ処理を強化
         AIFeedbackService.clearCache().then(() => {
-          console.log('All caches cleared for language change');
           // 新しい言語で再フェッチ
           if (foodLog.length > 0) {
-            console.log('Re-fetching nutrition feedback for new language');
             fetchAIFeedback();
           }
           if (workoutHistory && workoutHistory.length > 0) {
-            console.log('Re-fetching workout suggestion for new language');
             fetchWorkoutSuggestion();
           }
         });
@@ -172,10 +168,6 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
   };;
 
   const fetchAIFeedback = async () => {
-    console.log('=== fetchAIFeedback Debug ===');
-    console.log('Current language in fetchAIFeedback:', currentLanguage);
-    console.log('Device language:', getDeviceLanguage());
-    
     // 昨日のデータを取得
     const yesterdayData = await getYesterdayNutritionData();
 
@@ -245,9 +237,6 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
       );
       
       // responseが返ってきた場合は、既に状態が更新されているはず
-      if (response) {
-        console.log('Nutrition feedback updated successfully');
-      }
     } catch (error) {
       console.error('Error fetching AI feedback:', error);
     }
@@ -423,9 +412,7 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
               <View style={styles.headerRight}>
                 <TouchableOpacity
                   onPress={async () => {
-                    // デバッグ用：強制的にキャッシュをクリア
                     await AIFeedbackService.clearCache();
-                    console.log('Cache manually cleared, fetching new feedback');
                     await fetchAIFeedback();
                   }}
                   disabled={isLoadingNutrition}

@@ -124,18 +124,11 @@ export class AIFeedbackService {
 
       // 言語設定を取得
       const language = this.getDeviceLanguage();
-      
-      console.log('=== AIFeedbackService.getNutritionFeedback Debug ===');
-      console.log('Detected language in service:', language);
-      console.log('Cache key data:', { nutrition: !!nutrition, profile: !!profile, language });
-      
+
       // キャッシュチェック（言語情報も含める）
       const cached = await NutritionResponseCache.get({ nutrition, profile, language });
       if (cached) {
-        console.log('Using cached nutrition feedback for language:', language);
         return { ...cached, fromCache: true };
-      } else {
-        console.log('No cache found, making API request for language:', language);
       }
 
       // 前回のリクエストから短時間なら待機
@@ -287,8 +280,6 @@ export class AIFeedbackService {
     nutrition: NutritionData
   ): FeedbackResponse {
     const language = this.getDeviceLanguage();
-    console.log('=== Fallback Debug ===');
-    console.log('Language in fallback:', language);
     
     const proteinGap = Math.max(0, nutrition.targetProtein - nutrition.protein);
     const calorieGap = Math.max(0, nutrition.targetCalories - nutrition.calories);
@@ -412,8 +403,6 @@ export class AIFeedbackService {
 
     // 言語が存在しない場合は英語をデフォルトとする
     const messages = fallbackMessages[language] || fallbackMessages.en;
-    console.log('Using fallback messages for language:', language);
-    console.log('Messages object exists:', !!messages);
     
     let feedback: string;
     const suggestions: string[] = [];
@@ -446,9 +435,6 @@ export class AIFeedbackService {
         reason: messages.action.mediumReason,
       });
     }
-
-    console.log('Final fallback feedback:', feedback);
-    console.log('Final fallback suggestions:', suggestions);
 
     return {
       success: false,
