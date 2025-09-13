@@ -280,6 +280,14 @@ Critical Analysis Points:
 4. Recovery patterns: Analyze muscle group frequency and rest periods
 5. Concrete recommendations: Provide specific weight/rep suggestions for next session
 
+Exercise Recommendations by Experience Level:
+- Beginner (< 1 year): 2-3 exercises minimum
+- Intermediate (1-3 years): 3-4 exercises minimum
+- Advanced (3+ years): 4-6 exercises minimum
+
+IMPORTANT: Always provide the minimum number of exercises for the user's experience level.
+Each exercise should include specific weight/rep targets based on their previous performance.
+
 Feedback Structure Requirements:
 - Start with specific numerical achievements (weight gains, volume increases)
 - Highlight any plateau concerns with specific breakthrough suggestions
@@ -316,6 +324,14 @@ Response must be in the following JSON format:
 3. 停滞検知: 同じ重量・回数が3セッション以上続く種目の特定
 4. 回復パターン: 筋群別の頻度と休養期間の分析
 5. 具体的推奨: 次回セッションの重量・回数を具体的に提案
+
+経験レベル別エクササイズ推奨数：
+- 初心者（1年未満）: 最低2-3種目
+- 中級者（1-3年）: 最低3-4種目
+- 上級者（3年以上）: 最低4-6種目
+
+重要：必ずユーザーの経験レベルに応じた最低種目数を提供してください。
+各種目には前回のパフォーマンスに基づく具体的な重量・回数目標を含めてください。
 
 フィードバック構成要件：
 - 具体的な数値成果から開始（重量向上、ボリューム増加）
@@ -403,6 +419,17 @@ Underworked muscle groups: ${underworkedMuscles
 
 IMPORTANT: Use the progress analysis data to provide specific feedback about improvements and suggest concrete next session targets with exact weights/reps.
 Address any plateaus with specific breakthrough strategies.
+
+EXERCISE REQUIREMENTS FOR ${experience.toUpperCase()}:
+${
+  experience === 'beginner'
+    ? '- Provide 2-3 exercises minimum'
+    : experience === 'intermediate'
+    ? '- Provide 3-4 exercises minimum'
+    : '- Provide 4-6 exercises minimum'
+}
+- Each exercise must include specific weight progression based on previous performance
+- Target muscle groups should be balanced for optimal development
 `;
   }
 
@@ -464,6 +491,23 @@ ${Array.from(muscleGroupsWorked.entries())
 
 重要：進捗分析データを活用して向上点について具体的なフィードバックを提供し、次回セッションの重量・回数を正確に提案してください。
 停滞がある場合は具体的な打破戦略を提示してください。
+
+${
+  experience === 'beginner'
+    ? '初心者'
+    : experience === 'intermediate'
+    ? '中級者'
+    : '上級者'
+}向けエクササイズ要件：
+${
+  experience === 'beginner'
+    ? '- 最低2-3種目を提供'
+    : experience === 'intermediate'
+    ? '- 最低3-4種目を提供'
+    : '- 最低4-6種目を提供'
+}
+- 各種目に前回のパフォーマンスに基づく具体的な重量進歩を含める
+- ターゲット筋群の最適な発達のためのバランスを考慮
 `;
 };
 
@@ -599,17 +643,113 @@ serve(async req => {
       throw new Error('Invalid AI response format');
     }
 
+    // 経験レベル別の最低種目数チェック
+    const minExercises =
+      {
+        beginner: 2,
+        intermediate: 3,
+        advanced: 4,
+      }[experience] || 2;
+
+    let recommendedExercises =
+      parsedResponse.nextWorkout?.recommendedExercises || [];
+
+    // 種目数が不足している場合のフォールバック処理
+    if (recommendedExercises.length < minExercises) {
+      console.log(
+        `Insufficient exercises (${recommendedExercises.length}/${minExercises}). Adding fallback exercises.`
+      );
+
+      const fallbackExercises =
+        language === 'en'
+          ? [
+              {
+                name: 'Push-ups',
+                sets: 3,
+                reps: '8-15',
+                notes: 'Bodyweight exercise for upper body',
+              },
+              {
+                name: 'Squats',
+                sets: 3,
+                reps: '10-15',
+                notes: 'Bodyweight exercise for legs',
+              },
+              {
+                name: 'Plank',
+                sets: 3,
+                reps: '30-60 sec',
+                notes: 'Core stability exercise',
+              },
+              {
+                name: 'Pull-ups',
+                sets: 3,
+                reps: '5-10',
+                notes: 'Upper body pulling exercise',
+              },
+              {
+                name: 'Lunges',
+                sets: 3,
+                reps: '10-12 each leg',
+                notes: 'Single leg exercise',
+              },
+            ]
+          : [
+              {
+                name: 'プッシュアップ',
+                sets: 3,
+                reps: '8-15',
+                notes: '上半身の自重トレーニング',
+              },
+              {
+                name: 'スクワット',
+                sets: 3,
+                reps: '10-15',
+                notes: '下半身の自重トレーニング',
+              },
+              {
+                name: 'プランク',
+                sets: 3,
+                reps: '30-60秒',
+                notes: '体幹安定性の向上',
+              },
+              {
+                name: 'プルアップ',
+                sets: 3,
+                reps: '5-10',
+                notes: '上半身プル系トレーニング',
+              },
+              {
+                name: 'ランジ',
+                sets: 3,
+                reps: '片足10-12回',
+                notes: '片足ずつの下半身強化',
+              },
+            ];
+
+      // 不足分を補填
+      const needed = minExercises - recommendedExercises.length;
+      recommendedExercises = [
+        ...recommendedExercises,
+        ...fallbackExercises.slice(0, needed),
+      ];
+    }
+
     const response: WorkoutSuggestionResponse = {
       success: true,
-      nextWorkout: parsedResponse.nextWorkout || {
-        targetMuscleGroups: underworkedMuscles.slice(0, 2).map(m => m.muscle),
-        recommendedExercises: [],
-        estimatedDuration: 60,
+      nextWorkout: {
+        targetMuscleGroups:
+          parsedResponse.nextWorkout?.targetMuscleGroups ||
+          underworkedMuscles.slice(0, 2).map(m => m.muscle),
+        recommendedExercises,
+        estimatedDuration:
+          parsedResponse.nextWorkout?.estimatedDuration ||
+          recommendedExercises.length * 12 + 15, // 種目数 × 12分 + ウォームアップ
       },
       feedback:
         parsedResponse.feedback ||
         (language === 'en'
-          ? 'Created a balanced workout plan'
+          ? 'Created a balanced workout plan with progress-focused exercises'
           : 'バランスの取れたワークアウトプランを作成しました'),
     };
 
