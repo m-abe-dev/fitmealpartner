@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { AIFeedbackService } from '../services/AIFeedbackService';
 import { 
   NutritionData, 
-  AIUserProfile, 
+  UserProfile, 
   FeedbackResponse, 
   WorkoutData, 
   WorkoutSuggestionResponse,
@@ -19,16 +19,25 @@ export const useAIFeedback = () => {
   });
 
   /**
-   * 栄養フィードバックを取得
+   * 栄養フィードバックを取得（additionalContextを追加）
    */
   const getNutritionFeedback = useCallback(async (
     nutrition: NutritionData,
-    profile: AIUserProfile
+    profile: UserProfile,
+    additionalContext?: {
+      yesterdayData?: any;
+      mealCount?: number;
+      mealTypeData?: any;
+    }
   ): Promise<FeedbackResponse | null> => {
     setState(prev => ({ ...prev, isLoading: true, error: undefined }));
     
     try {
-      const feedback = await AIFeedbackService.getNutritionFeedback(nutrition, profile);
+      const feedback = await AIFeedbackService.getNutritionFeedback(
+        nutrition, 
+        profile,
+        additionalContext
+      );
       
       setState(prev => ({
         ...prev,
@@ -57,7 +66,7 @@ export const useAIFeedback = () => {
    */
   const getWorkoutSuggestion = useCallback(async (
     recentWorkouts: WorkoutData[],
-    profile: AIUserProfile
+    profile: UserProfile
   ): Promise<WorkoutSuggestionResponse | null> => {
     setState(prev => ({ ...prev, isLoading: true, error: undefined }));
     
@@ -112,20 +121,24 @@ export const useAIFeedback = () => {
   }, [state.lastUpdated]);
 
   /**
-   * 栄養フィードバックをリフレッシュ（キャッシュチェック付き）
+   * 栄養フィードバックをリフレッシュ（additionalContext対応）
    */
   const refreshNutritionFeedback = useCallback(async (
     nutrition: NutritionData,
-    profile: AIUserProfile,
+    profile: UserProfile,
+    additionalContext?: {
+      yesterdayData?: any;
+      mealCount?: number;
+      mealTypeData?: any;
+    },
     forceRefresh: boolean = false
   ): Promise<FeedbackResponse | null> => {
     // フォースリフレッシュでない場合、キャッシュをチェック
     if (!forceRefresh && state.nutritionFeedback && !isStale(15)) {
-      console.log('Using cached nutrition feedback');
       return state.nutritionFeedback;
     }
     
-    return getNutritionFeedback(nutrition, profile);
+    return getNutritionFeedback(nutrition, profile, additionalContext);
   }, [state.nutritionFeedback, isStale, getNutritionFeedback]);
 
   return {

@@ -31,7 +31,6 @@ export const OnboardingNavigator: React.FC<OnboardingNavigatorProps> = ({ onComp
       // 先に保存を実行
       try {
         await OnboardingStorageService.saveOnboardingData(completeData);
-        console.log('✅ Successfully saved onboarding data');
       } catch (error) {
         console.error('❌ Failed to save onboarding data:', error);
       }

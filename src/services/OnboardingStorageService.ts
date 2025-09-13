@@ -14,7 +14,6 @@ export class OnboardingStorageService {
         ONBOARDING_DATA_KEY,
         JSON.stringify(dataToStore)
       );
-      console.log('Saved onboarding data:', dataToStore);
     } catch (error) {
       console.error('Failed to save onboarding data:', error);
       throw error;
@@ -25,7 +24,6 @@ export class OnboardingStorageService {
     try {
       const data = await AsyncStorage.getItem(ONBOARDING_DATA_KEY);
       if (!data) {
-        console.log('No onboarding data found');
         return null;
       }
 
@@ -59,7 +57,6 @@ export class OnboardingStorageService {
   static async clearOnboardingData(): Promise<void> {
     try {
       await AsyncStorage.removeItem(ONBOARDING_DATA_KEY);
-      console.log('Cleared onboarding data');
     } catch (error) {
       console.error('Failed to clear onboarding data:', error);
       throw error;

@@ -65,7 +65,6 @@ export const useNotificationNavigation = ({
             handleNotificationNavigation(notificationData.mealType, notificationData.proteinGap);
           }
         } catch (error) {
-          console.log('Error checking notification navigation:', error);
         }
       };
 

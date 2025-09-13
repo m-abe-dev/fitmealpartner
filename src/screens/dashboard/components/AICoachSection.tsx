@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { Brain, RefreshCw, ChevronDown, ChevronUp, Dumbbell } from 'lucide-react-native';
+import { Brain, RefreshCw, ChevronDown, ChevronUp, Dumbbell, TrendingUp, AlertTriangle } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../../../design-system';
 import { Card } from '../../../components/common/Card';
 import { PeriodAIData } from '../types/dashboard.types';
@@ -10,6 +10,8 @@ import { useProfileData } from '../../../hooks/useProfileData';
 import { useNutritionData } from '../../../hooks/useNutritionData';
 import { useWorkoutData } from '../../../hooks/useWorkoutData';
 import { AIFeedbackService } from '../../../services/AIFeedbackService';
+import DatabaseService from '../../../services/database/DatabaseService';
+import * as Localization from 'expo-localization';
 
 interface AICoachSectionProps {
   currentAIData: PeriodAIData;
@@ -20,15 +22,61 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
   const [expandedWorkout, setExpandedWorkout] = useState(true);
   const [workoutSuggestion, setWorkoutSuggestion] = useState<any>(null);
   const [isLoadingWorkout, setIsLoadingWorkout] = useState(false);
-  
+  const [progressStats, setProgressStats] = useState<{
+    weeklyVolume: number;
+    volumeChange: number;
+    improvements: string[];
+    plateaus: string[];
+  } | null>(null);
+  const [currentLanguage, setCurrentLanguage] = useState<string>(() => {
+    // 初期言語を取得（privateメソッドにアクセスできないので、デフォルトを使用）
+    return 'ja';
+  });
+
   // AI栄養フィードバック用のフック
   const { nutritionFeedback, isLoading: isLoadingNutrition, refreshNutritionFeedback } = useAIFeedback();
   const { foodLog } = useFoodLog();
   const { nutritionTargets, userProfile } = useProfileData();
   const { nutritionData } = useNutritionData(foodLog, nutritionTargets);
-  
+
   // ワークアウトデータ
   const { workoutHistory } = useWorkoutData();
+
+  // 言語検出ヘルパー関数
+  const getDeviceLanguage = (): string => {
+    try {
+      const locales = Localization.getLocales();
+      if (locales && locales.length > 0) {
+        const locale = locales[0];
+        const languageTag = locale.languageTag || '';
+        const languageCode = locale.languageCode || '';
+        
+        const supportedLanguages = {
+          'ja': ['ja'],
+          'en': ['en'],
+          'es': ['es'],
+          'fr': ['fr']
+        };
+        
+        // languageTagから判定
+        for (const [lang, prefixes] of Object.entries(supportedLanguages)) {
+          if (prefixes.some(prefix => languageTag.startsWith(prefix))) {
+            return lang;
+          }
+        }
+        
+        // languageCodeから判定（フォールバック）
+        for (const [lang, codes] of Object.entries(supportedLanguages)) {
+          if (codes.includes(languageCode)) {
+            return lang;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error getting device language:', error);
+    }
+    return 'en'; // デフォルトは英語
+  };
 
   useEffect(() => {
     // 初回読み込み時にAI分析を実行
@@ -40,7 +88,97 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
     }
   }, [foodLog.length, workoutHistory?.length]);
 
+  // 言語変更監視
+  useEffect(() => {
+    const checkLanguageChange = () => {
+      const detectedLanguage = getDeviceLanguage();
+      if (currentLanguage !== detectedLanguage) {
+        setCurrentLanguage(detectedLanguage);
+        
+        // 言語変更時のキャッシュ処理を強化
+        AIFeedbackService.clearCache().then(() => {
+          // 新しい言語で再フェッチ
+          if (foodLog.length > 0) {
+            fetchAIFeedback();
+          }
+          if (workoutHistory && workoutHistory.length > 0) {
+            fetchWorkoutSuggestion();
+          }
+        });
+      }
+    };
+
+    // 初回言語設定
+    const initialLanguage = getDeviceLanguage();
+    if (currentLanguage !== initialLanguage) {
+      setCurrentLanguage(initialLanguage);
+    }
+
+    // 5秒ごとに言語変更をチェック
+    const languageCheckInterval = setInterval(checkLanguageChange, 5000);
+
+    return () => clearInterval(languageCheckInterval);
+  }, [currentLanguage, workoutHistory?.length, foodLog.length]);
+
+  // 昨日の栄養データを取得する関数
+  const  getYesterdayNutritionData = async () => {
+    try {
+      // DatabaseServiceが初期化されているか確認
+      if (!DatabaseService.isReady()) {
+        await DatabaseService.initialize();
+      }
+
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayDateString = yesterday.toISOString().split('T')[0];
+
+      // データベースから昨日のデータを直接取得
+      const yesterdayData = await DatabaseService.getFirstAsync(
+        `SELECT
+          SUM(protein_g) as protein,
+          SUM(kcal) as calories,
+          SUM(carb_g) as carbs,
+          SUM(fat_g) as fat
+         FROM food_log
+         WHERE date = ?`,
+        [yesterdayDateString]
+      ) as {
+        protein: number | null;
+        calories: number | null;
+        carbs: number | null;
+        fat: number | null;
+      } | null;
+
+      if (!yesterdayData || yesterdayData.calories === null) return null;
+
+      return {
+        protein: yesterdayData.protein || 0,
+        calories: yesterdayData.calories || 0,
+        carbs: yesterdayData.carbs || 0,
+        fat: yesterdayData.fat || 0,
+        targetProtein: nutritionTargets.protein,
+        targetCalories: nutritionTargets.calories,
+        achievement: Math.round(((yesterdayData.protein || 0) / nutritionTargets.protein) * 100),
+        gap: Math.max(0, nutritionTargets.protein - (yesterdayData.protein || 0))
+      };
+    } catch (error) {
+      console.error('Error getting yesterday data:', error);
+      return null;
+    }
+  };;
+
   const fetchAIFeedback = async () => {
+    // 昨日のデータを取得
+    const yesterdayData = await getYesterdayNutritionData();
+
+    // 食事タイプ別に集計
+    const mealsByType = {
+      breakfast: foodLog.filter(item => item.meal === 'breakfast'),
+      lunch: foodLog.filter(item => item.meal === 'lunch'),
+      dinner: foodLog.filter(item => item.meal === 'dinner'),
+      snack: foodLog.filter(item => item.meal === 'snack')
+    };
+
     const aiNutritionData = {
       calories: nutritionData.calories.current,
       protein: nutritionData.protein.current,
@@ -55,37 +193,168 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
         calories: item.calories,
         protein: item.protein,
         carbs: item.carbs,
-        fat: item.fat
-      }))
+        fat: item.fat,
+        mealType: item.meal // 食事タイプを追加
+      })),
+      mealsByType: {
+        hasBreakfast: mealsByType.breakfast.length > 0,
+        hasLunch: mealsByType.lunch.length > 0,
+        hasDinner: mealsByType.dinner.length > 0,
+        hasSnack: mealsByType.snack.length > 0,
+        breakfastProtein: mealsByType.breakfast.reduce((sum, m) => sum + (m.protein || 0), 0),
+        lunchProtein: mealsByType.lunch.reduce((sum, m) => sum + (m.protein || 0), 0),
+        dinnerProtein: mealsByType.dinner.reduce((sum, m) => sum + (m.protein || 0), 0),
+        snackProtein: mealsByType.snack.reduce((sum, m) => sum + (m.protein || 0), 0),
+        breakfastCalories: mealsByType.breakfast.reduce((sum, m) => sum + (m.calories || 0), 0),
+        lunchCalories: mealsByType.lunch.reduce((sum, m) => sum + (m.calories || 0), 0),
+        dinnerCalories: mealsByType.dinner.reduce((sum, m) => sum + (m.calories || 0), 0),
+        snackCalories: mealsByType.snack.reduce((sum, m) => sum + (m.calories || 0), 0)
+      }
     };
 
-    await refreshNutritionFeedback(aiNutritionData, {
+    const aiProfile = {
       weight: userProfile?.weight || 70,
       age: userProfile?.age || 25,
       goal: userProfile?.goal || 'maintain',
       gender: userProfile?.gender || 'male',
       height: userProfile?.height || 175,
       activityLevel: 'moderate' as const
-    });
+    };
+
+    // 追加コンテキストの準備
+    const additionalContext = {
+      mealCount: foodLog.length,
+      yesterdayData,
+      mealTypeData: aiNutritionData.mealsByType
+    };
+
+    try {
+      // refreshNutritionFeedbackにadditionalContextを渡す
+      const response = await refreshNutritionFeedback(
+        aiNutritionData,
+        aiProfile,
+        additionalContext
+      );
+      
+      // responseが返ってきた場合は、既に状態が更新されているはず
+    } catch (error) {
+      console.error('Error fetching AI feedback:', error);
+    }
   };
 
   const fetchWorkoutSuggestion = async () => {
     setIsLoadingWorkout(true);
     try {
+      // 日本語→英語の筋群マッピング
+      const muscleMapping: { [key: string]: string } = {
+        '胸': 'chest',
+        '背中': 'back',
+        '肩': 'shoulders',
+        '腕': 'arms',
+        '脚': 'legs',
+        '体幹': 'core',
+        'コア': 'core',
+        '腹筋': 'core',
+        '有酸素': 'cardio', // 除外対象
+      };
+
+      // ボリューム計算用のヘルパー関数
+      const calculateTotalVolume = (exercises: any[]) => {
+        return exercises.reduce((total, ex) => {
+          return total + ((ex.weight || 0) * (ex.sets || 1) * (ex.reps || 1));
+        }, 0);
+      };
+
       // 最近7日間のワークアウトデータを準備
-      const recentWorkouts = (workoutHistory || []).slice(0, 7).map(workout => ({
-        exercises: workout.exercises.map(ex => ({
-          name: ex.name,
-          sets: ex.sets?.length || 3,
-          reps: ex.sets?.[0]?.reps || 10,
-          weight: ex.sets?.[0]?.weight,
-          muscleGroup: ex.targetMuscles?.[0] || 'general'
-        })),
-        duration: workout.duration || 45,
-        type: 'strength' as const,
-        totalVolume: workout.totalVolume || 0,
-        date: workout.date
-      }));
+      const recentWorkouts = (workoutHistory || []).slice(0, 7).map(workout => {
+        const mappedExercises = (workout.exercises || [])
+          .map(ex => {
+            const japaneseMuscle = ex.targetMuscles?.[0] || '';
+            const englishMuscle = japaneseMuscle ? muscleMapping[japaneseMuscle] : undefined;
+
+
+            // 有酸素は除外、マッピングできない場合はgeneralに
+            if (englishMuscle === 'cardio') {
+              return null;
+            }
+
+            return {
+              name: ex.name,
+              sets: ex.sets?.length || 3,
+              reps: ex.sets?.[0]?.reps || 10,
+              weight: ex.sets?.[0]?.weight || 0,
+              muscleGroup: englishMuscle || 'general' // 英語の筋群名を使用
+            };
+          })
+          .filter(ex => ex !== null); // null（有酸素など）を除外
+
+        const mapped = {
+          exercises: mappedExercises,
+          duration: workout.duration || 45,
+          type: 'strength' as const,
+          totalVolume: calculateTotalVolume(mappedExercises), // 正確なボリューム計算
+          date: workout.date
+        };
+
+        return mapped;
+      });
+
+      // 週間ボリューム変化を計算
+      const currentWeekVolume = recentWorkouts.slice(0, 7).reduce((sum, w) => sum + w.totalVolume, 0);
+      const previousWeekVolume = recentWorkouts.slice(7, 14).reduce((sum, w) => sum + w.totalVolume, 0);
+      const volumeChangePercent = previousWeekVolume > 0
+        ? Math.round((currentWeekVolume - previousWeekVolume) / previousWeekVolume * 100)
+        : 0;
+
+
+      // 簡単な進捗分析（フロントエンド側）
+      const improvements: string[] = [];
+      const plateaus: string[] = [];
+
+      // 種目別の進捗をチェック（簡易版）
+      if (recentWorkouts.length >= 2) {
+        const exerciseHistory: { [key: string]: any[] } = {};
+
+        recentWorkouts.slice(0, 3).forEach(workout => {
+          workout.exercises.forEach(ex => {
+            if (!exerciseHistory[ex.name]) {
+              exerciseHistory[ex.name] = [];
+            }
+            exerciseHistory[ex.name].push({
+              weight: ex.weight,
+              reps: ex.reps,
+              sets: ex.sets,
+              date: workout.date
+            });
+          });
+        });
+
+        Object.entries(exerciseHistory).forEach(([exerciseName, history]) => {
+          if (history.length >= 2) {
+            const latest = history[0];
+            const previous = history[1];
+
+            if (latest.weight > previous.weight) {
+              improvements.push(`${exerciseName}: ${previous.weight}kg → ${latest.weight}kg`);
+            }
+
+            if (history.length >= 3 &&
+                latest.weight === previous.weight &&
+                latest.weight === history[2].weight) {
+              plateaus.push(`${exerciseName}: 停滞中`);
+            }
+          }
+        });
+      }
+
+      // 進捗統計を保存
+      setProgressStats({
+        weeklyVolume: currentWeekVolume,
+        volumeChange: volumeChangePercent,
+        improvements: improvements.slice(0, 3),
+        plateaus: plateaus.slice(0, 2)
+      });
+
 
       const response = await AIFeedbackService.getWorkoutSuggestion(
         recentWorkouts,
@@ -95,9 +364,11 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
           height: userProfile?.height || 175,
           goal: userProfile?.goal || 'maintain',
           activityLevel: 'moderate',
-          gender: userProfile?.gender || 'male'
+          gender: userProfile?.gender || 'male',
+          experience: userProfile?.experience || 'beginner'
         }
       );
+
 
       setWorkoutSuggestion(response);
     } catch (error) {
@@ -124,8 +395,11 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
                 <Text style={styles.feedbackTitle}>栄養分析</Text>
               </View>
               <View style={styles.headerRight}>
-                <TouchableOpacity 
-                  onPress={fetchAIFeedback}
+                <TouchableOpacity
+                  onPress={async () => {
+                    await AIFeedbackService.clearCache();
+                    await fetchAIFeedback();
+                  }}
                   disabled={isLoadingNutrition}
                   style={styles.refreshButton}
                 >
@@ -166,14 +440,14 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
                 {nutritionFeedback.actionItems.length > 0 && (
                   <View style={styles.priorityActions}>
                     {nutritionFeedback.actionItems.map((item, index) => (
-                      <View 
-                        key={index} 
+                      <View
+                        key={index}
                         style={[
                           styles.priorityItem,
-                          { borderLeftColor: item.priority === 'high' 
-                            ? colors.status.error 
-                            : item.priority === 'medium' 
-                            ? colors.status.warning 
+                          { borderLeftColor: item.priority === 'high'
+                            ? colors.status.error
+                            : item.priority === 'medium'
+                            ? colors.status.warning
                             : colors.status.success }
                         ]}
                       >
@@ -201,7 +475,7 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
             <Text style={styles.feedbackTitle}>次回ワークアウト提案</Text>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={fetchWorkoutSuggestion}
               disabled={isLoadingWorkout}
               style={styles.refreshButton}
@@ -222,6 +496,67 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
 
         {expandedWorkout && workoutSuggestion && (
           <View style={styles.aiContent}>
+            {/* 進捗統計セクション */}
+            {progressStats && (
+              <View style={styles.progressSection}>
+                <Text style={styles.subTitle}>進捗状況</Text>
+
+                {/* 週間ボリューム */}
+                <View style={styles.volumeStats}>
+                  <View style={styles.volumeItem}>
+                    <Text style={styles.volumeLabel}>週間総ボリューム</Text>
+                    <Text style={styles.volumeValue}>{Math.round(progressStats.weeklyVolume).toLocaleString()}kg</Text>
+                  </View>
+                  {progressStats.volumeChange !== 0 && (
+                    <View style={[
+                      styles.volumeChange,
+                      { backgroundColor: progressStats.volumeChange > 0 ? colors.status.success + '20' : colors.status.error + '20' }
+                    ]}>
+                      <TrendingUp
+                        size={14}
+                        color={progressStats.volumeChange > 0 ? colors.status.success : colors.status.error}
+                        style={{ transform: [{ rotate: progressStats.volumeChange > 0 ? '0deg' : '180deg' }] }}
+                      />
+                      <Text style={[
+                        styles.volumeChangeText,
+                        { color: progressStats.volumeChange > 0 ? colors.status.success : colors.status.error }
+                      ]}>
+                        {progressStats.volumeChange > 0 ? '+' : ''}{progressStats.volumeChange}%
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* 進捗向上 */}
+                {progressStats.improvements.length > 0 && (
+                  <View style={styles.improvementsList}>
+                    <Text style={styles.improvementTitle}>重量向上 🔥</Text>
+                    {progressStats.improvements.map((improvement, index) => (
+                      <View key={index} style={styles.improvementItem}>
+                        <View style={[styles.bulletPoint, { backgroundColor: colors.status.success }]} />
+                        <Text style={styles.improvementText}>{improvement}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* 停滞警告 */}
+                {progressStats.plateaus.length > 0 && (
+                  <View style={styles.plateauWarnings}>
+                    <View style={styles.plateauHeader}>
+                      <AlertTriangle size={16} color={colors.status.warning} />
+                      <Text style={styles.plateauTitle}>停滞注意</Text>
+                    </View>
+                    {progressStats.plateaus.map((plateau, index) => (
+                      <View key={index} style={styles.plateauItem}>
+                        <Text style={styles.plateauText}>{plateau}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+
             <View style={styles.mainFeedback}>
               <Text style={styles.feedbackMessage}>{workoutSuggestion.feedback}</Text>
             </View>
@@ -439,5 +774,86 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.text.tertiary,
     textAlign: 'center',
+  },
+  // 新しい進捗表示スタイル
+  progressSection: {
+    backgroundColor: colors.gray[50],
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  volumeStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  volumeItem: {
+    flex: 1,
+  },
+  volumeLabel: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.secondary,
+    marginBottom: spacing.xs,
+  },
+  volumeValue: {
+    fontSize: typography.fontSize.lg,
+    fontFamily: typography.fontFamily.bold,
+    color: colors.text.primary,
+  },
+  volumeChange: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.full,
+    gap: spacing.xs,
+  },
+  volumeChangeText: {
+    fontSize: typography.fontSize.sm,
+    fontFamily: typography.fontFamily.bold,
+  },
+  improvementsList: {
+    marginBottom: spacing.md,
+  },
+  improvementTitle: {
+    fontSize: typography.fontSize.sm,
+    fontFamily: typography.fontFamily.bold,
+    color: colors.status.success,
+    marginBottom: spacing.xs,
+  },
+  improvementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  improvementText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.primary,
+    marginLeft: spacing.sm,
+  },
+  plateauWarnings: {
+    backgroundColor: colors.status.warning + '10',
+    borderRadius: radius.sm,
+    padding: spacing.sm,
+  },
+  plateauHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+    gap: spacing.xs,
+  },
+  plateauTitle: {
+    fontSize: typography.fontSize.sm,
+    fontFamily: typography.fontFamily.bold,
+    color: colors.status.warning,
+  },
+  plateauItem: {
+    marginBottom: spacing.xs,
+  },
+  plateauText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.secondary,
+    marginLeft: spacing.lg,
   },
 });

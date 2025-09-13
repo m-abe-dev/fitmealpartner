@@ -25,12 +25,10 @@ class OpenFoodFactsService {
 
   async searchByBarcode(barcode: string): Promise<FoodType | null> {
     try {
-      console.log(`🔍 Searching for barcode: ${barcode}`);
       
       // まずローカルDBをチェック
       const localFood = await FoodRepository.getFoodByBarcode(barcode);
       if (localFood) {
-        console.log('📦 Found in local database');
         return {
           id: localFood.food_id,
           name: localFood.name_ja,
@@ -45,7 +43,6 @@ class OpenFoodFactsService {
         };
       }
       
-      console.log('🌐 Searching Open Food Facts API...');
       
       // APIから取得（タイムアウト設定付き）
       const controller = new AbortController();
@@ -66,7 +63,6 @@ class OpenFoodFactsService {
         clearTimeout(timeoutId);
         
         if (!response.ok) {
-          console.log('Product not found in API');
           return null;
         }
 
@@ -101,7 +97,6 @@ class OpenFoodFactsService {
       } catch (fetchError) {
         clearTimeout(timeoutId);
         if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-          console.log('API request timed out');
         } else {
           console.error('API request failed:', fetchError);
         }
@@ -119,7 +114,6 @@ class OpenFoodFactsService {
     product: OpenFoodFactsProduct
   ): Promise<void> {
     try {
-      console.log(`💾 Saving food to database: ${food.name} (ID: ${food.id})`);
       
       const dbFood: Omit<DBFood, 'created_at'> = {
         food_id: food.id,
@@ -137,7 +131,6 @@ class OpenFoodFactsService {
       };
 
       await FoodRepository.addFood(dbFood);
-      console.log('✅ Food saved to database successfully');
     } catch (error) {
       console.error('❌ Failed to save food to database:', {
         foodId: food.id,

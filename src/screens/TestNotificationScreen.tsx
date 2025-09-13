@@ -14,6 +14,8 @@ import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
 import NotificationService from '../services/NotificationService';
 import StreakService from '../services/StreakService';
+import { AIFeedbackService } from '../services/AIFeedbackService';
+import { NutritionData, UserProfile } from '../types/ai.types';
 import { colors, typography, spacing, radius } from '../design-system';
 
 interface TestNotificationScreenProps {
@@ -295,6 +297,7 @@ export const TestNotificationScreen: React.FC<TestNotificationScreenProps> = ({ 
       addTestResult(`エラー: ${error}`);
     }
   };
+
 
   return (
     <SafeAreaView style={styles.container}>

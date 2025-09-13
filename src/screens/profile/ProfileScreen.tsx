@@ -58,7 +58,7 @@ export const ProfileScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScreenHeader
         title="プロフィール"
         icon={<User size={24} color={colors.primary.main} />}

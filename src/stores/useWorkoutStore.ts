@@ -191,7 +191,6 @@ export const useWorkoutStore = create<WorkoutStore>()(
               ]
             );
 
-            console.log('Workout session saved to DB with ID:', result.lastInsertRowId);
 
             // ストリーク更新
             StreakService.updateStreak().catch(error => {
@@ -305,7 +304,6 @@ export const useWorkoutStore = create<WorkoutStore>()(
             'SELECT * FROM workout_session WHERE user_id = ?',
             ['user_1']
           );
-          console.log('DB sessions count:', checkSessions.length);
           
           // セットが存在するセッションのみを取得（Calendarと同じロジック）
           const dbSessions = await DatabaseService.getAllAsync<any>(
@@ -317,7 +315,6 @@ export const useWorkoutStore = create<WorkoutStore>()(
             ['user_1']
           );
           
-          console.log('Sessions with sets:', dbSessions.length);
 
           const sessions: WorkoutSession[] = dbSessions.map(session => ({
             id: session.session_id.toString(),
@@ -332,7 +329,6 @@ export const useWorkoutStore = create<WorkoutStore>()(
           }));
 
           set({ sessions });
-          console.log('Loaded workout sessions:', sessions.length);
           
           return sessions; // Promiseで返す
           
@@ -379,7 +375,6 @@ export const useWorkoutStore = create<WorkoutStore>()(
         favoriteExercises: Array.from(state.favoriteExercises),
       }),
       onRehydrateStorage: () => (state: WorkoutStore | undefined) => {
-        console.log('Rehydrating workout store:', state);
         
         if (state) {
           // favoriteExercisesをSetに変換
@@ -392,7 +387,6 @@ export const useWorkoutStore = create<WorkoutStore>()(
             state.sessions = [];
           }
           
-          console.log('Sessions after rehydration:', state.sessions);
         }
       },
     }

@@ -51,7 +51,6 @@ export const StreakDetailModal: React.FC<StreakDetailModalProps> = ({
 
   const loadStreakStats = async () => {
     try {
-      console.log('Loading streak stats...');
 
       const now = new Date();
       const weekStart = new Date(now);
@@ -64,7 +63,6 @@ export const StreakDetailModal: React.FC<StreakDetailModalProps> = ({
       const allFoodLogs = await DatabaseService.getAllAsync<any>(
         'SELECT DISTINCT date FROM food_log ORDER BY date'
       );
-      console.log('Food logs:', allFoodLogs.length);
 
       const weekFoodLogs = await DatabaseService.getAllAsync<any>(
         'SELECT DISTINCT date FROM food_log WHERE date >= ? ORDER BY date',
@@ -117,11 +115,6 @@ export const StreakDetailModal: React.FC<StreakDetailModalProps> = ({
         },
       });
 
-      console.log('Stats loaded:', {
-        totalWorkouts: allWorkouts.length,
-        weekWorkouts: weekWorkouts.length,
-        monthWorkouts: monthWorkouts.length,
-      });
     } catch (error) {
       console.error('Error loading streak stats:', error);
     }

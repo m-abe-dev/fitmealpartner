@@ -1,15 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 
-interface CachedResponse {
+interface NutritionCachedResponse {
   key: string;
   response: any;
   timestamp: number;
   expiresAt: number;
 }
 
-class AIResponseCache {
-  private readonly CACHE_PREFIX = '@ai_cache:';
+class NutritionResponseCache {
+  private readonly CACHE_PREFIX = '@nutrition_cache:';
   private readonly DEFAULT_TTL = 60 * 60 * 1000; // 1時間
   private readonly MAX_CACHE_SIZE = 50; // 最大50件のキャッシュ
 
@@ -18,7 +18,7 @@ class AIResponseCache {
    */
   private async generateCacheKey(data: any): Promise<string> {
     try {
-      // 重要な栄養データのみを使用してキーを生成
+      // 重要な栄養データと言語設定を使用してキーを生成
       const relevantData = {
         calories: data.nutrition?.calories ? Math.round(data.nutrition.calories / 50) * 50 : 0, // 50kcal単位で丸める
         protein: data.nutrition?.protein ? Math.round(data.nutrition.protein / 5) * 5 : 0,     // 5g単位で丸める
@@ -26,6 +26,7 @@ class AIResponseCache {
         fat: data.nutrition?.fat ? Math.round(data.nutrition.fat / 5) * 5 : 0,             // 5g単位で丸める
         goal: data.profile?.goal || 'maintain',
         targetCalories: data.nutrition?.targetCalories ? Math.round(data.nutrition.targetCalories / 100) * 100 : 0, // 100kcal単位
+        language: data.language || 'en', // 言語設定を追加
       };
       
       const jsonString = JSON.stringify(relevantData);
@@ -53,7 +54,7 @@ class AIResponseCache {
       const cached = await AsyncStorage.getItem(cacheKey);
       if (!cached) return null;
       
-      const parsedCache: CachedResponse = JSON.parse(cached);
+      const parsedCache: NutritionCachedResponse = JSON.parse(cached);
       
       // 有効期限チェック
       if (Date.now() > parsedCache.expiresAt) {
@@ -61,7 +62,6 @@ class AIResponseCache {
         return null;
       }
       
-      console.log('Cache hit for AI response');
       return parsedCache.response;
     } catch (error) {
       console.error('Cache retrieval error:', error);
@@ -77,7 +77,7 @@ class AIResponseCache {
       const key = await this.generateCacheKey(requestData);
       const cacheKey = `${this.CACHE_PREFIX}${key}`;
       
-      const cacheData: CachedResponse = {
+      const cacheData: NutritionCachedResponse = {
         key,
         response,
         timestamp: Date.now(),
@@ -131,7 +131,6 @@ class AIResponseCache {
       const allKeys = await AsyncStorage.getAllKeys();
       const cacheKeys = allKeys.filter(key => key.startsWith(this.CACHE_PREFIX));
       await AsyncStorage.multiRemove(cacheKeys);
-      console.log('AI cache cleared');
     } catch (error) {
       console.error('Cache clear error:', error);
     }
@@ -194,4 +193,4 @@ class AIResponseCache {
   }
 }
 
-export default new AIResponseCache();
+export default new NutritionResponseCache();
