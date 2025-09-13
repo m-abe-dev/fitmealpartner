@@ -20,6 +20,16 @@ export default function App() {
   const navigationRef = useRef<NavigationContainerRef<any>>(null);
   const { isReady } = useAppInitialization();
 
+  // SplashScreenを非表示にする
+  useEffect(() => {
+    async function hideSplash() {
+      if (isReady) {
+        await SplashScreen.hideAsync();
+      }
+    }
+    hideSplash();
+  }, [isReady]);
+
   // 通知リスナーの設定
   useEffect(() => {
     if (!isReady) return;
