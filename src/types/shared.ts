@@ -52,6 +52,7 @@ export interface UserProfile {
   goal: 'cut' | 'bulk' | 'maintain';
   activityLevel: string;
   gender: 'male' | 'female' | 'other';
+  experience?: 'beginner' | 'intermediate' | 'advanced';
 }
 
 export interface FeedbackResponse {

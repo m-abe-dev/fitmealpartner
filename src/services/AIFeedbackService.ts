@@ -185,8 +185,18 @@ export class AIFeedbackService {
     try {
       // デバイスの言語設定を取得
       const language = this.getDeviceLanguage();
+      
+      // 経験レベルをデフォルト値で設定
+      const profileWithExperience = {
+        ...profile,
+        experience: profile.experience || 'beginner'
+      };
 
-      const requestBody = { recentWorkouts, profile, language };
+      const requestBody = { 
+        recentWorkouts, 
+        profile: profileWithExperience, 
+        language 
+      };
 
       const response = await fetch(
         `${this.SUPABASE_URL}/functions/v1/workout-suggestion`,
