@@ -6,7 +6,8 @@ import {
   WorkoutSuggestionResponse,
 } from '../types/ai.types';
 import { ENV } from '../config/environment';
-import AIResponseCache from './cache/AIResponseCache';
+import NutritionResponseCache from './cache/NutritionResponseCache';
+import WorkoutResponseCache from './cache/WorkoutResponseCache';
 import { debounce } from 'lodash';
 import * as Localization from 'expo-localization';
 
@@ -16,34 +17,63 @@ export class AIFeedbackService {
   private static requestCount = 0;
   private static lastRequestTime = 0;
   
+  // 開発用：手動言語設定（__DEV__ 環境でのみ使用）
+  private static manualLanguageOverride: string | null = null;
   
+  
+  /**
+   * 開発用：言語設定を手動で上書き
+   */
+  static setManualLanguageOverride(language: string | null): void {
+    if (__DEV__) {
+      this.manualLanguageOverride = language;
+      console.log('Manual language override set:', language);
+    }
+  }
+
   /**
    * デバイスの言語設定を取得
    */
   private static getDeviceLanguage(): string {
+    // 開発用：手動上書きがある場合はそれを使用
+    if (__DEV__ && this.manualLanguageOverride) {
+      console.log('Using manual language override:', this.manualLanguageOverride);
+      return this.manualLanguageOverride;
+    }
+
     try {
       const locales = Localization.getLocales();
       
       if (locales && locales.length > 0) {
         const locale = locales[0];
-        
-        // languageTagから言語を判定（例: "ja-JP", "en-US"）
         const languageTag = locale.languageTag || '';
-        
-        if (languageTag.startsWith('ja')) {
-          return 'ja';
-        } else if (languageTag.startsWith('en')) {
-          return 'en';
-        }
-        
-        // languageCodeで判定
         const languageCode = locale.languageCode || '';
         
-        if (languageCode === 'ja') {
-          return 'ja';
-        } else if (languageCode === 'en') {
-          return 'en';
+        // 対応言語のチェック
+        const supportedLanguages = {
+          'ja': ['ja'],
+          'en': ['en'],
+          'es': ['es'],
+          'fr': ['fr']
+        };
+        
+        // languageTagから判定（例: "ja-JP", "en-US", "es-ES", "fr-FR"）
+        for (const [lang, prefixes] of Object.entries(supportedLanguages)) {
+          if (prefixes.some(prefix => languageTag.startsWith(prefix))) {
+            console.log(`Device language detected: ${lang} (from languageTag: ${languageTag})`);
+            return lang;
+          }
         }
+        
+        // languageCodeから判定（フォールバック）
+        for (const [lang, codes] of Object.entries(supportedLanguages)) {
+          if (codes.includes(languageCode)) {
+            console.log(`Device language detected: ${lang} (from languageCode: ${languageCode})`);
+            return lang;
+          }
+        }
+
+        console.log('Unsupported language detected:', { languageTag, languageCode });
       }
     } catch (error) {
       console.error('Error getting device language:', error);
@@ -96,7 +126,7 @@ export class AIFeedbackService {
       const language = this.getDeviceLanguage();
 
       // キャッシュチェック（言語情報も含める）
-      const cached = await AIResponseCache.get({ nutrition, profile, language });
+      const cached = await NutritionResponseCache.get({ nutrition, profile, language });
       if (cached) {
         return { ...cached, fromCache: true };
       }
@@ -161,7 +191,7 @@ export class AIFeedbackService {
     const result = await response.json();
     
     // キャッシュに保存（言語情報も含める）
-    await AIResponseCache.set({ nutrition, profile, language }, result);
+    await NutritionResponseCache.set({ nutrition, profile, language }, result);
     
     return result;
   }
@@ -192,6 +222,19 @@ export class AIFeedbackService {
         experience: profile.experience || 'beginner'
       };
 
+      const cacheData = { 
+        recentWorkouts, 
+        profile: profileWithExperience, 
+        language 
+      };
+
+      // ワークアウトキャッシュチェック
+      const cached = await WorkoutResponseCache.get(cacheData);
+      if (cached) {
+        console.log('Using cached workout suggestion for language:', language);
+        return { ...cached, fromCache: true };
+      }
+
       const requestBody = { 
         recentWorkouts, 
         profile: profileWithExperience, 
@@ -217,7 +260,10 @@ export class AIFeedbackService {
       }
 
       const result = await response.json();
-
+      
+      // ワークアウトキャッシュに保存
+      await WorkoutResponseCache.set(cacheData, result);
+      
       return result;
     } catch (error) {
       console.error('Error getting workout suggestion:', error);
@@ -439,19 +485,44 @@ export class AIFeedbackService {
   }
 
   /**
+   * 言語変更時のキャッシュ処理
+   */
+  static async onLanguageChange(newLanguage: string): Promise<void> {
+    try {
+      // 新しい言語以外のキャッシュをクリア
+      await WorkoutResponseCache.clearByLanguage(newLanguage);
+      await NutritionResponseCache.clearAll(); // 栄養キャッシュも全クリア
+      this.requestCount = 0;
+      console.log(`Cache cleared for language change to: ${newLanguage}`);
+    } catch (error) {
+      console.error('Error during language change cache management:', error);
+    }
+  }
+
+  /**
    * キャッシュをクリア
    */
   static async clearCache(): Promise<void> {
-    await AIResponseCache.clearAll();
+    await NutritionResponseCache.clearAll();
+    await WorkoutResponseCache.clearAll();
     this.requestCount = 0;
-    console.log('AI feedback cache cleared');
+    console.log('All AI feedback cache cleared');
   }
 
   /**
    * キャッシュ統計情報を取得
    */
-  static async getCacheStats(): Promise<{ count: number; totalSize: number; oldestEntry: number }> {
-    return await AIResponseCache.getStats();
+  static async getCacheStats(): Promise<{ 
+    nutrition: { count: number; totalSize: number; oldestEntry: number };
+    workout: { count: number; totalSize: number; oldestEntry: number };
+  }> {
+    const nutritionStats = await NutritionResponseCache.getStats();
+    const workoutStats = await WorkoutResponseCache.getStats();
+    
+    return {
+      nutrition: nutritionStats,
+      workout: workoutStats,
+    };
   }
 
   /**

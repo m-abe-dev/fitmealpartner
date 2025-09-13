@@ -1,15 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 
-interface CachedResponse {
+interface NutritionCachedResponse {
   key: string;
   response: any;
   timestamp: number;
   expiresAt: number;
 }
 
-class AIResponseCache {
-  private readonly CACHE_PREFIX = '@ai_cache:';
+class NutritionResponseCache {
+  private readonly CACHE_PREFIX = '@nutrition_cache:';
   private readonly DEFAULT_TTL = 60 * 60 * 1000; // 1時間
   private readonly MAX_CACHE_SIZE = 50; // 最大50件のキャッシュ
 
@@ -54,7 +54,7 @@ class AIResponseCache {
       const cached = await AsyncStorage.getItem(cacheKey);
       if (!cached) return null;
       
-      const parsedCache: CachedResponse = JSON.parse(cached);
+      const parsedCache: NutritionCachedResponse = JSON.parse(cached);
       
       // 有効期限チェック
       if (Date.now() > parsedCache.expiresAt) {
@@ -62,7 +62,7 @@ class AIResponseCache {
         return null;
       }
       
-      console.log('Cache hit for AI response');
+      console.log('Cache hit for nutrition response');
       return parsedCache.response;
     } catch (error) {
       console.error('Cache retrieval error:', error);
@@ -78,7 +78,7 @@ class AIResponseCache {
       const key = await this.generateCacheKey(requestData);
       const cacheKey = `${this.CACHE_PREFIX}${key}`;
       
-      const cacheData: CachedResponse = {
+      const cacheData: NutritionCachedResponse = {
         key,
         response,
         timestamp: Date.now(),
@@ -132,7 +132,7 @@ class AIResponseCache {
       const allKeys = await AsyncStorage.getAllKeys();
       const cacheKeys = allKeys.filter(key => key.startsWith(this.CACHE_PREFIX));
       await AsyncStorage.multiRemove(cacheKeys);
-      console.log('AI cache cleared');
+      console.log('Nutrition cache cleared');
     } catch (error) {
       console.error('Cache clear error:', error);
     }
@@ -195,4 +195,4 @@ class AIResponseCache {
   }
 }
 
-export default new AIResponseCache();
+export default new NutritionResponseCache();

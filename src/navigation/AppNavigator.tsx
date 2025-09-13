@@ -5,6 +5,7 @@ import { BarChart3, Dumbbell, UtensilsCrossed, Settings, RefreshCw, Trash2 } fro
 import { colors, typography, spacing } from '../design-system';
 import { OnboardingStorageService } from '../services/OnboardingStorageService';
 import DatabaseService from '../services/database/DatabaseService';
+import { AIFeedbackService } from '../services/AIFeedbackService';
 
 import { DashboardScreen } from '../screens/dashboard/DashboardScreen';
 import { NutritionScreen } from '../screens/nutrition/NutritionScreen';
@@ -115,6 +116,17 @@ export default function AppNavigator() {
     } catch (error) {
       Alert.alert('エラー', 'データベース確認に失敗しました');
     }
+  };
+
+  // 言語テスト用関数
+  const testLanguage = (language: string) => {
+    AIFeedbackService.setManualLanguageOverride(language);
+    Alert.alert('言語設定', `テスト言語を${language}に設定しました`);
+  };
+
+  const clearLanguageOverride = () => {
+    AIFeedbackService.setManualLanguageOverride(null);
+    Alert.alert('言語設定', 'テスト言語設定をクリアしました（デバイス言語を使用）');
   };
 
   // 今日のデータをクリア
@@ -324,6 +336,45 @@ export default function AppNavigator() {
               </TouchableOpacity>
             </View>
 
+            {/* 言語テスト */}
+            <View style={styles.devSection}>
+              <Text style={styles.devSectionTitle}>言語テスト</Text>
+              <View style={styles.languageButtonRow}>
+                <TouchableOpacity
+                  style={[styles.devModalButton, styles.languageButton, { backgroundColor: '#4CAF50' }]}
+                  onPress={() => testLanguage('ja')}
+                >
+                  <Text style={styles.devModalButtonText}>🇯🇵 日本語</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.devModalButton, styles.languageButton, { backgroundColor: '#2196F3' }]}
+                  onPress={() => testLanguage('en')}
+                >
+                  <Text style={styles.devModalButtonText}>🇺🇸 English</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.languageButtonRow}>
+                <TouchableOpacity
+                  style={[styles.devModalButton, styles.languageButton, { backgroundColor: '#FF9800' }]}
+                  onPress={() => testLanguage('es')}
+                >
+                  <Text style={styles.devModalButtonText}>🇪🇸 Español</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.devModalButton, styles.languageButton, { backgroundColor: '#9C27B0' }]}
+                  onPress={() => testLanguage('fr')}
+                >
+                  <Text style={styles.devModalButtonText}>🇫🇷 Français</Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity
+                style={[styles.devModalButton, { backgroundColor: colors.gray[600] }]}
+                onPress={clearLanguageOverride}
+              >
+                <Text style={styles.devModalButtonText}>デバイス言語に戻す</Text>
+              </TouchableOpacity>
+            </View>
+
             {/* 閉じるボタン */}
             <TouchableOpacity
               style={[styles.devModalButton, styles.devModalCloseButton]}
@@ -447,5 +498,14 @@ const styles = StyleSheet.create({
   },
   devModalCloseButton: {
     backgroundColor: colors.gray[600],
+  },
+  languageButtonRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginVertical: 5,
+  },
+  languageButton: {
+    flex: 1,
+    marginVertical: 0,
   },
 });

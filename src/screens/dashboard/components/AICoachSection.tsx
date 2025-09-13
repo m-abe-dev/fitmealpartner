@@ -11,6 +11,7 @@ import { useNutritionData } from '../../../hooks/useNutritionData';
 import { useWorkoutData } from '../../../hooks/useWorkoutData';
 import { AIFeedbackService } from '../../../services/AIFeedbackService';
 import DatabaseService from '../../../services/database/DatabaseService';
+import * as Localization from 'expo-localization';
 
 interface AICoachSectionProps {
   currentAIData: PeriodAIData;
@@ -27,6 +28,10 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
     improvements: string[];
     plateaus: string[];
   } | null>(null);
+  const [currentLanguage, setCurrentLanguage] = useState<string>(() => {
+    // 初期言語を取得（privateメソッドにアクセスできないので、デフォルトを使用）
+    return 'ja';
+  });
 
   // AI栄養フィードバック用のフック
   const { nutritionFeedback, isLoading: isLoadingNutrition, refreshNutritionFeedback } = useAIFeedback();
@@ -37,6 +42,42 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
   // ワークアウトデータ
   const { workoutHistory } = useWorkoutData();
 
+  // 言語検出ヘルパー関数
+  const getDeviceLanguage = (): string => {
+    try {
+      const locales = Localization.getLocales();
+      if (locales && locales.length > 0) {
+        const locale = locales[0];
+        const languageTag = locale.languageTag || '';
+        const languageCode = locale.languageCode || '';
+        
+        const supportedLanguages = {
+          'ja': ['ja'],
+          'en': ['en'],
+          'es': ['es'],
+          'fr': ['fr']
+        };
+        
+        // languageTagから判定
+        for (const [lang, prefixes] of Object.entries(supportedLanguages)) {
+          if (prefixes.some(prefix => languageTag.startsWith(prefix))) {
+            return lang;
+          }
+        }
+        
+        // languageCodeから判定（フォールバック）
+        for (const [lang, codes] of Object.entries(supportedLanguages)) {
+          if (codes.includes(languageCode)) {
+            return lang;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error getting device language:', error);
+    }
+    return 'en'; // デフォルトは英語
+  };
+
   useEffect(() => {
     // 初回読み込み時にAI分析を実行
     if (foodLog.length > 0) {
@@ -46,6 +87,41 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
       fetchWorkoutSuggestion();
     }
   }, [foodLog.length, workoutHistory?.length]);
+
+  // 言語変更監視
+  useEffect(() => {
+    const checkLanguageChange = () => {
+      const detectedLanguage = getDeviceLanguage();
+      if (currentLanguage !== detectedLanguage) {
+        console.log(`Language changed from ${currentLanguage} to ${detectedLanguage}`);
+        setCurrentLanguage(detectedLanguage);
+        
+        // 言語変更時のキャッシュ処理
+        AIFeedbackService.onLanguageChange(detectedLanguage).then(() => {
+          // 新しい言語で再フェッチ
+          if (workoutHistory && workoutHistory.length > 0) {
+            console.log('Re-fetching workout suggestion for new language');
+            fetchWorkoutSuggestion();
+          }
+          if (foodLog.length > 0) {
+            console.log('Re-fetching nutrition feedback for new language');
+            fetchAIFeedback();
+          }
+        });
+      }
+    };
+
+    // 初回言語設定
+    const initialLanguage = getDeviceLanguage();
+    if (currentLanguage !== initialLanguage) {
+      setCurrentLanguage(initialLanguage);
+    }
+
+    // 5秒ごとに言語変更をチェック
+    const languageCheckInterval = setInterval(checkLanguageChange, 5000);
+
+    return () => clearInterval(languageCheckInterval);
+  }, [currentLanguage, workoutHistory?.length, foodLog.length]);
 
   // 昨日の栄養データを取得する関数
   const  getYesterdayNutritionData = async () => {
