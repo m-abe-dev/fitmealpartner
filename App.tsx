@@ -27,16 +27,13 @@ export default function App() {
     NotificationService.setupNotificationListeners(
       (notification) => {
         // 通知受信時（アプリがフォアグラウンド）
-        console.log('通知受信:', notification.request.content);
       },
       (response) => {
         // 通知タップ時の画面遷移処理
-        console.log('通知タップ:', response.notification.request.content.data);
 
         const rawData = response.notification.request.content.data;
 
         if (!rawData || !isNotificationData(rawData)) {
-          console.log('Invalid notification data:', rawData);
           return;
         }
 
@@ -44,7 +41,6 @@ export default function App() {
         const screen = notificationData.screen;
 
         if (screen && navigationRef.current?.isReady()) {
-          console.log(`画面遷移: ${screen}`);
 
           // タブナビゲーターの画面に遷移
           switch (screen) {
@@ -71,10 +67,8 @@ export default function App() {
               });
               break;
             default:
-              console.log('Unknown screen:', screen);
           }
         } else {
-          console.log('Navigation not ready or no screen specified');
         }
       }
     );

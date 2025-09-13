@@ -272,11 +272,9 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
             const japaneseMuscle = ex.targetMuscles?.[0] || '';
             const englishMuscle = japaneseMuscle ? muscleMapping[japaneseMuscle] : undefined;
 
-            console.log(`Exercise: ${ex.name}, Japanese: ${japaneseMuscle}, English: ${englishMuscle}`);
 
             // 有酸素は除外、マッピングできない場合はgeneralに
             if (englishMuscle === 'cardio') {
-              console.log(`Excluding cardio exercise: ${ex.name}`);
               return null;
             }
 
@@ -298,10 +296,6 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
           date: workout.date
         };
 
-        console.log(`Workout ${workout.date}:`, {
-          exercises: mapped.exercises.map(e => `${e.name}(${e.muscleGroup}): ${e.weight}kg×${e.sets}×${e.reps}`),
-          totalVolume: mapped.totalVolume
-        });
         return mapped;
       });
 
@@ -312,11 +306,6 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
         ? Math.round((currentWeekVolume - previousWeekVolume) / previousWeekVolume * 100)
         : 0;
 
-      console.log('Volume Analysis:', {
-        currentWeek: currentWeekVolume,
-        previousWeek: previousWeekVolume,
-        change: volumeChangePercent
-      });
 
       // 簡単な進捗分析（フロントエンド側）
       const improvements: string[] = [];
@@ -366,8 +355,6 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
         plateaus: plateaus.slice(0, 2)
       });
 
-      console.log('=== Sending to AI Service ===');
-      console.log('Mapped workouts:', JSON.stringify(recentWorkouts, null, 2));
 
       const response = await AIFeedbackService.getWorkoutSuggestion(
         recentWorkouts,
@@ -382,8 +369,6 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
         }
       );
 
-      console.log('=== AI Response ===');
-      console.log('Target muscles:', response.nextWorkout?.targetMuscleGroups);
 
       setWorkoutSuggestion(response);
     } catch (error) {

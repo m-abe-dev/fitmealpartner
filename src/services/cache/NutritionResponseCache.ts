@@ -131,7 +131,6 @@ class NutritionResponseCache {
       const allKeys = await AsyncStorage.getAllKeys();
       const cacheKeys = allKeys.filter(key => key.startsWith(this.CACHE_PREFIX));
       await AsyncStorage.multiRemove(cacheKeys);
-      console.log('Nutrition cache cleared');
     } catch (error) {
       console.error('Cache clear error:', error);
     }

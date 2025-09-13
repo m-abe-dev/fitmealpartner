@@ -41,7 +41,6 @@ export const Calendar: React.FC<CalendarProps> = ({ onDayClick }) => {
          GROUP BY ws.session_id
          ORDER BY ws.date DESC`
       );
-      console.log('🔍 All September sessions:', allSessions);
     } catch (error) {
       console.error('Failed to debug sessions:', error);
     }
@@ -59,7 +58,6 @@ export const Calendar: React.FC<CalendarProps> = ({ onDayClick }) => {
       const lastDay = new Date(selectedYear, selectedMonth + 1, 0).getDate();
       const endDate = `${selectedYear}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
 
-      console.log('📅 Loading workout days for:', { startDate, endDate });
 
       // データベースの日付形式を確認するデバッグコード
       const debugDates = await DatabaseService.getAllAsync<any>(
@@ -68,7 +66,6 @@ export const Calendar: React.FC<CalendarProps> = ({ onDayClick }) => {
          ORDER BY date DESC 
          LIMIT 10`
       );
-      console.log('🗓️ Recent workout dates:', debugDates);
 
       // LEFT JOINに変更し、セットが存在するセッションのみをフィルタ
       const sessions = await DatabaseService.getAllAsync<any>(
@@ -83,16 +80,13 @@ export const Calendar: React.FC<CalendarProps> = ({ onDayClick }) => {
         [startDate, endDate]
       );
 
-      console.log('📊 Found sessions with sets:', sessions);
 
       if (sessions && sessions.length > 0) {
         const days = sessions.map(session => {
           const dateParts = session.date.split('-');
           const day = parseInt(dateParts[2], 10);
-          console.log(`Date: ${session.date} => Day: ${day}, Sets: ${session.set_count}`);
           return day;
         });
-        console.log('📌 Workout days:', days);
         setWorkoutDays(days);
       } else {
         setWorkoutDays([]);

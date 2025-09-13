@@ -67,7 +67,6 @@ export default function AppNavigator() {
   }, []);
 
   const handleOnboardingComplete = (data: any) => {
-    console.log('Onboarding completed with data:', data);
     // Alertを削除し、直接状態を更新
     setOnboardingComplete(true);
   };

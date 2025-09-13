@@ -135,7 +135,6 @@ export const useAIFeedback = () => {
   ): Promise<FeedbackResponse | null> => {
     // フォースリフレッシュでない場合、キャッシュをチェック
     if (!forceRefresh && state.nutritionFeedback && !isStale(15)) {
-      console.log('Using cached nutrition feedback');
       return state.nutritionFeedback;
     }
     

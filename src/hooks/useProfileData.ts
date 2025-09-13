@@ -73,7 +73,6 @@ export const useProfileData = () => {
     try {
       refreshCountRef.current++;
       setRefreshing(true);
-      console.log(`🔄 Profile refresh #${refreshCountRef.current} started`);
       
       // 並列処理で高速化
       const refreshPromises = [];
@@ -101,7 +100,6 @@ export const useProfileData = () => {
         console.warn('Some refresh operations failed:', errors);
       }
       
-      console.log('✅ Profile refresh completed');
       
     } catch (error) {
       console.error('❌ Profile refresh failed:', error);
@@ -127,7 +125,6 @@ export const useProfileData = () => {
       
       const weightHistory = await UserRepository.getWeightHistory('user_1', startDate, endDate);
       
-      console.log('📊 Weight history updated:', weightHistory.length, 'records');
       return weightHistory;
     } catch (error) {
       console.error('Failed to update weight history:', error);
@@ -153,7 +150,6 @@ export const useProfileData = () => {
         achievements.push('protein_master');
       }
       
-      console.log('🏆 Achievements updated:', achievements);
       return achievements;
     } catch (error) {
       console.error('Failed to update achievements:', error);
@@ -202,7 +198,6 @@ export const useProfileData = () => {
     try {
       // AIサービスのキャッシュをクリアして最新の推奨値を取得
       await AIFeedbackService.clearCache();
-      console.log('🎯 Nutrition targets recalculated');
     } catch (error) {
       console.error('Failed to recalculate nutrition targets:', error);
     }

@@ -27,7 +27,6 @@ export class AIFeedbackService {
   static setManualLanguageOverride(language: string | null): void {
     if (__DEV__) {
       this.manualLanguageOverride = language;
-      console.log('Manual language override set:', language);
     }
   }
 
@@ -37,7 +36,6 @@ export class AIFeedbackService {
   private static getDeviceLanguage(): string {
     // 開発用：手動上書きがある場合はそれを使用
     if (__DEV__ && this.manualLanguageOverride) {
-      console.log('Using manual language override:', this.manualLanguageOverride);
       return this.manualLanguageOverride;
     }
 
@@ -60,7 +58,6 @@ export class AIFeedbackService {
         // languageTagから判定（例: "ja-JP", "en-US", "es-ES", "fr-FR"）
         for (const [lang, prefixes] of Object.entries(supportedLanguages)) {
           if (prefixes.some(prefix => languageTag.startsWith(prefix))) {
-            console.log(`Device language detected: ${lang} (from languageTag: ${languageTag})`);
             return lang;
           }
         }
@@ -68,12 +65,10 @@ export class AIFeedbackService {
         // languageCodeから判定（フォールバック）
         for (const [lang, codes] of Object.entries(supportedLanguages)) {
           if (codes.includes(languageCode)) {
-            console.log(`Device language detected: ${lang} (from languageCode: ${languageCode})`);
             return lang;
           }
         }
 
-        console.log('Unsupported language detected:', { languageTag, languageCode });
       }
     } catch (error) {
       console.error('Error getting device language:', error);
@@ -231,7 +226,6 @@ export class AIFeedbackService {
       // ワークアウトキャッシュチェック
       const cached = await WorkoutResponseCache.get(cacheData);
       if (cached) {
-        console.log('Using cached workout suggestion for language:', language);
         return { ...cached, fromCache: true };
       }
 
@@ -561,7 +555,6 @@ export class AIFeedbackService {
       await WorkoutResponseCache.clearByLanguage(newLanguage);
       await NutritionResponseCache.clearAll(); // 栄養キャッシュも全クリア
       this.requestCount = 0;
-      console.log(`Cache cleared for language change to: ${newLanguage}`);
     } catch (error) {
       console.error('Error during language change cache management:', error);
     }
@@ -574,7 +567,6 @@ export class AIFeedbackService {
     await NutritionResponseCache.clearAll();
     await WorkoutResponseCache.clearAll();
     this.requestCount = 0;
-    console.log('All AI feedback cache cleared');
   }
 
   /**

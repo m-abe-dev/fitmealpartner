@@ -44,7 +44,6 @@ export const useDashboardScreen = () => {
     try {
       refreshCountRef.current++;
       setRefreshing(true);
-      console.log(`🔄 Dashboard refresh #${refreshCountRef.current} started`);
       
       const refreshPromises = [];
       
@@ -74,7 +73,6 @@ export const useDashboardScreen = () => {
         console.warn('Some refresh operations failed:', errors);
       }
       
-      console.log('✅ Dashboard refresh completed');
       
     } catch (error) {
       console.error('❌ Dashboard refresh failed:', error);
@@ -124,10 +122,6 @@ export const useDashboardScreen = () => {
         ['user_1', todayString]
       );
       
-      console.log('📊 Dashboard stats updated:', {
-        nutrition: nutritionStats,
-        workout: workoutStats
-      });
       
       return { nutritionStats, workoutStats };
     } catch (error) {
@@ -175,7 +169,6 @@ export const useDashboardScreen = () => {
       };
 
       const feedback = await getNutritionFeedback(nutritionData, profile);
-      console.log('🤖 AI feedback refreshed');
       return feedback;
     } catch (error) {
       console.error('Failed to refresh AI feedback:', error);
@@ -193,7 +186,6 @@ export const useDashboardScreen = () => {
       ]);
       
       setRealPeriodData([dailyData, weeklyData, monthlyData]);
-      console.log('📈 Period data regenerated');
     } catch (error) {
       console.error('Error generating period data:', error);
       setRealPeriodData([]);

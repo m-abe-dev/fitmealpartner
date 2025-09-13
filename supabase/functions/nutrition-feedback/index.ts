@@ -326,10 +326,6 @@ serve(async req => {
     // 言語サポートの確認
     const supportedLanguage = getSupportedNutritionLanguage(language);
     
-    console.log('=== Nutrition Feedback Language Debug ===');
-    console.log('Received language:', language);
-    console.log('Supported language:', supportedLanguage);
-    console.log('========================================');
 
     const context = {
       mealCount,

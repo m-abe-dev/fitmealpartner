@@ -55,7 +55,6 @@ export const useWorkoutScreen = () => {
 
   const handleRefresh = useCallback(async () => {
     refreshCountRef.current++;
-    console.log(`🔄 Workout refresh #${refreshCountRef.current}`);
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 1000);
   }, []);

@@ -96,7 +96,6 @@ class StreakService {
   async resetStreak(): Promise<void> {
     await AsyncStorage.removeItem('currentStreak');
     await AsyncStorage.removeItem('lastRecordDate');
-    console.log('Streak data cleared');
   }
 
   // 実際の記録に基づいてストリークを再計算
@@ -160,7 +159,6 @@ class StreakService {
       if (streakDays === milestone) {
         // バッジ獲得の通知やローカルストレージへの保存
         await this.saveMilestone(milestone);
-        console.log(`🎉 ${milestone}日連続記録達成！`);
         break;
       }
     }

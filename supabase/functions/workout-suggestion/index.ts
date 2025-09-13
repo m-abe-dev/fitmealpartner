@@ -381,13 +381,6 @@ serve(async req => {
     // 進捗分析を実行
     const progressAnalysis = analyzeWorkoutProgress(recentWorkouts, language);
 
-    console.log('Progress Analysis:', {
-      improvements: progressAnalysis.improvementMessages,
-      plateaus: progressAnalysis.plateauWarnings,
-      volumeAnalysis: progressAnalysis.volumeAnalysis,
-      weeklyVolume: progressAnalysis.totalVolumeWeek,
-      volumeChange: progressAnalysis.volumeChangePercent,
-    });
 
     const experience = profile.experience || 'beginner';
     const systemPrompt = getSystemPrompt(language, experience);
@@ -400,7 +393,6 @@ serve(async req => {
       language
     );
 
-    console.log('muscleGroupsWorked', muscleGroupsWorked);
 
     const aiResponse = await generateAIResponse(systemPrompt, userPrompt, 800);
 
@@ -425,9 +417,6 @@ serve(async req => {
 
     // 種目数が不足している場合のフォールバック処理
     if (recommendedExercises.length < minExercises) {
-      console.log(
-        `Insufficient exercises (${recommendedExercises.length}/${minExercises}). Adding fallback exercises.`
-      );
 
       const fallbackMessages = getFallbackMessages(language);
       const fallbackExercises = fallbackMessages.exercises;

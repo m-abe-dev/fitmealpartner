@@ -29,7 +29,6 @@ export const useAppInitialization = () => {
             const screen = response.notification.request.content.data?.screen;
             if (screen) {
               // ナビゲーション処理
-              console.log('Navigate to:', screen);
             }
           }
         );

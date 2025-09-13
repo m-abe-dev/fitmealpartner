@@ -57,7 +57,6 @@ export const useNutritionScreen = () => {
   const onRefresh = useCallback(async () => {
     try {
       refreshCountRef.current++;
-      console.log(`🔄 Nutrition refresh #${refreshCountRef.current}`);
       setRefreshing(true);
       
       // 1. データベースから最新の食事ログを再読み込み

@@ -64,11 +64,9 @@ class WorkoutResponseCache {
 
       // 言語が一致しない場合はキャッシュを使わない
       if (parsedCache.language !== (requestData.language || 'en')) {
-        console.log('Language mismatch in workout cache, skipping');
         return null;
       }
 
-      console.log('Workout cache hit for language:', parsedCache.language);
       return parsedCache.response;
     } catch (error) {
       console.error('Workout cache retrieval error:', error);
@@ -92,7 +90,6 @@ class WorkoutResponseCache {
       await AsyncStorage.setItem(cacheKey, JSON.stringify(cacheData));
       await this.cleanupOldCache();
 
-      console.log('Workout response cached for language:', cacheData.language);
     } catch (error) {
       console.error('Workout cache storage error:', error);
     }
@@ -116,9 +113,6 @@ class WorkoutResponseCache {
         }
       }
 
-      console.log(
-        `Cleared workout cache for languages other than: ${excludeLanguage}`
-      );
     } catch (error) {
       console.error('Language-specific workout cache clear error:', error);
     }
@@ -131,7 +125,6 @@ class WorkoutResponseCache {
         key.startsWith(this.CACHE_PREFIX)
       );
       await AsyncStorage.multiRemove(cacheKeys);
-      console.log('All workout cache cleared');
     } catch (error) {
       console.error('Workout cache clear error:', error);
     }
@@ -175,9 +168,6 @@ class WorkoutResponseCache {
 
       if (keysToDelete.length > 0) {
         await AsyncStorage.multiRemove(keysToDelete);
-        console.log(
-          `Cleaned up ${keysToDelete.length} old workout cache entries`
-        );
       }
     } catch (error) {
       console.error('Workout cache cleanup error:', error);

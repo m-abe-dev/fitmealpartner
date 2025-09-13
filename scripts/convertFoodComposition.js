@@ -91,9 +91,7 @@ dataLines.forEach((line, index) => {
   }
 });
 
-console.log(`有効な食品データ: ${validCount}件`);
-console.log('サンプルデータ:');
-console.log(foodData.slice(0, 3));
+// Debug info removed
 
 // JSONファイルとして保存
 const outputPath = path.join(
@@ -102,5 +100,4 @@ const outputPath = path.join(
 );
 fs.writeFileSync(outputPath, JSON.stringify(foodData, null, 2), 'utf-8');
 
-console.log(`✅ 変換完了: ${foodData.length}件の食品データを保存しました`);
-console.log(`保存先: ${outputPath}`);
+// Conversion completed

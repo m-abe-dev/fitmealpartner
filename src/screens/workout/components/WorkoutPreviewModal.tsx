@@ -50,7 +50,6 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
       const dayStr = String(selectedDay).padStart(2, '0');
       const dateString = `${selectedYear}-${monthStr}-${dayStr}`;
 
-      console.log('🔍 Loading workout for date:', dateString);
 
       // セットが存在するセッションのみを取得するように修正
       const session = await DatabaseService.getFirstAsync<any>(
@@ -65,10 +64,8 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
         [dateString]
       );
 
-      console.log('📋 Session with sets found:', session);
 
       if (!session) {
-        console.log('No session with workout sets found for date:', dateString);
         setWorkoutData(null);
         return;
       }
@@ -83,11 +80,9 @@ export const WorkoutPreviewModal: React.FC<WorkoutPreviewModalProps> = ({
         [session.session_id]
       );
 
-      console.log('💪 Workout sets found:', workoutSets?.length);
 
       // ワークアウトセットが存在しない場合はnullを設定
       if (!workoutSets || workoutSets.length === 0) {
-        console.log('No workout sets found for session:', session.session_id);
         setWorkoutData(null);
         return;
       }

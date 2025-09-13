@@ -31,7 +31,6 @@ class NotificationService {
   // 通知権限のリクエスト
   async requestPermissions(): Promise<boolean> {
     if (!Device.isDevice) {
-      console.log('Push notifications work only on physical devices');
       return false;
     }
 
@@ -45,7 +44,6 @@ class NotificationService {
     }
 
     if (finalStatus !== 'granted') {
-      console.log('Failed to get push token for push notification!');
       return false;
     }
 
@@ -101,7 +99,6 @@ class NotificationService {
       throw new Error('通知権限が必要です');
     }
 
-    console.log('通知をスケジュール中:', { title, body, data, trigger });
 
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
@@ -115,7 +112,6 @@ class NotificationService {
       trigger: trigger || null, // nullの場合は即座に通知
     });
 
-    console.log('通知スケジュール成功:', notificationId);
     return notificationId;
   }
 
@@ -125,13 +121,11 @@ class NotificationService {
     await this.cancelProteinReminder();
 
     if (proteinGap <= 0) {
-      console.log('Protein target met, no reminder needed');
       return;
     }
 
     // 現在時刻を確認
     const now = new Date();
-    console.log('現在時刻:', now.toLocaleString('ja-JP'));
 
     // DailyTriggerInputの正しい形式
     const trigger: Notifications.DailyTriggerInput = {
@@ -154,17 +148,10 @@ class NotificationService {
       trigger
     );
 
-    console.log('通知スケジュール完了:', {
-      id: notificationId,
-      時刻: '19:54',
-      タンパク質不足: `${proteinGap}g`,
-    });
 
     // スケジュール済み通知を確認
     const scheduled = await this.getAllScheduledNotifications();
-    console.log('スケジュール済み通知数:', scheduled.length);
     scheduled.forEach(notif => {
-      console.log('通知:', notif.content.title, notif.trigger);
     });
   }
 
@@ -236,7 +223,6 @@ class NotificationService {
     // 通知受信時のリスナー
     this.notificationListener = Notifications.addNotificationReceivedListener(
       notification => {
-        console.log('Notification received:', notification);
         if (onNotificationReceived) {
           onNotificationReceived(notification);
         }
@@ -246,7 +232,6 @@ class NotificationService {
     // 通知タップ時のリスナー
     this.responseListener =
       Notifications.addNotificationResponseReceivedListener(response => {
-        console.log('Notification response:', response);
         if (onNotificationResponse) {
           onNotificationResponse(response);
         }
