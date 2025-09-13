@@ -19,16 +19,25 @@ export const useAIFeedback = () => {
   });
 
   /**
-   * 栄養フィードバックを取得
+   * 栄養フィードバックを取得（additionalContextを追加）
    */
   const getNutritionFeedback = useCallback(async (
     nutrition: NutritionData,
-    profile: UserProfile
+    profile: UserProfile,
+    additionalContext?: {
+      yesterdayData?: any;
+      mealCount?: number;
+      mealTypeData?: any;
+    }
   ): Promise<FeedbackResponse | null> => {
     setState(prev => ({ ...prev, isLoading: true, error: undefined }));
     
     try {
-      const feedback = await AIFeedbackService.getNutritionFeedback(nutrition, profile);
+      const feedback = await AIFeedbackService.getNutritionFeedback(
+        nutrition, 
+        profile,
+        additionalContext
+      );
       
       setState(prev => ({
         ...prev,
@@ -112,11 +121,16 @@ export const useAIFeedback = () => {
   }, [state.lastUpdated]);
 
   /**
-   * 栄養フィードバックをリフレッシュ（キャッシュチェック付き）
+   * 栄養フィードバックをリフレッシュ（additionalContext対応）
    */
   const refreshNutritionFeedback = useCallback(async (
     nutrition: NutritionData,
     profile: UserProfile,
+    additionalContext?: {
+      yesterdayData?: any;
+      mealCount?: number;
+      mealTypeData?: any;
+    },
     forceRefresh: boolean = false
   ): Promise<FeedbackResponse | null> => {
     // フォースリフレッシュでない場合、キャッシュをチェック
@@ -125,7 +139,7 @@ export const useAIFeedback = () => {
       return state.nutritionFeedback;
     }
     
-    return getNutritionFeedback(nutrition, profile);
+    return getNutritionFeedback(nutrition, profile, additionalContext);
   }, [state.nutritionFeedback, isStale, getNutritionFeedback]);
 
   return {

@@ -124,11 +124,18 @@ export class AIFeedbackService {
 
       // 言語設定を取得
       const language = this.getDeviceLanguage();
-
+      
+      console.log('=== AIFeedbackService.getNutritionFeedback Debug ===');
+      console.log('Detected language in service:', language);
+      console.log('Cache key data:', { nutrition: !!nutrition, profile: !!profile, language });
+      
       // キャッシュチェック（言語情報も含める）
       const cached = await NutritionResponseCache.get({ nutrition, profile, language });
       if (cached) {
+        console.log('Using cached nutrition feedback for language:', language);
         return { ...cached, fromCache: true };
+      } else {
+        console.log('No cache found, making API request for language:', language);
       }
 
       // 前回のリクエストから短時間なら待機
@@ -280,15 +287,135 @@ export class AIFeedbackService {
     nutrition: NutritionData
   ): FeedbackResponse {
     const language = this.getDeviceLanguage();
+    console.log('=== Fallback Debug ===');
+    console.log('Language in fallback:', language);
+    
     const proteinGap = Math.max(0, nutrition.targetProtein - nutrition.protein);
-    const calorieGap = Math.max(
-      0,
-      nutrition.targetCalories - nutrition.calories
-    );
-    const proteinAchievement =
-      (nutrition.protein / nutrition.targetProtein) * 100;
+    const calorieGap = Math.max(0, nutrition.targetCalories - nutrition.calories);
+    const proteinAchievement = (nutrition.protein / nutrition.targetProtein) * 100;
 
-    let feedback = language === 'en' ? 'Keep up the great work with tracking!' : '栄養記録お疲れ様です！';
+    // 言語別のフォールバックメッセージ
+    const fallbackMessages = {
+      en: {
+        lowProtein: `You're about ${Math.round(proteinGap)}g short on protein.`,
+        goodProtein: 'Your protein intake looks good!',
+        keepTrack: 'Keep up the great work with tracking!',
+        suggestions: {
+          addProtein: [
+            'Add chicken breast (about 25g protein per 100g)',
+            'Protein shake or Greek yogurt (15-20g)',
+            'Include eggs or tofu (10-15g protein)'
+          ],
+          maintain: [
+            'Keep staying hydrated',
+            'Continue your balanced diet',
+            'Consider meal timing for optimal results'
+          ],
+          addMore: [
+            'Try adding a bit more protein',
+            'Check your calorie balance as well'
+          ]
+        },
+        action: {
+          high: 'Add protein-rich foods to your next meal',
+          medium: 'Add healthy snacks like nuts or fruits for energy',
+          highReason: 'Support muscle recovery and growth',
+          mediumReason: 'Maintain your metabolism'
+        },
+        error: 'Please check your network connection'
+      },
+      es: {
+        lowProtein: `Te faltan aproximadamente ${Math.round(proteinGap)}g de proteína.`,
+        goodProtein: '¡Tu ingesta de proteínas se ve bien!',
+        keepTrack: '¡Excelente trabajo registrando tus comidas!',
+        suggestions: {
+          addProtein: [
+            'Agrega pechuga de pollo (unos 25g de proteína por 100g)',
+            'Batido de proteínas o yogur griego (15-20g)',
+            'Incluye huevos o tofu (10-15g de proteína)'
+          ],
+          maintain: [
+            'Mantente hidratado',
+            'Continúa con tu dieta equilibrada',
+            'Considera el horario de las comidas para resultados óptimos'
+          ],
+          addMore: [
+            'Intenta agregar un poco más de proteína',
+            'Verifica también tu balance calórico'
+          ]
+        },
+        action: {
+          high: 'Agrega alimentos ricos en proteínas a tu próxima comida',
+          medium: 'Agrega snacks saludables como nueces o frutas para energía',
+          highReason: 'Apoya la recuperación y el crecimiento muscular',
+          mediumReason: 'Mantén tu metabolismo'
+        },
+        error: 'Por favor verifica tu conexión a internet'
+      },
+      fr: {
+        lowProtein: `Il vous manque environ ${Math.round(proteinGap)}g de protéines.`,
+        goodProtein: 'Votre apport en protéines semble bon!',
+        keepTrack: 'Excellent travail pour suivre votre alimentation!',
+        suggestions: {
+          addProtein: [
+            'Ajoutez de la poitrine de poulet (environ 25g de protéines pour 100g)',
+            'Shake protéiné ou yaourt grec (15-20g)',
+            'Incluez des œufs ou du tofu (10-15g de protéines)'
+          ],
+          maintain: [
+            'Restez hydraté',
+            'Continuez votre régime équilibré',
+            'Considérez le timing des repas pour des résultats optimaux'
+          ],
+          addMore: [
+            'Essayez d\'ajouter un peu plus de protéines',
+            'Vérifiez aussi votre équilibre calorique'
+          ]
+        },
+        action: {
+          high: 'Ajoutez des aliments riches en protéines à votre prochain repas',
+          medium: 'Ajoutez des collations saines comme des noix ou des fruits pour l\'énergie',
+          highReason: 'Soutient la récupération et la croissance musculaire',
+          mediumReason: 'Maintenez votre métabolisme'
+        },
+        error: 'Veuillez vérifier votre connexion internet'
+      },
+      ja: {
+        lowProtein: `タンパク質が約${Math.round(proteinGap)}g不足しています。`,
+        goodProtein: 'タンパク質の摂取量は良好です！',
+        keepTrack: '栄養記録お疲れ様です！',
+        suggestions: {
+          addProtein: [
+            'サラダチキン（約25g）を追加',
+            'プロテインドリンク（約20g）を飲む',
+            '卵2個（約12g）をプラス'
+          ],
+          maintain: [
+            '水分補給を忘れずに',
+            'バランスの良い食事を継続',
+            '食事の時間も意識してみましょう'
+          ],
+          addMore: [
+            'タンパク質をもう少し増やしましょう',
+            'カロリーバランスも確認してみてください'
+          ]
+        },
+        action: {
+          high: 'サラダチキンまたはプロテインを摂取',
+          medium: 'おにぎりやバナナなどでエネルギー補給',
+          highReason: '筋肉の維持・成長に必要',
+          mediumReason: '基礎代謝の維持'
+        },
+        error: 'ネットワーク接続を確認してください'
+      }
+    };
+
+    // 言語が存在しない場合は英語をデフォルトとする
+    const messages = fallbackMessages[language] || fallbackMessages.en;
+    console.log('Using fallback messages for language:', language);
+    console.log('Messages object exists:', !!messages);
+    
+    let feedback: string;
     const suggestions: string[] = [];
     const actionItems: Array<{
       priority: 'high' | 'medium' | 'low';
@@ -297,83 +424,38 @@ export class AIFeedbackService {
     }> = [];
 
     if (proteinGap > 20) {
-      if (language === 'en') {
-        feedback = `You're about ${Math.round(proteinGap)}g short on protein.`;
-        suggestions.push(
-          'Add chicken breast (about 25g protein per 100g)',
-          'Protein shake or Greek yogurt (15-20g)',
-          'Include eggs or tofu (10-15g protein)'
-        );
-        actionItems.push({
-          priority: 'high',
-          action: 'Add protein-rich foods to your next meal',
-          reason: 'Support muscle recovery and growth',
-        });
-      } else {
-        feedback = `タンパク質が約${Math.round(proteinGap)}g不足しています。`;
-        suggestions.push(
-          'サラダチキン（約25g）を追加',
-          'プロテインドリンク（約20g）を飲む',
-          '卵2個（約12g）をプラス'
-        );
-        actionItems.push({
-          priority: 'high',
-          action: 'サラダチキンまたはプロテインを摂取',
-          reason: '筋肉の維持・成長に必要',
-        });
-      }
+      feedback = messages.lowProtein;
+      suggestions.push(...messages.suggestions.addProtein);
+      actionItems.push({
+        priority: 'high',
+        action: messages.action.high,
+        reason: messages.action.highReason,
+      });
     } else if (proteinAchievement >= 80) {
-      if (language === 'en') {
-        feedback = 'Your protein intake looks good!';
-        suggestions.push(
-          'Keep staying hydrated',
-          'Continue your balanced diet',
-          'Consider meal timing for optimal results'
-        );
-      } else {
-        feedback = 'タンパク質の摂取量は良好です！';
-        suggestions.push(
-          '水分補給を忘れずに',
-          'バランスの良い食事を継続',
-          '食事の時間も意識してみましょう'
-        );
-      }
+      feedback = messages.goodProtein;
+      suggestions.push(...messages.suggestions.maintain);
     } else {
-      if (language === 'en') {
-        suggestions.push(
-          'Try adding a bit more protein',
-          'Check your calorie balance as well'
-        );
-      } else {
-        suggestions.push(
-          'タンパク質をもう少し増やしましょう',
-          'カロリーバランスも確認してみてください'
-        );
-      }
+      feedback = messages.keepTrack;
+      suggestions.push(...messages.suggestions.addMore);
     }
 
     if (calorieGap > 300) {
-      if (language === 'en') {
-        actionItems.push({
-          priority: 'medium',
-          action: 'Add healthy snacks like nuts or fruits for energy',
-          reason: 'Maintain your metabolism',
-        });
-      } else {
-        actionItems.push({
-          priority: 'medium',
-          action: 'おにぎりやバナナなどでエネルギー補給',
-          reason: '基礎代謝の維持',
-        });
-      }
+      actionItems.push({
+        priority: 'medium',
+        action: messages.action.medium,
+        reason: messages.action.mediumReason,
+      });
     }
+
+    console.log('Final fallback feedback:', feedback);
+    console.log('Final fallback suggestions:', suggestions);
 
     return {
       success: false,
       feedback,
       suggestions,
       actionItems,
-      error: language === 'en' ? 'Please check your network connection' : 'ネットワーク接続を確認してください',
+      error: messages.error,
     };
   }
 

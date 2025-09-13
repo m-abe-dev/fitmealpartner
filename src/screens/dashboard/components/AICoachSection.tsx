@@ -96,16 +96,17 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
         console.log(`Language changed from ${currentLanguage} to ${detectedLanguage}`);
         setCurrentLanguage(detectedLanguage);
         
-        // 言語変更時のキャッシュ処理
-        AIFeedbackService.onLanguageChange(detectedLanguage).then(() => {
+        // 言語変更時のキャッシュ処理を強化
+        AIFeedbackService.clearCache().then(() => {
+          console.log('All caches cleared for language change');
           // 新しい言語で再フェッチ
-          if (workoutHistory && workoutHistory.length > 0) {
-            console.log('Re-fetching workout suggestion for new language');
-            fetchWorkoutSuggestion();
-          }
           if (foodLog.length > 0) {
             console.log('Re-fetching nutrition feedback for new language');
             fetchAIFeedback();
+          }
+          if (workoutHistory && workoutHistory.length > 0) {
+            console.log('Re-fetching workout suggestion for new language');
+            fetchWorkoutSuggestion();
           }
         });
       }
@@ -171,6 +172,10 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
   };;
 
   const fetchAIFeedback = async () => {
+    console.log('=== fetchAIFeedback Debug ===');
+    console.log('Current language in fetchAIFeedback:', currentLanguage);
+    console.log('Device language:', getDeviceLanguage());
+    
     // 昨日のデータを取得
     const yesterdayData = await getYesterdayNutritionData();
 
@@ -232,20 +237,19 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
     };
 
     try {
-      const response = await AIFeedbackService.getNutritionFeedback(
+      // refreshNutritionFeedbackにadditionalContextを渡す
+      const response = await refreshNutritionFeedback(
         aiNutritionData,
         aiProfile,
         additionalContext
       );
-      if (response.success && response.feedback) {
-        // AIFeedbackServiceから直接レスポンスを取得した場合の処理
-        // refreshNutritionFeedback は useAIFeedback フックの関数を使用
-        await refreshNutritionFeedback(aiNutritionData, aiProfile);
+      
+      // responseが返ってきた場合は、既に状態が更新されているはず
+      if (response) {
+        console.log('Nutrition feedback updated successfully');
       }
     } catch (error) {
       console.error('Error fetching AI feedback:', error);
-      // フォールバック: 基本的なrefreshを実行
-      await refreshNutritionFeedback(aiNutritionData, aiProfile);
     }
   };
 
@@ -418,7 +422,12 @@ export const AICoachSection: React.FC<AICoachSectionProps> = () => {
               </View>
               <View style={styles.headerRight}>
                 <TouchableOpacity
-                  onPress={fetchAIFeedback}
+                  onPress={async () => {
+                    // デバッグ用：強制的にキャッシュをクリア
+                    await AIFeedbackService.clearCache();
+                    console.log('Cache manually cleared, fetching new feedback');
+                    await fetchAIFeedback();
+                  }}
                   disabled={isLoadingNutrition}
                   style={styles.refreshButton}
                 >

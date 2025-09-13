@@ -29,6 +29,9 @@ class NutritionResponseCache {
         language: data.language || 'en', // 言語設定を追加
       };
       
+      console.log('=== Cache Key Generation Debug ===');
+      console.log('Cache key data:', relevantData);
+      
       const jsonString = JSON.stringify(relevantData);
       const hash = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
@@ -36,7 +39,10 @@ class NutritionResponseCache {
         { encoding: Crypto.CryptoEncoding.HEX }
       );
       
-      return hash.substring(0, 16); // 最初の16文字を使用
+      const finalKey = hash.substring(0, 16);
+      console.log('Generated cache key:', finalKey);
+      
+      return finalKey; // 最初の16文字を使用
     } catch (error) {
       console.error('Error generating cache key:', error);
       return 'fallback_key_' + Date.now();
@@ -48,21 +54,28 @@ class NutritionResponseCache {
    */
   async get(requestData: any): Promise<any | null> {
     try {
+      console.log('=== Cache Get Debug ===');
+      console.log('Request language:', requestData.language);
+      
       const key = await this.generateCacheKey(requestData);
       const cacheKey = `${this.CACHE_PREFIX}${key}`;
       
       const cached = await AsyncStorage.getItem(cacheKey);
-      if (!cached) return null;
+      if (!cached) {
+        console.log('No cache found for key:', cacheKey);
+        return null;
+      }
       
       const parsedCache: NutritionCachedResponse = JSON.parse(cached);
       
       // 有効期限チェック
       if (Date.now() > parsedCache.expiresAt) {
+        console.log('Cache expired, removing');
         await AsyncStorage.removeItem(cacheKey);
         return null;
       }
       
-      console.log('Cache hit for nutrition response');
+      console.log('Cache hit for nutrition response with key:', cacheKey);
       return parsedCache.response;
     } catch (error) {
       console.error('Cache retrieval error:', error);
