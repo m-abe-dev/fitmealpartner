@@ -9,19 +9,30 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#3B82F6"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "com.fitmealpartner.app"
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fitmealpartner.app",
+      "icon": "./assets/icon.png",
+      "buildNumber": "1.0.0"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#10B981"
       },
-      "package": "com.fitmealpartner.app"
+      "package": "com.fitmealpartner.app",
+      "versionCode": 1
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id"
+      }
     }
   }
 }
